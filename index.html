@@ -16,8 +16,31 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid 
 .screen{display:none}.screen.active{display:block}textarea,input,select{width:100%;padding:10px;border:1px solid #d8e0dc;border-radius:8px;margin-top:6px;font:inherit}label{font-size:12px;font-weight:750;display:block;margin-top:12px}
 .toast{position:fixed;left:50%;bottom:75px;transform:translateX(-50%);background:#10201c;color:#fff;padding:11px 14px;border-radius:9px;display:none;font-size:12px}
 </style>
+
+<style>
+#loginOverlay{position:fixed;inset:0;background:#10201c;color:#fff;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}
+.loginBox{width:min(420px,100%);background:#fff;color:#17211e;border-radius:18px;padding:26px;box-shadow:0 20px 60px #0008}
+.loginBox h1{margin:10px 0 4px}.loginBox p{color:#68756f;font-size:13px}
+.loginBox input{width:100%;padding:12px;margin:7px 0 12px;border:1px solid #d8e0dc;border-radius:8px}
+.loginBox button{width:100%;padding:12px;margin-top:8px;border:0;border-radius:9px;background:#10201c;color:white;font-weight:700}
+.loginBox button.demo{background:white;color:#10201c;border:1px solid #d8e0dc}
+</style>
+
 </head>
 <body>
+<div id="loginOverlay">
+  <div class="loginBox">
+    <div style="font-size:12px;font-weight:800;color:#17633f">STALL PARTNERS</div>
+    <h1>STore Automation</h1>
+    <p>Salon Marketing on Autopilot</p>
+    <input id="loginEmail" type="email" placeholder="Email">
+    <input id="loginPassword" type="password" placeholder="Password">
+    <button onclick="storeLogin()">Sign In</button>
+    <button class="demo" onclick="flowDemo()">Use Flow Salon Demo</button>
+    <p id="loginError" style="text-align:center"></p>
+  </div>
+</div>
+
 <header><div class="brand">STore Automation</div><div class="sub">STall Partners • Flow Salon</div></header>
 <main>
 <section id="home" class="screen active">
@@ -64,4 +87,30 @@ function approve(b){b.innerText='Approved ✓';b.disabled=true;b.style.opacity=.
 function toast(t){let x=document.getElementById('toast');x.innerText=t;x.style.display='block';clearTimeout(window.tt);window.tt=setTimeout(()=>x.style.display='none',2200)}
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 </script>
+
+<script>
+function storeLogin(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const password=document.getElementById('loginPassword').value;
+  if(!email || !password){
+    document.getElementById('loginError').innerText='Please enter email and password.';
+    return;
+  }
+  localStorage.setItem('storeLoggedIn','true');
+  localStorage.setItem('storeUser',email);
+  document.getElementById('loginOverlay').style.display='none';
+}
+function flowDemo(){
+  localStorage.setItem('storeLoggedIn','true');
+  localStorage.setItem('storeUser','Flow Salon Owner');
+  document.getElementById('loginOverlay').style.display='none';
+}
+if(localStorage.getItem('storeLoggedIn')==='true'){
+  window.addEventListener('DOMContentLoaded',()=>{
+    const x=document.getElementById('loginOverlay');
+    if(x)x.style.display='none';
+  });
+}
+</script>
+
 </body></html>
