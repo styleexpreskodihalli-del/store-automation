@@ -1,0 +1,10 @@
+{
+  "name": "STore Automation \u2014 STall Partners",
+  "short_name": "STore",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f4f7f5",
+  "theme_color": "#10201c",
+  "description": "Salon marketing automation app for STall Partners.",
+  "icons": []
+}
