@@ -26,6 +26,16 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid 
 .loginBox button.demo{background:white;color:#10201c;border:1px solid #d8e0dc}
 </style>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+const SUPABASE_URL = "https://opgnylgfzfaowjhwzceq.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_4n71N9A3iwsztdsI4wEBTw_12gL65YN";
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY
+);
+</script>
 </head>
 <body>
 <div id="loginOverlay">
@@ -289,22 +299,120 @@ if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 </script>
 
 <script>
-function storeLogin(){
-  const email=document.getElementById('loginEmail').value.trim();
-  const password=document.getElementById('loginPassword').value;
+
+async function storeLogin(){
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const error = document.getElementById('loginError');
+
+  error.innerText = '';
+
   if(!email || !password){
-    document.getElementById('loginError').innerText='Please enter email and password.';
+    error.innerText = 'Please enter email and password.';
     return;
   }
+
+  const { data, error: authError } =
+    await supabaseClient.auth.signInWithPassword({
+      email,
+      password
+    });
+
+  if(authError){
+    error.innerText = authError.message;
+    return;
+  }
+
   localStorage.setItem('storeLoggedIn','true');
   localStorage.setItem('storeUser',email);
+
+  await loadRealUser(data.user);
+
   document.getElementById('loginOverlay').style.display='none';
 }
+
+
+async function loadRealUser(user){
+  const { data, error } = await supabaseClient
+    .from('profiles')
+    .select('id, full_name, role')
+    .eq('id', user.id)
+    .single();
+
+  if(error){
+    console.error('Profile error:', error);
+    return;
+  }
+
+  localStorage.setItem('storeRole', data.role);
+  localStorage.setItem('storeUserName', data.full_name || user.email);
+
+  if(data.role === 'admin'){
+    enableAdmin();
+    show('admin', document.getElementById('adminNav'));
+    return;
+  }
+
+  if(data.role === 'salon_owner'){
+    await loadSalonWorkspace(user.id);
+    show('home');
+  }
+}
+
+async function loadSalonWorkspace(userId){
+  const { data, error } = await supabaseClient
+    .from('salon_members')
+    .select(`
+      role,
+      salons (
+        id,
+        salon_code,
+        name,
+        owner_name,
+        owner_email,
+        phone,
+        whatsapp,
+        address,
+        website,
+        brand_voice,
+        target_audience,
+        automation_enabled,
+        approval_required
+      )
+    `)
+    .eq('user_id', userId);
+
+  if(error){
+    console.error('Salon access error:', error);
+    return;
+  }
+
+  if(data && data.length){
+    const salon = data[0].salons;
+
+    localStorage.setItem(
+      'activeSalon',
+      JSON.stringify(salon)
+    );
+
+    const account = document.getElementById('accountLabel');
+
+    if(account){
+      account.innerText =
+        'Signed in as ' +
+        (salon.owner_name || 'Salon Owner') +
+        ' • ' +
+        salon.name;
+    }
+  }
+}
+
+
 function flowDemo(){
-  localStorage.setItem('storeLoggedIn','true');
-  localStorage.setItem('storeUser','Flow Salon Owner');
-  document.getElementById('loginOverlay').style.display='none';
+  document.getElementById('loginError').innerText =
+    'Demo login has been replaced with real Supabase authentication. Please sign in with your account.';
 }
+
 if(localStorage.getItem('storeLoggedIn')==='true'){
   window.addEventListener('DOMContentLoaded',()=>{
     const x=document.getElementById('loginOverlay');
