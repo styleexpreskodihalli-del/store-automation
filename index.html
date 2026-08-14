@@ -36,7 +36,7 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid 
     <input id="loginEmail" type="email" placeholder="Email">
     <input id="loginPassword" type="password" placeholder="Password">
     <button onclick="storeLogin()">Sign In</button>
-    <button class="demo" onclick="flowDemo()">Use Flow Salon Demo</button>
+    <button class="demo" onclick="flowDemo()">Use Flow Salon Demo</button><button class="demo" onclick="adminDemo()">Use STall Partners Admin Demo</button>
     <p id="loginError" style="text-align:center"></p>
   </div>
 </div>
@@ -72,6 +72,81 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid 
 <div class="item"><b>Anita • WhatsApp</b><div class="muted">Bring-a-Friend • Booked</div></div></div>
 </section>
 
+
+<section id="admin" class="screen">
+<div class="hero">
+<div class="badge">STALL PARTNERS ADMIN</div>
+<h1>Salon Management</h1>
+<div class="muted">Create and manage salons on STore Automation.</div>
+</div>
+
+<div class="card">
+<h2>Add Salon</h2>
+<div class="muted">Create Salon #002 without changing application code.</div>
+
+<label>Salon name
+<input id="newSalonName" placeholder="Salon name">
+</label>
+
+<label>Owner name
+<input id="newOwnerName" placeholder="Owner name">
+</label>
+
+<label>Owner email
+<input id="newOwnerEmail" type="email" placeholder="owner@example.com">
+</label>
+
+<label>Phone / WhatsApp
+<input id="newSalonPhone" placeholder="+91">
+</label>
+
+<label>Location
+<input id="newSalonLocation" placeholder="Area, City, State">
+</label>
+
+<label>Website
+<input id="newSalonWebsite" placeholder="https://">
+</label>
+
+<label>Google Business Profile URL
+<input id="newSalonGoogle" placeholder="https://maps.google.com/...">
+</label>
+
+<label>Instagram
+<input id="newSalonInstagram" placeholder="https://instagram.com/...">
+</label>
+
+<label>WhatsApp number
+<input id="newSalonWhatsapp" placeholder="+91">
+</label>
+
+<label>Services
+<textarea id="newSalonServices" rows="3" placeholder="Haircut, facial, hair spa, nails..."></textarea>
+</label>
+
+<label>Current offers
+<textarea id="newSalonOffers" rows="3" placeholder="Welcome offer; weekend offer..."></textarea>
+</label>
+
+<div class="actions">
+<button onclick="createSalon()">Create Salon</button>
+<button class="secondary" onclick="clearSalonForm()">Clear</button>
+</div>
+
+<div id="createSalonMsg" class="muted" style="margin-top:10px"></div>
+</div>
+
+<div class="card">
+<div class="row">
+<div>
+<h2>Salon Portfolio</h2>
+<div class="muted">Pilot salon database</div>
+</div>
+<span class="badge" id="salonCount">1 SALON</span>
+</div>
+<div id="salonList"></div>
+</div>
+</section>
 <section id="more" class="screen">
 <div class="hero"><h2>STore Automation</h2><div class="muted">One app for salon marketing.</div></div>
 <div class="card"><h3>Automation</h3><div class="item">Daily content generation <span class="badge">ON</span></div><div class="item">Offer engine <span class="badge">ON</span></div><div class="item">Google review assistant <span class="badge">ON</span></div><div class="item">Approval workflow <span class="badge">ON</span></div><div class="item">Auto-publish <span class="badge warn">CONNECT ACCOUNTS</span></div></div>
@@ -79,9 +154,134 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid 
 </section>
 </main>
 <nav>
-<button class="active" onclick="show('home',this)">⌂<br>Home</button><button onclick="show('content',this)">✦<br>Marketing</button><button onclick="show('reviews',this)">★<br>Reviews</button><button onclick="show('leads',this)">●<br>Leads</button><button onclick="show('more',this)">☰<br>More</button>
+<button id="adminNav" style="display:none" onclick="show('admin',this)">◆<br>Admin</button><button class="active" onclick="show('home',this)">⌂<br>Home</button><button onclick="show('content',this)">✦<br>Marketing</button><button onclick="show('reviews',this)">★<br>Reviews</button><button onclick="show('leads',this)">●<br>Leads</button><button onclick="show('more',this)">☰<br>More</button>
 </nav><div id="toast" class="toast"></div>
 <script>
+
+function adminDemo(){
+  localStorage.setItem('storeLoggedIn','true');
+  localStorage.setItem('storeUser','STall Partners Admin');
+  localStorage.setItem('storeRole','admin');
+  document.getElementById('loginOverlay').style.display='none';
+  enableAdmin();
+  show('admin',document.getElementById('adminNav'));
+}
+
+function enableAdmin(){
+  const n=document.getElementById('adminNav');
+  if(n)n.style.display='block';
+  renderSalons();
+}
+
+function createSalon(){
+  const name=document.getElementById('newSalonName').value.trim();
+  const owner=document.getElementById('newOwnerName').value.trim();
+  const email=document.getElementById('newOwnerEmail').value.trim();
+
+  if(!name || !owner || !email){
+    document.getElementById('createSalonMsg').innerText =
+      'Salon name, owner name and email are required.';
+    return;
+  }
+
+  const salons=JSON.parse(
+    localStorage.getItem('storeSalons') || '[]'
+  );
+
+  const id='SALON-' +
+    String(salons.length+2).padStart(3,'0');
+
+  salons.push({
+    id:id,
+    name:name,
+    owner:owner,
+    email:email,
+    phone:document.getElementById('newSalonPhone').value.trim(),
+    location:document.getElementById('newSalonLocation').value.trim(),
+    website:document.getElementById('newSalonWebsite').value.trim(),
+    google:document.getElementById('newSalonGoogle').value.trim(),
+    instagram:document.getElementById('newSalonInstagram').value.trim(),
+    whatsapp:document.getElementById('newSalonWhatsapp').value.trim(),
+    services:document.getElementById('newSalonServices').value.trim(),
+    offers:document.getElementById('newSalonOffers').value.trim(),
+    status:'Active',
+    automation:'On'
+  });
+
+  localStorage.setItem(
+    'storeSalons',
+    JSON.stringify(salons)
+  );
+
+  document.getElementById('createSalonMsg').innerText =
+    id + ' created successfully.';
+
+  clearSalonForm();
+  renderSalons();
+}
+
+function clearSalonForm(){
+  [
+    'newSalonName',
+    'newOwnerName',
+    'newOwnerEmail',
+    'newSalonPhone',
+    'newSalonLocation',
+    'newSalonWebsite',
+    'newSalonGoogle',
+    'newSalonInstagram',
+    'newSalonWhatsapp',
+    'newSalonServices',
+    'newSalonOffers'
+  ].forEach(function(id){
+    const e=document.getElementById(id);
+    if(e)e.value='';
+  });
+}
+
+function renderSalons(){
+  const base={
+    id:'SALON-001',
+    name:'Flow Salon',
+    owner:'Flow Salon Owner',
+    email:'owner@flowsalon.com',
+    location:'Thubarahalli, Whitefield, Bengaluru',
+    status:'Active',
+    automation:'On'
+  };
+
+  const extra=JSON.parse(
+    localStorage.getItem('storeSalons') || '[]'
+  );
+
+  const salons=[base].concat(extra);
+
+  const list=document.getElementById('salonList');
+  const count=document.getElementById('salonCount');
+
+  if(count){
+    count.innerText =
+      salons.length + ' SALON' +
+      (salons.length===1 ? '' : 'S');
+  }
+
+  if(list){
+    list.innerHTML=salons.map(function(x){
+      return '<div class="item">' +
+        '<b>' + x.id + ' — ' + x.name + '</b>' +
+        '<div class="muted">' +
+        x.owner + ' • ' +
+        (x.location || 'Location not set') +
+        '</div>' +
+        '<div class="actions">' +
+        '<span class="badge">' + x.status + '</span>' +
+        '<span class="badge">' + x.automation + ' Automation</span>' +
+        '<button class="secondary" onclick="toast(\'Opening workspace\')">Open Workspace</button>' +
+        '</div></div>';
+    }).join('');
+  }
+}
+
 function show(id,btn){document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));if(btn)btn.classList.add('active')}
 function approve(b){b.innerText='Approved ✓';b.disabled=true;b.style.opacity=.6;toast('Approved and queued for publishing')}
 function toast(t){let x=document.getElementById('toast');x.innerText=t;x.style.display='block';clearTimeout(window.tt);window.tt=setTimeout(()=>x.style.display='none',2200)}
