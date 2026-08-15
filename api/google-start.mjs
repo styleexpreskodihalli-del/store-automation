@@ -117,10 +117,12 @@ export default {
         scope: 'https://www.googleapis.com/auth/business.manage'
       });
 
-      return Response.redirect(
-        `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`,
-        302
-      );
+      const authorizationUrl =
+        `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+
+      return json({
+        authorizationUrl
+      });
 
     } catch (error) {
       console.error('Google start error:', error);
