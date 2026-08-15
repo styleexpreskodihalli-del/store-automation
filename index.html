@@ -259,7 +259,7 @@ Connect Google Business
 </section>
 </main>
 <nav>
-<button id="adminNav" style="display:none" onclick="show('admin',this)">◆<br>Admin</button><button class="active" onclick="show('home',this)">⌂<br>Home</button><button onclick="show('content',this)">✦<br>Marketing</button><button onclick="show('reviews',this)">★<br>Reviews</button><button onclick="show('leads',this)">●<br>Leads</button><button onclick="show('more',this)">☰<br>More</button>
+<button id="adminNav" style="display:none" onclick="show('admin',this)">◆<br>Admin</button><button onclick="logoutStore()">↪<br>Logout</button><button class="active" onclick="show('home',this)">⌂<br>Home</button><button onclick="show('content',this)">✦<br>Marketing</button><button onclick="show('reviews',this)">★<br>Reviews</button><button onclick="show('leads',this)">●<br>Leads</button><button onclick="show('more',this)">☰<br>More</button>
 </nav><div id="toast" class="toast"></div>
 <script>
 
@@ -841,17 +841,60 @@ async function loadSalonWorkspace(userId){
 }
 
 
+
+async function logoutStore(){
+  try {
+    const { error } = await supabaseClient.auth.signOut();
+
+    if(error){
+      console.error('Logout error:', error);
+    }
+  } catch(error) {
+    console.error('Logout exception:', error);
+  }
+
+  localStorage.removeItem('storeLoggedIn');
+  localStorage.removeItem('storeUser');
+  localStorage.removeItem('storeRole');
+  localStorage.removeItem('storeUserName');
+
+  document.querySelectorAll('.screen').forEach(x => {
+    x.classList.remove('active');
+  });
+
+  const loginOverlay = document.getElementById('loginOverlay');
+  if(loginOverlay){
+    loginOverlay.style.display = 'flex';
+  }
+
+  const forgotOverlay = document.getElementById('forgotOverlay');
+  if(forgotOverlay){
+    forgotOverlay.style.display = 'none';
+  }
+
+  const resetOverlay = document.getElementById('resetOverlay');
+  if(resetOverlay){
+    resetOverlay.style.display = 'none';
+  }
+
+  const loginEmail = document.getElementById('loginEmail');
+  const loginPassword = document.getElementById('loginPassword');
+
+  if(loginEmail) loginEmail.value = '';
+  if(loginPassword) loginPassword.value = '';
+
+  const loginError = document.getElementById('loginError');
+  if(loginError) loginError.innerText = '';
+
+  toast('Logged out successfully');
+}
+
 function flowDemo(){
   document.getElementById('loginError').innerText =
     'Demo login has been replaced with real Supabase authentication. Please sign in with your account.';
 }
 
-if(localStorage.getItem('storeLoggedIn')==='true'){
-  window.addEventListener('DOMContentLoaded',()=>{
-    const x=document.getElementById('loginOverlay');
-    if(x)x.style.display='none';
-  });
-}
+
 </script>
 
 </body></html>
