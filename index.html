@@ -306,51 +306,116 @@ function enableAdmin(){
   renderSalons();
 }
 
-function createSalon(){
-  const name=document.getElementById('newSalonName').value.trim();
-  const owner=document.getElementById('newOwnerName').value.trim();
-  const email=document.getElementById('newOwnerEmail').value.trim();
+async function createSalon(){
+  const name =
+    document.getElementById('newSalonName').value.trim();
+
+  const owner =
+    document.getElementById('newOwnerName').value.trim();
+
+  const email =
+    document.getElementById('newOwnerEmail').value.trim();
+
+  const message =
+    document.getElementById('createSalonMsg');
 
   if(!name || !owner || !email){
-    document.getElementById('createSalonMsg').innerText =
+    message.innerText =
       'Salon name, owner name and email are required.';
     return;
   }
 
-  const salons=JSON.parse(
-    localStorage.getItem('storeSalons') || '[]'
-  );
+  message.innerText =
+    'Creating salon and inviting owner...';
 
-  const id='SALON-' +
-    String(salons.length+2).padStart(3,'0');
+  try {
+    const { data, error } =
+      await supabaseClient.auth.getSession();
 
-  salons.push({
-    id:id,
-    name:name,
-    owner:owner,
-    email:email,
-    phone:document.getElementById('newSalonPhone').value.trim(),
-    location:document.getElementById('newSalonLocation').value.trim(),
-    website:document.getElementById('newSalonWebsite').value.trim(),
-    google:document.getElementById('newSalonGoogle').value.trim(),
-    instagram:document.getElementById('newSalonInstagram').value.trim(),
-    whatsapp:document.getElementById('newSalonWhatsapp').value.trim(),
-    services:document.getElementById('newSalonServices').value.trim(),
-    offers:document.getElementById('newSalonOffers').value.trim(),
-    status:'Active',
-    automation:'On'
-  });
+    if(error || !data.session){
+      message.innerText =
+        'Your STall admin session has expired. Please log in again.';
+      return;
+    }
 
-  localStorage.setItem(
-    'storeSalons',
-    JSON.stringify(salons)
-  );
+    const response =
+      await fetch('/api/create-salon-owner', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization:
+            `Bearer ${data.session.access_token}`
+        },
+        body: JSON.stringify({
+          name,
+          owner_name: owner,
+          owner_email: email,
 
-  document.getElementById('createSalonMsg').innerText =
-    id + ' created successfully.';
+          phone:
+            document.getElementById(
+              'newSalonPhone'
+            ).value.trim(),
 
-  clearSalonForm();
-  renderSalons();
+          whatsapp:
+            document.getElementById(
+              'newSalonWhatsapp'
+            ).value.trim(),
+
+          address:
+            document.getElementById(
+              'newSalonLocation'
+            ).value.trim(),
+
+          website:
+            document.getElementById(
+              'newSalonWebsite'
+            ).value.trim(),
+
+          google_business_url:
+            document.getElementById(
+              'newSalonGoogle'
+            ).value.trim(),
+
+          instagram_url:
+            document.getElementById(
+              'newSalonInstagram'
+            ).value.trim()
+        })
+      });
+
+    const result =
+      await response.json().catch(() => ({}));
+
+    if(!response.ok){
+      console.error(
+        'Create salon owner error:',
+        result
+      );
+
+      message.innerText =
+        result.error ||
+        'Unable to create salon and owner account.';
+
+      return;
+    }
+
+    message.innerText =
+      `${result.salon_code} created successfully. ` +
+      `Owner invitation sent to ${result.owner_email}.`;
+
+    clearSalonForm();
+
+    renderSalons();
+
+  } catch(error) {
+    console.error(
+      'Create salon exception:',
+      error
+    );
+
+    message.innerText =
+      'Unable to create salon and owner account.';
+  }
 }
 
 function clearSalonForm(){
