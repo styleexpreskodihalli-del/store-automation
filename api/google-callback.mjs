@@ -226,7 +226,9 @@ export default {
         refresh_token: tokenData.refresh_token,
         token_expires_at: tokenExpiresAt,
         scope: tokenData.scope || null,
-        connection_status: 'connected',
+        connection_status: 'owner_authorized',
+        owner_authorized_at: new Date().toISOString(),
+        store_manager_invitation_status: 'not_started',
         last_error: null,
         updated_at: new Date().toISOString()
       };
