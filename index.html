@@ -646,8 +646,9 @@ async function getActiveSalonId(){
 
   const {data,error}=await supabaseClient
     .from('salon_members')
-    .select('salon_id')
+    .select('salon_id,created_at')
     .eq('user_id',sessionData.session.user.id)
+    .order('created_at',{ascending:false})
     .limit(1)
     .single();
 
@@ -1312,7 +1313,8 @@ async function loadSalonWorkspace(userId){
         approval_required
       )
     `)
-    .eq('user_id', userId);
+    .eq('user_id', userId)
+    .order('created_at',{ascending:false});
 
   if(error){
     console.error('Salon access error:', error);
