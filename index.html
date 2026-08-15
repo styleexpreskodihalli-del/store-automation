@@ -201,7 +201,16 @@ const supabaseClient = window.supabase.createClient(
 <label>WhatsApp<input id="profileWhatsapp"></label>
 <label>Address<textarea id="profileAddress" rows="3"></textarea></label>
 <label>Website<input id="profileWebsite"></label>
-<label>Google Business Profile<input id="profileGoogle"></label>
+<label>Google Business Profile
+<input id="profileGoogle">
+</label>
+
+<div style="margin-top:10px">
+<button type="button" onclick="connectGoogleBusiness()">
+Connect Google Business
+</button>
+<span id="googleConnectionStatus" class="muted"></span>
+</div>
 <label>Instagram<input id="profileInstagram"></label>
 <label>Facebook<input id="profileFacebook"></label>
 <label>Brand Voice<input id="profileBrandVoice"></label>
@@ -555,6 +564,45 @@ async function getActiveSalonId(){
   }
 
   return data.salon_id;
+}
+
+
+async function connectGoogleBusiness(){
+  try {
+    const { data, error } = await supabaseClient.auth.getSession();
+
+    if(error || !data.session){
+      toast('Please log in again.');
+      return;
+    }
+
+    const response = await fetch('/api/google-start', {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${data.session.access_token}`
+      }
+    });
+
+    if(!response.ok){
+      const result = await response.json().catch(() => ({}));
+      console.error('Google start error:', result);
+      toast(result.error || 'Unable to connect Google Business');
+      return;
+    }
+
+    const location = response.headers.get('location');
+
+    if(!location){
+      toast('Google authorization URL was not returned.');
+      return;
+    }
+
+    window.location.href = location;
+
+  } catch(error) {
+    console.error('Google connection error:', error);
+    toast('Unable to start Google connection.');
+  }
 }
 
 async function loadSalonWorkspaceData(){
