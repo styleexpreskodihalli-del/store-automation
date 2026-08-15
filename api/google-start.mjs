@@ -111,7 +111,7 @@ export default {
         redirect_uri: redirectUri,
         response_type: 'code',
         access_type: 'offline',
-        prompt: 'consent',
+        prompt: 'select_account consent',
         include_granted_scopes: 'true',
         state,
         scope: 'openid email https://www.googleapis.com/auth/business.manage'
