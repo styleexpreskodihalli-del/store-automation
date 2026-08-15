@@ -153,6 +153,47 @@ export default {
         );
       }
 
+      /*
+       * Identify the Google account that authorized STore Automation.
+       * This is the OAuth identity only; it is NOT used to select
+       * a Business Profile.
+       */
+      let googleAccountId = null;
+      let googleAccountEmail = null;
+
+      if (tokenData.access_token) {
+        const userInfoResponse = await fetch(
+          'https://openidconnect.googleapis.com/v1/userinfo',
+          {
+            headers: {
+              Authorization: `Bearer ${tokenData.access_token}`
+            }
+          }
+        );
+
+        const userInfo = await userInfoResponse.json();
+
+        if (!userInfoResponse.ok) {
+          console.error(
+            'Google user identity lookup failed:',
+            userInfo.error || userInfo
+          );
+
+          return html(
+            400,
+            '<h2>Unable to identify the Google account.</h2><p>Please reconnect Google Business.</p>'
+          );
+        }
+
+        googleAccountId = userInfo.sub || null;
+        googleAccountEmail = userInfo.email || null;
+      }
+
+      console.log(
+        'Google OAuth account:',
+        googleAccountEmail || 'email unavailable'
+      );
+
       if (!tokenData.refresh_token) {
         console.error('Google did not return a refresh token');
 
@@ -179,6 +220,8 @@ export default {
        */
       const connection = {
         salon_id: salonId,
+        google_account_id: googleAccountId,
+        google_account_email: googleAccountEmail,
         access_token: tokenData.access_token || null,
         refresh_token: tokenData.refresh_token,
         token_expires_at: tokenExpiresAt,
