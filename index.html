@@ -216,6 +216,29 @@ Discover Google Business Profile
 </div>
 
 <div id="googleLocationsPanel" style="display:none;margin-top:12px"></div>
+<div id="googleStoreAccessPanel"
+     style="display:none;margin-top:12px;padding:14px;border:1px solid #ddd;border-radius:8px">
+
+  <h4>STore Google Access</h4>
+
+  <div id="googleStoreAccessStatus" class="muted">
+    Google Business Profile selected.
+  </div>
+
+  <div class="muted" style="margin-top:6px">
+    STore will request Manager access to this specific Google Business Profile.
+    The business owner must accept the invitation before STore can manage it.
+  </div>
+
+  <div class="actions" style="margin-top:10px">
+    <button type="button"
+            id="sendStoreGoogleInvitationButton"
+            onclick="sendStoreGoogleInvitation()">
+      Send STore Access Invitation
+    </button>
+  </div>
+
+</div>
 <label>Instagram<input id="profileInstagram"></label>
 <label>Facebook<input id="profileFacebook"></label>
 <label>Brand Voice<input id="profileBrandVoice"></label>
@@ -828,6 +851,40 @@ async function selectGoogleBusinessLocation(
       panel.innerHTML = '';
     }
 
+    /*
+     * Listing selection is complete.
+     * STore still needs Manager access from the owner.
+     */
+    const accessPanel =
+      document.getElementById(
+        'googleStoreAccessPanel'
+      );
+
+    if(accessPanel){
+      accessPanel.style.display = 'block';
+    }
+
+    const accessStatus =
+      document.getElementById(
+        'googleStoreAccessStatus'
+      );
+
+    if(accessStatus){
+      accessStatus.innerText =
+        '✓ Listing selected. STore access has not yet been granted.';
+    }
+
+    const accessButton =
+      document.getElementById(
+        'sendStoreGoogleInvitationButton'
+      );
+
+    if(accessButton){
+      accessButton.disabled = false;
+      accessButton.innerText =
+        'Send STore Access Invitation';
+    }
+
     await loadSalonWorkspaceData();
 
   } catch(error) {
@@ -839,6 +896,147 @@ async function selectGoogleBusinessLocation(
     if(status){
       status.innerText =
         'Unable to save Google Business Profile.';
+    }
+  }
+}
+
+
+async function sendStoreGoogleInvitation(){
+
+  const status =
+    document.getElementById('googleStoreAccessStatus');
+
+  const button =
+    document.getElementById(
+      'sendStoreGoogleInvitationButton'
+    );
+
+  if(status){
+    status.innerText =
+      'Sending STore Google access invitation...';
+  }
+
+  if(button){
+    button.disabled = true;
+    button.innerText = 'Sending...';
+  }
+
+  try {
+
+    const { data, error } =
+      await supabaseClient.auth.getSession();
+
+    if(error || !data.session){
+
+      if(status){
+        status.innerText =
+          'Please log in again.';
+      }
+
+      if(button){
+        button.disabled = false;
+        button.innerText =
+          'Send STore Access Invitation';
+      }
+
+      return;
+    }
+
+    const salonId =
+      await getActiveSalonId();
+
+    if(!salonId){
+
+      if(status){
+        status.innerText =
+          'Unable to determine the active salon.';
+      }
+
+      if(button){
+        button.disabled = false;
+        button.innerText =
+          'Send STore Access Invitation';
+      }
+
+      return;
+    }
+
+    const response =
+      await fetch(
+        '/api/google-invite-manager',
+        {
+          method: 'POST',
+
+          headers: {
+            'content-type':
+              'application/json',
+
+            Authorization:
+              `Bearer ${data.session.access_token}`
+          },
+
+          body: JSON.stringify({
+            salon_id: salonId
+          })
+        }
+      );
+
+    const result =
+      await response.json().catch(
+        () => ({})
+      );
+
+    if(!response.ok){
+
+      console.error(
+        'Google manager invitation error:',
+        result
+      );
+
+      if(status){
+        status.innerText =
+          result.error ||
+          'Unable to send STore access invitation.';
+      }
+
+      if(button){
+        button.disabled = false;
+        button.innerText =
+          'Send STore Access Invitation';
+      }
+
+      return;
+    }
+
+    if(status){
+      status.innerText =
+        `⏳ Invitation sent to ${
+          result.store_manager_email ||
+          'STore Google account'
+        }. Waiting for the owner to accept.`;
+    }
+
+    if(button){
+      button.disabled = true;
+      button.innerText = 'Invitation Sent';
+    }
+
+  } catch(error){
+
+    console.error(
+      'Google manager invitation exception:',
+      error
+    );
+
+    if(status){
+      status.innerText =
+        'Unable to send STore access invitation.';
+    }
+
+    if(button){
+      button.disabled = false;
+      button.innerText =
+        'Send STore Access Invitation';
     }
   }
 }
