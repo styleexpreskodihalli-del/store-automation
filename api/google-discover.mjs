@@ -334,9 +334,117 @@ export default {
       }
 
       /*
+       * Also discover indirectly owned/managed locations.
+       *
+       * Google supports accounts/-/locations specifically for
+       * locations accessible through groups or other indirect
+       * account relationships.
+       *
+       * Keep the existing account-based discovery above because
+       * it provides useful account metadata. This additional
+       * request expands discovery without changing the salon
+       * selection logic.
+       */
+      {
+        let pageToken = null;
+
+        do {
+          const wildcardLocationUrl =
+            new URL(
+              'https://mybusinessbusinessinformation.googleapis.com/v1/accounts/-/locations'
+            );
+
+          wildcardLocationUrl.searchParams.set(
+            'readMask',
+            [
+              'name',
+              'title',
+              'storeCode',
+              'phoneNumbers',
+              'websiteUri',
+              'storefrontAddress'
+            ].join(',')
+          );
+
+          wildcardLocationUrl.searchParams.set('pageSize', '100');
+
+          if (pageToken) {
+            wildcardLocationUrl.searchParams.set(
+              'pageToken',
+              pageToken
+            );
+          }
+
+          const wildcardResponse = await fetch(
+            wildcardLocationUrl.toString(),
+            {
+              headers: {
+                Authorization: `Bearer ${accessToken}`
+              }
+            }
+          );
+
+          const wildcardData =
+            await wildcardResponse.json();
+
+          if (!wildcardResponse.ok) {
+            console.error(
+              'Google wildcard locations.list failed:',
+              wildcardData
+            );
+
+            break;
+          }
+
+          for (const location of wildcardData.locations || []) {
+            locations.push({
+              account_name: 'accounts/-',
+              account_display_name: 'Indirect / group access',
+              account_type: null,
+
+              location_id: location.name || null,
+              location_name: location.title || null,
+              store_code: location.storeCode || null,
+
+              phone:
+                location.phoneNumbers?.primaryPhone || null,
+
+              website:
+                location.websiteUri || null,
+
+              address:
+                formatAddress(location.storefrontAddress),
+
+              raw_name:
+                location.name || null
+            });
+          }
+
+          pageToken =
+            wildcardData.nextPageToken || null;
+
+        } while (pageToken);
+      }
+
+      /*
+       * Remove duplicate locations returned by both direct
+       * account discovery and wildcard discovery.
+       */
+      const uniqueLocations = Array.from(
+        new Map(
+          locations
+            .filter(location => location.location_id)
+            .map(location => [
+              location.location_id,
+              location
+            ])
+        ).values()
+      );
+
+      /*
        * Match the discovered locations against the salon.
        */
-      const rankedLocations = locations
+      const rankedLocations = uniqueLocations
         .map(location => ({
           ...location,
           match_score: matchLocation(salon, location)
