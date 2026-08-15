@@ -209,8 +209,13 @@ const supabaseClient = window.supabase.createClient(
 <button type="button" onclick="connectGoogleBusiness()">
 Connect Google Business
 </button>
+<button type="button" class="secondary" onclick="discoverGoogleBusiness()">
+Discover Google Business Profile
+</button>
 <span id="googleConnectionStatus" class="muted"></span>
 </div>
+
+<div id="googleLocationsPanel" style="display:none;margin-top:12px"></div>
 <label>Instagram<input id="profileInstagram"></label>
 <label>Facebook<input id="profileFacebook"></label>
 <label>Brand Voice<input id="profileBrandVoice"></label>
@@ -602,6 +607,239 @@ async function connectGoogleBusiness(){
   } catch(error) {
     console.error('Google connection error:', error);
     toast('Unable to start Google connection.');
+  }
+}
+
+
+async function discoverGoogleBusiness(){
+  const status = document.getElementById('googleConnectionStatus');
+  const panel = document.getElementById('googleLocationsPanel');
+
+  if(status){
+    status.innerText = 'Discovering Google Business locations...';
+  }
+
+  if(panel){
+    panel.style.display = 'none';
+    panel.innerHTML = '';
+  }
+
+  try {
+    const { data, error } =
+      await supabaseClient.auth.getSession();
+
+    if(error || !data.session){
+      if(status) status.innerText = 'Please log in again.';
+      return;
+    }
+
+    const response = await fetch('/api/google-discover', {
+      method: 'GET',
+      headers: {
+        Authorization:
+          `Bearer ${data.session.access_token}`
+      }
+    });
+
+    const result =
+      await response.json().catch(() => ({}));
+
+    if(!response.ok){
+      console.error('Google discovery error:', result);
+
+      if(status){
+        status.innerText =
+          result.error ||
+          'Unable to discover Google Business locations.';
+      }
+
+      return;
+    }
+
+    if(status){
+      status.innerText =
+        `${result.locations_found || 0} Google Business location(s) found.`;
+    }
+
+    if(!result.locations || !result.locations.length){
+      if(panel){
+        panel.style.display = 'block';
+        panel.innerHTML =
+          '<div class="muted">No Google Business locations were found for this Google account.</div>';
+      }
+      return;
+    }
+
+    if(panel){
+      panel.style.display = 'block';
+
+      const heading =
+        document.createElement('h4');
+
+      heading.innerText =
+        'Select your Google Business Profile';
+
+      panel.appendChild(heading);
+
+      result.locations.forEach((location, index) => {
+        const card =
+          document.createElement('div');
+
+        card.style.marginBottom = '10px';
+        card.style.padding = '12px';
+        card.style.border = '1px solid #ddd';
+        card.style.borderRadius = '8px';
+
+        const title =
+          document.createElement('strong');
+
+        title.innerText =
+          location.location_name ||
+          'Unnamed Google Business Profile';
+
+        card.appendChild(title);
+
+        const details =
+          document.createElement('div');
+
+        details.className = 'muted';
+
+        details.style.marginTop = '5px';
+
+        details.innerText =
+          [
+            location.address,
+            location.phone,
+            location.website,
+            `Match score: ${location.match_score || 0}%`
+          ]
+          .filter(Boolean)
+          .join(' • ');
+
+        card.appendChild(details);
+
+        const button =
+          document.createElement('button');
+
+        button.type = 'button';
+        button.style.marginTop = '8px';
+
+        button.innerText =
+          'Use this Google Business Profile';
+
+        button.onclick = () =>
+          selectGoogleBusinessLocation(
+            result.salon.id,
+            location
+          );
+
+        card.appendChild(button);
+
+        panel.appendChild(card);
+      });
+    }
+
+  } catch(error) {
+    console.error(
+      'Google discovery exception:',
+      error
+    );
+
+    if(status){
+      status.innerText =
+        'Unable to discover Google Business locations.';
+    }
+  }
+}
+
+async function selectGoogleBusinessLocation(
+  salonId,
+  location
+){
+  const status =
+    document.getElementById(
+      'googleConnectionStatus'
+    );
+
+  try {
+    const { data, error } =
+      await supabaseClient.auth.getSession();
+
+    if(error || !data.session){
+      if(status) status.innerText =
+        'Please log in again.';
+      return;
+    }
+
+    const response =
+      await fetch(
+        '/api/google-select-location',
+        {
+          method: 'POST',
+
+          headers: {
+            'content-type':
+              'application/json',
+
+            Authorization:
+              `Bearer ${data.session.access_token}`
+          },
+
+          body: JSON.stringify({
+            salon_id: salonId,
+            business_account_id:
+              location.account_name,
+            business_location_id:
+              location.location_id,
+            business_location_name:
+              location.location_name
+          })
+        }
+      );
+
+    const result =
+      await response.json().catch(() => ({}));
+
+    if(!response.ok){
+      console.error(
+        'Google location selection error:',
+        result
+      );
+
+      if(status) status.innerText =
+        result.error ||
+        'Unable to save Google Business Profile.';
+
+      return;
+    }
+
+    if(status){
+      status.innerText =
+        '✓ Google Business Profile selected.';
+    }
+
+    const panel =
+      document.getElementById(
+        'googleLocationsPanel'
+      );
+
+    if(panel){
+      panel.style.display = 'none';
+      panel.innerHTML = '';
+    }
+
+    await loadSalonWorkspaceData();
+
+  } catch(error) {
+    console.error(
+      'Google location selection exception:',
+      error
+    );
+
+    if(status){
+      status.innerText =
+        'Unable to save Google Business Profile.';
+    }
   }
 }
 
