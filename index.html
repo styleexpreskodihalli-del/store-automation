@@ -38,6 +38,30 @@ const supabaseClient = window.supabase.createClient(
 </script>
 </head>
 <body>
+<div id="forgotOverlay" style="display:none;position:fixed;inset:0;background:#10201c;color:#fff;z-index:10000;align-items:center;justify-content:center;padding:20px">
+  <div class="loginBox">
+    <div style="font-size:12px;font-weight:800;color:#17633f">STALL PARTNERS</div>
+    <h1>Forgot Password?</h1>
+    <p>Enter your account email and we'll send you a secure password reset link.</p>
+    <input id="forgotEmail" type="email" placeholder="Email address">
+    <button onclick="sendPasswordReset()">Send Reset Link</button>
+    <button class="demo" onclick="closeForgotPassword()">Back to Login</button>
+    <p id="forgotMessage" style="text-align:center"></p>
+  </div>
+</div>
+
+<div id="resetOverlay" style="display:none;position:fixed;inset:0;background:#10201c;color:#fff;z-index:10001;align-items:center;justify-content:center;padding:20px">
+  <div class="loginBox">
+    <div style="font-size:12px;font-weight:800;color:#17633f">STALL PARTNERS</div>
+    <h1>Set New Password</h1>
+    <p>Choose a new password for your STore Automation account.</p>
+    <input id="newPassword" type="password" placeholder="New password">
+    <input id="confirmPassword" type="password" placeholder="Confirm new password">
+    <button onclick="updatePassword()">Update Password</button>
+    <p id="resetMessage" style="text-align:center"></p>
+  </div>
+</div>
+
 <div id="loginOverlay">
   <div class="loginBox">
     <div style="font-size:12px;font-weight:800;color:#17633f">STALL PARTNERS</div>
@@ -46,6 +70,8 @@ const supabaseClient = window.supabase.createClient(
     <input id="loginEmail" type="email" placeholder="Email">
     <input id="loginPassword" type="password" placeholder="Password">
     <button onclick="storeLogin()">Sign In</button>
+    <button id="forgotPasswordLink" class="demo" onclick="showForgotPassword()">Forgot Password?</button>
+    
     <button class="demo" onclick="flowDemo()">Use Flow Salon Demo</button><button class="demo" onclick="adminDemo()">Use STall Partners Admin Demo</button>
     <p id="loginError" style="text-align:center"></p>
   </div>
@@ -299,6 +325,97 @@ if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 </script>
 
 <script>
+
+
+function showForgotPassword(){
+  document.getElementById('loginOverlay').style.display='none';
+  document.getElementById('forgotOverlay').style.display='flex';
+
+  const loginEmail = document.getElementById('loginEmail').value.trim();
+  if(loginEmail){
+    document.getElementById('forgotEmail').value = loginEmail;
+  }
+}
+
+function closeForgotPassword(){
+  document.getElementById('forgotOverlay').style.display='none';
+  document.getElementById('loginOverlay').style.display='flex';
+}
+
+async function sendPasswordReset(){
+  const email = document.getElementById('forgotEmail').value.trim();
+  const message = document.getElementById('forgotMessage');
+
+  message.innerText = '';
+
+  if(!email){
+    message.innerText = 'Please enter your email address.';
+    return;
+  }
+
+  const { error } = await supabaseClient.auth.resetPasswordForEmail(
+    email,
+    {
+      redirectTo: 'https://store-automation.vercel.app'
+    }
+  );
+
+  if(error){
+    console.error('Password reset error:', error);
+    message.innerText = error.message;
+    return;
+  }
+
+  message.innerText =
+    'Reset link sent. Check your email and open the link to continue.';
+}
+
+function showResetPassword(){
+  document.getElementById('loginOverlay').style.display='none';
+  document.getElementById('forgotOverlay').style.display='none';
+  document.getElementById('resetOverlay').style.display='flex';
+}
+
+async function updatePassword(){
+  const password = document.getElementById('newPassword').value;
+  const confirm = document.getElementById('confirmPassword').value;
+  const message = document.getElementById('resetMessage');
+
+  message.innerText = '';
+
+  if(!password || password.length < 8){
+    message.innerText = 'Password must be at least 8 characters.';
+    return;
+  }
+
+  if(password !== confirm){
+    message.innerText = 'Passwords do not match.';
+    return;
+  }
+
+  const { error } = await supabaseClient.auth.updateUser({
+    password: password
+  });
+
+  if(error){
+    console.error('Password update error:', error);
+    message.innerText = error.message;
+    return;
+  }
+
+  message.innerText = 'Password updated successfully. Returning to login...';
+
+  setTimeout(async () => {
+    await supabaseClient.auth.signOut();
+    location.reload();
+  }, 1800);
+}
+
+supabaseClient.auth.onAuthStateChange(async (event, session) => {
+  if(event === 'PASSWORD_RECOVERY'){
+    showResetPassword();
+  }
+});
 
 async function storeLogin(){
   const email = document.getElementById('loginEmail').value.trim();
