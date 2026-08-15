@@ -189,7 +189,7 @@ export default {
           {
             access_token: accessToken,
             token_expires_at: newExpiresAt,
-            connection_status: 'connected',
+            connection_status: 'owner_authorized',
             last_error: null,
             updated_at: new Date().toISOString()
           }
@@ -273,7 +273,7 @@ export default {
           locationData.title ||
           body.business_location_name ||
           null,
-        connection_status: 'connected',
+        connection_status: 'location_selected',
         last_error: null,
         last_synced_at:
           new Date().toISOString(),
