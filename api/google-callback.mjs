@@ -1,59 +1,140 @@
+import crypto from 'node:crypto';
+
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI;
+
 export default {
   async fetch(request) {
     try {
       const url = new URL(request.url);
-      const code = url.searchParams.get("code");
-      const error = url.searchParams.get("error");
+
+      const code = url.searchParams.get('code');
+      const state = url.searchParams.get('state');
+      const error = url.searchParams.get('error');
 
       if (error) {
-        return new Response(
-          `<h2>Google authorization failed</h2><p>${escapeHtml(error)}</p>`,
-          {
-            status: 400,
-            headers: { "content-type": "text/html; charset=utf-8" }
-          }
+        return html(
+          400,
+          `<h2>Google authorization failed</h2><p>${escapeHtml(error)}</p>`
         );
       }
 
-      if (!code) {
-        return new Response(
-          "<h2>Missing Google authorization code.</h2>",
-          {
-            status: 400,
-            headers: { "content-type": "text/html; charset=utf-8" }
-          }
+      if (!code || !state) {
+        return html(
+          400,
+          '<h2>Missing Google authorization code or state.</h2>'
         );
       }
 
-      const clientId = process.env.GOOGLE_CLIENT_ID;
-      const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-      const redirectUri = process.env.GOOGLE_REDIRECT_URI;
-
-      if (!clientId || !clientSecret || !redirectUri) {
-        return new Response(
-          JSON.stringify({
-            error: "Google OAuth environment variables are not configured"
-          }),
-          {
-            status: 500,
-            headers: { "content-type": "application/json" }
-          }
-        );
+      if (
+        !SUPABASE_URL ||
+        !SUPABASE_SERVICE_ROLE_KEY ||
+        !GOOGLE_CLIENT_ID ||
+        !GOOGLE_CLIENT_SECRET ||
+        !GOOGLE_REDIRECT_URI
+      ) {
+        console.error('Missing required OAuth environment variables');
+        return html(500, '<h2>Google connection is not configured.</h2>');
       }
 
-      const tokenResponse = await fetch(
-        "https://oauth2.googleapis.com/token",
+      /*
+       * The browser receives the raw OAuth state.
+       * We only store its SHA-256 hash in Supabase.
+       */
+      const stateHash = crypto
+        .createHash('sha256')
+        .update(state)
+        .digest('hex');
+
+      /*
+       * Atomically claim the state:
+       * - must exist
+       * - must not already be used
+       * - must not be expired
+       */
+      const stateResponse = await fetch(
+        `${SUPABASE_URL}/rest/v1/google_oauth_states` +
+        `?state_hash=eq.${encodeURIComponent(stateHash)}` +
+        `&used_at=is.null` +
+        `&expires_at=gt.${encodeURIComponent(new Date().toISOString())}` +
+        `&select=id,salon_id` +
+        `&limit=1`,
         {
-          method: "POST",
           headers: {
-            "content-type": "application/x-www-form-urlencoded"
+            apikey: SUPABASE_SERVICE_ROLE_KEY,
+            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+          }
+        }
+      );
+
+      if (!stateResponse.ok) {
+        console.error(
+          'OAuth state lookup failed:',
+          await stateResponse.text()
+        );
+        return html(500, '<h2>Unable to verify Google connection.</h2>');
+      }
+
+      const states = await stateResponse.json();
+
+      if (!states.length) {
+        return html(
+          400,
+          '<h2>Google connection expired or invalid.</h2><p>Please start the connection again.</p>'
+        );
+      }
+
+      const oauthState = states[0];
+      const salonId = oauthState.salon_id;
+
+      /*
+       * Mark state as consumed before exchanging the code.
+       * This prevents replay of the same OAuth state.
+       */
+      const usedAt = new Date().toISOString();
+
+      const markUsedResponse = await fetch(
+        `${SUPABASE_URL}/rest/v1/google_oauth_states?id=eq.${encodeURIComponent(oauthState.id)}&used_at=is.null`,
+        {
+          method: 'PATCH',
+          headers: {
+            apikey: SUPABASE_SERVICE_ROLE_KEY,
+            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            used_at: usedAt
+          })
+        }
+      );
+
+      if (!markUsedResponse.ok) {
+        console.error(
+          'Unable to consume OAuth state:',
+          await markUsedResponse.text()
+        );
+        return html(500, '<h2>Unable to secure Google connection.</h2>');
+      }
+
+      /*
+       * Exchange Google's one-time authorization code.
+       */
+      const tokenResponse = await fetch(
+        'https://oauth2.googleapis.com/token',
+        {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/x-www-form-urlencoded'
           },
           body: new URLSearchParams({
             code,
-            client_id: clientId,
-            client_secret: clientSecret,
-            redirect_uri: redirectUri,
-            grant_type: "authorization_code"
+            client_id: GOOGLE_CLIENT_ID,
+            client_secret: GOOGLE_CLIENT_SECRET,
+            redirect_uri: GOOGLE_REDIRECT_URI,
+            grant_type: 'authorization_code'
           })
         }
       );
@@ -61,58 +142,131 @@ export default {
       const tokenData = await tokenResponse.json();
 
       if (!tokenResponse.ok) {
-        console.error("Google token exchange failed:", tokenData);
+        console.error(
+          'Google token exchange failed:',
+          tokenData.error || tokenData.error_description || 'unknown error'
+        );
 
-        return new Response(
-          `<h2>Google connection failed</h2><p>Token exchange was rejected by Google.</p>`,
-          {
-            status: 400,
-            headers: { "content-type": "text/html; charset=utf-8" }
-          }
+        return html(
+          400,
+          '<h2>Google token exchange failed.</h2><p>Please start the connection again.</p>'
         );
       }
 
-      console.log("Google OAuth successful");
-      console.log("Scope:", tokenData.scope);
-      console.log("Has access token:", !!tokenData.access_token);
-      console.log("Has refresh token:", !!tokenData.refresh_token);
+      if (!tokenData.refresh_token) {
+        console.error('Google did not return a refresh token');
 
-      return new Response(
-        `<html>
-          <head>
-            <title>Google Business Connected</title>
-          </head>
-          <body style="font-family:Arial;padding:40px">
-            <h2>✅ Google Business connected</h2>
-            <p>Google authorization was successful.</p>
-            <p>You can close this window and return to STore Automation.</p>
-          </body>
-        </html>`,
+        return html(
+          400,
+          '<h2>Google did not provide a refresh token.</h2><p>Please reconnect and grant offline access.</p>'
+        );
+      }
+
+      /*
+       * Calculate access-token expiry.
+       */
+      const tokenExpiresAt = tokenData.expires_in
+        ? new Date(
+            Date.now() + Number(tokenData.expires_in) * 1000
+          ).toISOString()
+        : null;
+
+      /*
+       * Store the connection against the salon identified
+       * by the verified OAuth state.
+       *
+       * We intentionally do not expose these tokens to the browser.
+       */
+      const connection = {
+        salon_id: salonId,
+        access_token: tokenData.access_token || null,
+        refresh_token: tokenData.refresh_token,
+        token_expires_at: tokenExpiresAt,
+        scope: tokenData.scope || null,
+        connection_status: 'connected',
+        last_error: null,
+        updated_at: new Date().toISOString()
+      };
+
+      /*
+       * Upsert by salon_id.
+       * Existing Google connection for the salon is replaced/updated.
+       */
+      const connectionResponse = await fetch(
+        `${SUPABASE_URL}/rest/v1/google_business_connections`,
         {
-          status: 200,
-          headers: { "content-type": "text/html; charset=utf-8" }
+          method: 'POST',
+          headers: {
+            apikey: SUPABASE_SERVICE_ROLE_KEY,
+            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            'Content-Type': 'application/json',
+            Prefer: 'resolution=merge-duplicates,return=minimal'
+          },
+          body: JSON.stringify(connection)
         }
       );
 
-    } catch (err) {
-      console.error("Google callback error:", err);
+      if (!connectionResponse.ok) {
+        const detail = await connectionResponse.text();
 
-      return new Response(
-        "<h2>Google connection failed</h2><p>Unexpected server error.</p>",
-        {
-          status: 500,
-          headers: { "content-type": "text/html; charset=utf-8" }
-        }
+        console.error(
+          'Google connection storage failed:',
+          detail
+        );
+
+        return html(
+          500,
+          '<h2>Google was authorized, but the connection could not be saved.</h2>'
+        );
+      }
+
+      console.log(
+        'Google Business connection saved for salon:',
+        salonId
+      );
+
+      return html(
+        200,
+        `
+        <html>
+          <head>
+            <title>Google Business Connected</title>
+          </head>
+          <body style="font-family:Arial,sans-serif;padding:40px">
+            <h2>✅ Google Business connected</h2>
+            <p>Your Google Business connection has been securely saved.</p>
+            <p>You can close this window and return to STore Automation.</p>
+          </body>
+        </html>
+        `
+      );
+
+    } catch (error) {
+      console.error('Google callback error:', error);
+
+      return html(
+        500,
+        '<h2>Google connection failed.</h2><p>An unexpected server error occurred.</p>'
       );
     }
   }
 };
 
+function html(status, body) {
+  return new Response(body, {
+    status,
+    headers: {
+      'content-type': 'text/html; charset=utf-8',
+      'cache-control': 'no-store'
+    }
+  });
+}
+
 function escapeHtml(value) {
   return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
 }
