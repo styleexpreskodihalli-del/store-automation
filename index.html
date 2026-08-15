@@ -580,24 +580,26 @@ async function connectGoogleBusiness(){
       method: 'GET',
       headers: {
         Authorization: `Bearer ${data.session.access_token}`
-      }
+      },
+      redirect: 'manual'
     });
 
-    if(!response.ok){
+    if(response.status !== 302){
       const result = await response.json().catch(() => ({}));
       console.error('Google start error:', result);
-      toast(result.error || 'Unable to connect Google Business');
+      toast(result.error || 'Unable to start Google connection.');
       return;
     }
 
     const location = response.headers.get('location');
 
     if(!location){
+      console.error('Google start returned 302 without Location header.');
       toast('Google authorization URL was not returned.');
       return;
     }
 
-    window.location.href = location;
+    window.location.assign(location);
 
   } catch(error) {
     console.error('Google connection error:', error);
