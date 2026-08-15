@@ -213,52 +213,37 @@ export default {
       const salon = createdSalons[0];
 
       /*
-       * Invite the salon owner through Supabase Auth.
+       * Check whether the owner already has a STore account.
        *
-       * This operation remains server-side.
+       * Existing owners must NOT receive another invitation.
+       * We simply attach their existing user account to this salon.
        */
-      const inviteResponse =
+      let ownerUserId = null;
+      let invitationStatus = 'existing_user';
+
+      const usersResponse =
         await fetch(
-          `${SUPABASE_URL}/auth/v1/admin/invite`,
+          `${SUPABASE_URL}/auth/v1/admin/users?page=1&per_page=1000`,
           {
-            method: 'POST',
             headers: {
               apikey: SUPABASE_SERVICE_ROLE_KEY,
               Authorization:
-                `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              email,
-              data: {
-                full_name: owner_name.trim(),
-                role: 'salon_owner',
-                salon_id: salon.id,
-                salon_code: salon.salon_code
-              },
-              redirect_to: APP_URL
-            })
+                `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+            }
           }
         );
 
-      const inviteData =
-        await inviteResponse
+      const usersData =
+        await usersResponse
           .json()
           .catch(() => null);
 
-      if (
-        !inviteResponse.ok ||
-        !inviteData?.id
-      ) {
+      if (!usersResponse.ok) {
         console.error(
-          'Owner invitation failed:',
-          inviteData
+          'Existing user lookup failed:',
+          usersData
         );
 
-        /*
-         * Remove the salon so we don't leave
-         * an orphan salon record.
-         */
         await supabaseFetch(
           `/rest/v1/salons` +
           `?id=eq.${encodeURIComponent(salon.id)}`,
@@ -269,13 +254,107 @@ export default {
 
         return json({
           error:
-            inviteData?.msg ||
-            inviteData?.message ||
-            'Unable to invite salon owner'
-        }, 502);
+            'Unable to check whether the salon owner already has an account'
+        }, 500);
       }
 
-      const ownerUserId = inviteData.id;
+      const existingUser =
+        (usersData?.users || []).find(
+          user =>
+            user.email?.toLowerCase() === email
+        );
+
+      if (existingUser) {
+
+        /*
+         * Jack already has a STore/Supabase account.
+         */
+        ownerUserId = existingUser.id;
+        invitationStatus = 'existing_user';
+
+        console.log(
+          'Existing STore user found:',
+          email,
+          ownerUserId
+        );
+
+      } else {
+
+        /*
+         * New owner:
+         * create the Auth user through Supabase invitation.
+         */
+        const inviteResponse =
+          await fetch(
+            `${SUPABASE_URL}/auth/v1/invite`,
+            {
+              method: 'POST',
+              headers: {
+                apikey: SUPABASE_SERVICE_ROLE_KEY,
+                Authorization:
+                  `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                'Content-Type':
+                  'application/json'
+              },
+              body: JSON.stringify({
+                email,
+                data: {
+                  full_name:
+                    owner_name.trim(),
+                  role: 'salon_owner',
+                  salon_id: salon.id,
+                  salon_code:
+                    salon.salon_code
+                },
+                redirect_to: APP_URL
+              })
+            }
+          );
+
+        const inviteData =
+          await inviteResponse
+            .json()
+            .catch(() => null);
+
+        if (
+          !inviteResponse.ok ||
+          !inviteData?.id
+        ) {
+          console.error(
+            'Owner invitation failed:',
+            {
+              status:
+                inviteResponse.status,
+              data: inviteData
+            }
+          );
+
+          await supabaseFetch(
+            `/rest/v1/salons` +
+            `?id=eq.${encodeURIComponent(salon.id)}`,
+            {
+              method: 'DELETE'
+            }
+          );
+
+          return json({
+            error:
+              inviteData?.msg ||
+              inviteData?.message ||
+              inviteData?.error_description ||
+              inviteData?.error ||
+              'Unable to invite salon owner',
+            auth_status:
+              inviteResponse.status
+          }, 502);
+        }
+
+        ownerUserId =
+          inviteData.id;
+
+        invitationStatus =
+          'invitation_sent';
+      }
 
       /*
        * Create application profile.
@@ -340,7 +419,7 @@ export default {
 
         return json({
           error:
-            'Salon created and owner invited, but salon membership could not be created'
+            'Salon was created, but the owner could not be linked to the salon'
         }, 500);
       }
 
@@ -352,7 +431,7 @@ export default {
         owner_name: owner_name.trim(),
         owner_email: email,
         owner_user_id: ownerUserId,
-        invitation_status: 'sent'
+        invitation_status: invitationStatus
       });
 
     } catch (error) {
