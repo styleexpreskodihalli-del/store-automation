@@ -184,6 +184,66 @@ const supabaseClient = window.supabase.createClient(
 </div>
 </section>
 <section id="more" class="screen">
+<div id="salonWorkspace" class="card" style="display:none">
+<div class="row">
+<div>
+<div class="badge">MY SALON</div>
+<h2 id="workspaceSalonName">Flow Salon</h2>
+<div class="muted" id="workspaceSalonCode">SALON-001</div>
+</div>
+<span class="badge">ACTIVE</span>
+</div>
+
+<h3>Salon Profile</h3>
+<label>Salon Name<input id="profileName"></label>
+<label>Owner Name<input id="profileOwner"></label>
+<label>Phone<input id="profilePhone"></label>
+<label>WhatsApp<input id="profileWhatsapp"></label>
+<label>Address<textarea id="profileAddress" rows="3"></textarea></label>
+<label>Website<input id="profileWebsite"></label>
+<label>Google Business Profile<input id="profileGoogle"></label>
+<label>Instagram<input id="profileInstagram"></label>
+<label>Facebook<input id="profileFacebook"></label>
+<label>Brand Voice<input id="profileBrandVoice"></label>
+<label>Target Audience<textarea id="profileAudience" rows="3"></textarea></label>
+
+<div class="actions">
+<button onclick="saveSalonProfile()">Save Salon Profile</button>
+</div>
+<div id="profileMessage" class="muted"></div>
+
+<hr>
+
+<h3>Services & Pricing</h3>
+<label>Service Name<input id="serviceName" placeholder="Haircut"></label>
+<label>Category<input id="serviceCategory" placeholder="Hair"></label>
+<label>Price<input id="servicePrice" type="number" placeholder="500"></label>
+<label>Duration (minutes)<input id="serviceDuration" type="number" placeholder="45"></label>
+
+<div class="actions">
+<button onclick="addSalonService()">Add Service</button>
+</div>
+
+<div id="serviceMessage" class="muted"></div>
+<div id="serviceList"></div>
+
+<hr>
+
+<h3>Offers</h3>
+<label>Offer Title<input id="offerTitle" placeholder="Weekend Hair Spa Offer"></label>
+<label>Description<textarea id="offerDescription" rows="3"></textarea></label>
+<label>Discount / Offer<input id="offerDiscount" placeholder="20% OFF"></label>
+<label>Start Date<input id="offerStart" type="date"></label>
+<label>End Date<input id="offerEnd" type="date"></label>
+
+<div class="actions">
+<button onclick="addSalonOffer()">Create Offer</button>
+</div>
+
+<div id="offerMessage" class="muted"></div>
+<div id="offerList"></div>
+</div>
+
 <div class="hero"><h2>STore Automation</h2><div class="muted">One app for salon marketing.</div></div>
 <div class="card"><h3>Automation</h3><div class="item">Daily content generation <span class="badge">ON</span></div><div class="item">Offer engine <span class="badge">ON</span></div><div class="item">Google review assistant <span class="badge">ON</span></div><div class="item">Approval workflow <span class="badge">ON</span></div><div class="item">Auto-publish <span class="badge warn">CONNECT ACCOUNTS</span></div></div>
 <div class="card"><h3>Salon profile</h3><label>Salon name<input value="Flow Salon"></label><label>Location<input value="Thubarahalli, Whitefield, Bengaluru"></label><label>Booking URL<input value="https://www.flowunisexsalon.com/home/"></label><div class="actions"><button onclick="toast('Profile saved')">Save</button></div></div>
@@ -472,8 +532,214 @@ async function loadRealUser(user){
 
   if(data.role === 'salon_owner'){
     await loadSalonWorkspace(user.id);
+    await loadSalonWorkspaceData();
     show('home');
   }
+}
+
+
+async function getActiveSalonId(){
+  const {data:sessionData}=await supabaseClient.auth.getSession();
+  if(!sessionData.session)return null;
+
+  const {data,error}=await supabaseClient
+    .from('salon_members')
+    .select('salon_id')
+    .eq('user_id',sessionData.session.user.id)
+    .limit(1)
+    .single();
+
+  if(error){
+    console.error('Salon membership error:',error);
+    return null;
+  }
+
+  return data.salon_id;
+}
+
+async function loadSalonWorkspaceData(){
+  const salonId=await getActiveSalonId();
+  if(!salonId)return;
+
+  const {data:salon,error}=await supabaseClient
+    .from('salons')
+    .select('*')
+    .eq('id',salonId)
+    .single();
+
+  if(error){
+    console.error('Salon profile error:',error);
+    return;
+  }
+
+  document.getElementById('salonWorkspace').style.display='block';
+
+  document.getElementById('workspaceSalonName').innerText=salon.name||'';
+  document.getElementById('workspaceSalonCode').innerText=salon.salon_code||'';
+
+  document.getElementById('profileName').value=salon.name||'';
+  document.getElementById('profileOwner').value=salon.owner_name||'';
+  document.getElementById('profilePhone').value=salon.phone||'';
+  document.getElementById('profileWhatsapp').value=salon.whatsapp||'';
+  document.getElementById('profileAddress').value=salon.address||'';
+  document.getElementById('profileWebsite').value=salon.website||'';
+  document.getElementById('profileGoogle').value=salon.google_business_url||'';
+  document.getElementById('profileInstagram').value=salon.instagram_url||'';
+  document.getElementById('profileFacebook').value=salon.facebook_url||'';
+  document.getElementById('profileBrandVoice').value=salon.brand_voice||'';
+  document.getElementById('profileAudience').value=salon.target_audience||'';
+
+  await loadSalonServices(salonId);
+  await loadSalonOffers(salonId);
+}
+
+async function saveSalonProfile(){
+  const salonId=await getActiveSalonId();
+  if(!salonId)return;
+
+  const updateData={
+    name:document.getElementById('profileName').value.trim(),
+    owner_name:document.getElementById('profileOwner').value.trim(),
+    phone:document.getElementById('profilePhone').value.trim(),
+    whatsapp:document.getElementById('profileWhatsapp').value.trim(),
+    address:document.getElementById('profileAddress').value.trim(),
+    website:document.getElementById('profileWebsite').value.trim(),
+    google_business_url:document.getElementById('profileGoogle').value.trim(),
+    instagram_url:document.getElementById('profileInstagram').value.trim(),
+    facebook_url:document.getElementById('profileFacebook').value.trim(),
+    brand_voice:document.getElementById('profileBrandVoice').value.trim(),
+    target_audience:document.getElementById('profileAudience').value.trim(),
+    updated_at:new Date().toISOString()
+  };
+
+  const {error}=await supabaseClient
+    .from('salons')
+    .update(updateData)
+    .eq('id',salonId);
+
+  document.getElementById('profileMessage').innerText =
+    error ? 'Unable to save: '+error.message :
+    'Salon profile saved successfully.';
+}
+
+async function addSalonService(){
+  const salonId=await getActiveSalonId();
+  if(!salonId)return;
+
+  const name=document.getElementById('serviceName').value.trim();
+
+  if(!name){
+    document.getElementById('serviceMessage').innerText='Enter a service name.';
+    return;
+  }
+
+  const {error}=await supabaseClient
+    .from('services')
+    .insert({
+      salon_id:salonId,
+      name:name,
+      category:document.getElementById('serviceCategory').value.trim(),
+      price:Number(document.getElementById('servicePrice').value||0),
+      duration_minutes:Number(document.getElementById('serviceDuration').value||0),
+      active:true
+    });
+
+  document.getElementById('serviceMessage').innerText =
+    error ? error.message : 'Service added successfully.';
+
+  if(!error){
+    document.getElementById('serviceName').value='';
+    document.getElementById('serviceCategory').value='';
+    document.getElementById('servicePrice').value='';
+    document.getElementById('serviceDuration').value='';
+    await loadSalonServices(salonId);
+  }
+}
+
+async function loadSalonServices(salonId){
+  const {data,error}=await supabaseClient
+    .from('services')
+    .select('*')
+    .eq('salon_id',salonId)
+    .order('created_at',{ascending:false});
+
+  if(error){
+    console.error(error);
+    return;
+  }
+
+  document.getElementById('serviceList').innerHTML =
+    data.length
+      ? data.map(x =>
+          '<div class="item"><b>'+x.name+
+          '</b><div class="muted">'+
+          (x.category||'')+
+          (x.price?' • ₹'+x.price:'')+
+          (x.duration_minutes?' • '+x.duration_minutes+' min':'')+
+          '</div></div>'
+        ).join('')
+      : '<div class="muted">No services added yet.</div>';
+}
+
+async function addSalonOffer(){
+  const salonId=await getActiveSalonId();
+  if(!salonId)return;
+
+  const title=document.getElementById('offerTitle').value.trim();
+
+  if(!title){
+    document.getElementById('offerMessage').innerText='Enter an offer title.';
+    return;
+  }
+
+  const {error}=await supabaseClient
+    .from('offers')
+    .insert({
+      salon_id:salonId,
+      title:title,
+      description:document.getElementById('offerDescription').value.trim(),
+      discount_text:document.getElementById('offerDiscount').value.trim(),
+      start_date:document.getElementById('offerStart').value||null,
+      end_date:document.getElementById('offerEnd').value||null,
+      active:true
+    });
+
+  document.getElementById('offerMessage').innerText =
+    error ? error.message : 'Offer created successfully.';
+
+  if(!error){
+    document.getElementById('offerTitle').value='';
+    document.getElementById('offerDescription').value='';
+    document.getElementById('offerDiscount').value='';
+    document.getElementById('offerStart').value='';
+    document.getElementById('offerEnd').value='';
+    await loadSalonOffers(salonId);
+  }
+}
+
+async function loadSalonOffers(salonId){
+  const {data,error}=await supabaseClient
+    .from('offers')
+    .select('*')
+    .eq('salon_id',salonId)
+    .order('created_at',{ascending:false});
+
+  if(error){
+    console.error(error);
+    return;
+  }
+
+  document.getElementById('offerList').innerHTML =
+    data.length
+      ? data.map(x =>
+          '<div class="item"><b>'+x.title+
+          '</b><div class="muted">'+
+          (x.discount_text||'')+
+          (x.start_date?' • '+x.start_date:'')+
+          (x.end_date?' → '+x.end_date:'')+
+          '</div></div>'
+        ).join('')
+      : '<div class="muted">No offers created yet.</div>';
 }
 
 async function loadSalonWorkspace(userId){
