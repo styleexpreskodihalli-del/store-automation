@@ -114,7 +114,7 @@ export default {
         prompt: 'consent',
         include_granted_scopes: 'true',
         state,
-        scope: 'https://www.googleapis.com/auth/business.manage'
+        scope: 'openid email https://www.googleapis.com/auth/business.manage'
       });
 
       const authorizationUrl =
