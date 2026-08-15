@@ -193,7 +193,7 @@ export default {
        * Existing Google connection for the salon is replaced/updated.
        */
       const connectionResponse = await fetch(
-        `${SUPABASE_URL}/rest/v1/google_business_connections`,
+        `${SUPABASE_URL}/rest/v1/google_business_connections?on_conflict=salon_id`,
         {
           method: 'POST',
           headers: {
