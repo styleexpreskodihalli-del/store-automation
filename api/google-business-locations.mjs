@@ -173,6 +173,32 @@ export default {
       }
 
       /*
+       * Authorization is not the same as verified Business Profile access.
+       *
+       * Until the exact Google Place ID -> GBP location match succeeds,
+       * Google automation must remain disabled.
+       */
+      const locationVerified =
+        connection.access_status === 'verified' &&
+        connection.connection_status === 'location_selected';
+
+      if (
+        connection.authorization_status === 'authorized' &&
+        !locationVerified
+      ) {
+        console.log(
+          'Google authorization exists, but GBP location is not verified:',
+          {
+            business_id: businessId,
+            connection_status:
+              connection.connection_status || null,
+            access_status:
+              connection.access_status || null
+          }
+        );
+      }
+
+      /*
        * Refresh the Google access token when needed.
        */
       let accessToken =
@@ -688,8 +714,35 @@ export default {
         );
       }
 
+      /*
+       * OAuth authorization alone does not activate Google Business
+       * automation. The authorized Google account must contain the
+       * exact Google Business Profile location matching the Business
+       * Place ID.
+       */
+      if (!matchedLocation) {
+        await updateConnection(
+          businessId,
+          {
+            authorization_status:
+              'authorized',
+            access_status:
+              'unverified',
+            connection_status:
+              'location_matching',
+            last_error:
+              'No Google Business Profile location matched the stored Google Place ID',
+            updated_at:
+              new Date().toISOString()
+          }
+        );
+      }
+
       return json({
         success: true,
+
+        google_business_connected:
+          Boolean(matchedLocation),
 
         business: {
           id:
@@ -710,13 +763,20 @@ export default {
           authorization_status:
             connection.authorization_status ||
             null,
+
+          /*
+           * Google automation is enabled ONLY after the exact
+           * Google Place ID -> GBP location match succeeds.
+           */
+          access_status:
+            matchedLocation
+              ? 'verified'
+              : 'unverified',
+
           connection_status:
             matchedLocation
               ? 'location_selected'
-              : (
-                  connection.connection_status ||
-                  null
-                )
+              : 'location_matching'
         },
 
         accounts: accounts.map(

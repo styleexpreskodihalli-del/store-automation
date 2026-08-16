@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#10201c"><link rel="manifest" href="manifest.json">
-<title>STore Automation</title>
+<title>STall – Store Automation</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,Arial;background:#f4f7f5;color:#17211e}
 header{background:#10201c;color:#fff;padding:18px 18px 16px;position:sticky;top:0;z-index:3}.brand{font-weight:850;font-size:20px}.sub{font-size:12px;color:#b9c8c1;margin-top:3px}
@@ -17,6 +17,924 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid 
 .toast{position:fixed;left:50%;bottom:75px;transform:translateX(-50%);background:#10201c;color:#fff;padding:11px 14px;border-radius:9px;display:none;font-size:12px}
 </style>
 
+
+
+
+
+
+
+
+<style id="stall-shell-v12">
+
+/* ---------------------------------------------------------
+   STall Shell v1.2
+   Natural page height + footer positioning
+   --------------------------------------------------------- */
+
+html,
+body{
+  min-height:100%;
+}
+
+body{
+  min-height:100vh;
+}
+
+/* Desktop application workspace */
+@media (min-width:900px){
+
+  body{
+    min-height:100vh;
+  }
+
+  main{
+    min-height:calc(100vh - 40px);
+  }
+
+  #stallFooter{
+    margin-top:28px;
+  }
+
+}
+
+/* Mobile application workspace */
+@media (max-width:899px){
+
+  body{
+    min-height:100dvh;
+  }
+
+  main{
+    min-height:0 !important;
+    height:auto !important;
+    padding-bottom:84px !important;
+  }
+
+  /* Prevent the footer from creating an artificial blank area */
+  #stallFooter{
+    margin-top:24px !important;
+    min-height:0 !important;
+  }
+
+  /* Keep the greeting compact on narrow phones */
+  #home .hero h1{
+    white-space:normal;
+  }
+
+  /* Keep the greeting emoji attached visually to the heading */
+  #home .hero h1 .greeting-emoji{
+    white-space:nowrap;
+  }
+
+}
+
+</style>
+
+<style id="stall-kpi-v12">
+
+@media (max-width:899px){
+
+  #home .grid{
+    display:grid !important;
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    gap:10px !important;
+  }
+
+  #home .metric{
+    width:auto !important;
+    min-width:0 !important;
+  }
+
+}
+
+</style>
+
+<style id="stall-shell-v111">
+
+@media (max-width:899px){
+
+  /* Prevent the fixed STall header from covering page content */
+  header{
+    position:relative !important;
+    top:auto !important;
+    z-index:3;
+  }
+
+  main{
+    padding-top:16px !important;
+    padding-bottom:84px !important;
+  }
+
+  /* Force Home dashboard KPI cards into a true 2 x 2 layout */
+  #home .grid{
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  }
+
+  #home .metric{
+    min-width:0;
+  }
+
+}
+
+</style>
+
+<style id="stall-shell-v11">
+
+/* Desktop sidebar: prevent unnecessary nested scrolling */
+@media (min-width:900px){
+
+  #stallNavigation{
+    overflow-y:hidden;
+  }
+
+  .stall-nav-brand{
+    padding-bottom:18px;
+  }
+
+  .stall-nav-logo{
+    width:52px;
+    height:52px;
+  }
+
+  .stall-nav-section{
+    margin-top:9px;
+  }
+
+  .stall-nav-item{
+    min-height:37px;
+    padding:8px 10px;
+  }
+
+  .stall-account-status{
+    padding:8px 10px;
+  }
+
+}
+
+/* Mobile dashboard refinement */
+@media (max-width:899px){
+
+  main{
+    padding-left:12px;
+    padding-right:12px;
+  }
+
+  /* KPI cards become a readable 2 x 2 grid */
+  #home > .grid:first-of-type{
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    gap:10px;
+  }
+
+  #home > .grid:first-of-type .metric{
+    min-height:118px;
+    padding:14px;
+  }
+
+  #home > .grid:first-of-type .num{
+    font-size:27px;
+  }
+
+  /* Hero actions */
+  #home .hero .actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:9px;
+  }
+
+  #home .hero .actions button{
+    min-height:48px;
+  }
+
+  /* Attention rows */
+  #home .card .item > div{
+    gap:10px;
+  }
+
+  /* Keep dashboard cards comfortable on narrow screens */
+  #home .card{
+    padding:14px;
+  }
+
+}
+
+/* Very small phones */
+@media (max-width:430px){
+
+  #home .hero{
+    padding:16px;
+  }
+
+  #home .hero h1{
+    font-size:27px !important;
+    line-height:1.12;
+  }
+
+  #home .hero .actions{
+    grid-template-columns:1fr;
+  }
+
+  #home > .grid:first-of-type .metric{
+    min-height:108px;
+  }
+
+}
+
+</style>
+
+
+<style id="stall-footer-v1">
+
+#stallFooter{
+  max-width:1280px;
+  margin:34px auto 0;
+  padding:22px 8px 30px;
+  color:#68756f;
+}
+
+.stall-footer-brand{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.stall-footer-logo{
+  width:38px;
+  height:38px;
+  object-fit:contain;
+}
+
+.stall-footer-title{
+  color:#10201c;
+  font-size:12px;
+  font-weight:900;
+}
+
+.stall-footer-tagline{
+  margin-top:3px;
+  font-size:10px;
+}
+
+.stall-footer-meta{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-top:15px;
+  padding-top:13px;
+  border-top:1px solid #e1e8e4;
+  font-size:10px;
+}
+
+.stall-footer-links{
+  white-space:nowrap;
+}
+
+@media (max-width:899px){
+
+  #stallFooter{
+    margin:24px 12px 0;
+    padding:20px 4px 96px;
+  }
+
+  .stall-footer-brand{
+    align-items:center;
+  }
+
+  .stall-footer-logo{
+    width:34px;
+    height:34px;
+  }
+
+  .stall-footer-meta{
+    flex-direction:column;
+    align-items:flex-start;
+    gap:7px;
+    line-height:1.5;
+  }
+
+  .stall-footer-links{
+    white-space:normal;
+  }
+
+}
+
+</style>
+
+<style id="stall-navigation-v1">
+
+#stallNavigation{
+  position:fixed;
+  left:0;
+  top:0;
+  bottom:0;
+  width:248px;
+  z-index:20;
+  display:flex;
+  flex-direction:column;
+  overflow-y:auto;
+  padding:22px 14px 14px;
+  background:#0c211b;
+  color:#fff;
+  border-right:1px solid rgba(255,255,255,.07);
+}
+
+.stall-nav-brand{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:0 8px 22px;
+  margin-bottom:6px;
+}
+
+.stall-nav-logo{
+  width:44px;
+  height:44px;
+  object-fit:contain;
+  flex:0 0 auto;
+}
+
+.stall-nav-title{
+  font-size:19px;
+  line-height:1;
+  font-weight:950;
+  letter-spacing:-.4px;
+}
+
+.stall-nav-product{
+  margin-top:4px;
+  color:#d7b86b;
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:.2px;
+}
+
+.stall-nav-section{
+  margin-top:12px;
+}
+
+.stall-nav-label{
+  padding:0 10px 7px;
+  color:#72867f;
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:1px;
+}
+
+.stall-nav-item{
+  width:100%;
+  display:flex;
+  align-items:center;
+  gap:11px;
+  min-height:40px;
+  padding:9px 11px;
+  margin:2px 0;
+  border:1px solid transparent;
+  border-radius:9px;
+  background:transparent;
+  color:#c7d2ce;
+  text-align:left;
+  font-size:12px;
+  font-weight:750;
+}
+
+.stall-nav-item:hover{
+  background:rgba(255,255,255,.06);
+  color:#fff;
+}
+
+.stall-nav-item.active{
+  background:rgba(215,184,107,.12);
+  border-color:rgba(215,184,107,.25);
+  color:#fff;
+}
+
+.stall-nav-icon{
+  width:19px;
+  text-align:center;
+  color:#d7b86b;
+  font-size:14px;
+  font-weight:900;
+}
+
+.stall-nav-spacer{
+  flex:1;
+  min-height:18px;
+}
+
+.stall-admin-nav{
+  margin-bottom:10px;
+  padding-top:8px;
+  border-top:1px solid rgba(255,255,255,.08);
+}
+
+.stall-account-status{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  padding:10px;
+  border-radius:9px;
+  background:rgba(255,255,255,.045);
+}
+
+.stall-online-dot{
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:#36b878;
+  flex:0 0 auto;
+  box-shadow:0 0 0 3px rgba(54,184,120,.12);
+}
+
+.stall-account-name{
+  color:#fff;
+  font-size:11px;
+  font-weight:850;
+}
+
+.stall-account-role{
+  margin-top:2px;
+  color:#84958f;
+  font-size:9px;
+}
+
+.stall-logout{
+  width:100%;
+  margin-top:7px;
+  padding:8px;
+  background:transparent;
+  color:#899a94;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:8px;
+  font-size:10px;
+}
+
+.stall-logout:hover{
+  color:#fff;
+  background:rgba(255,255,255,.05);
+}
+
+@media (min-width:900px){
+
+  body{
+    padding-left:248px;
+  }
+
+  #stallHeader{
+    display:none;
+  }
+
+  main{
+    max-width:1280px;
+    width:100%;
+  }
+
+}
+
+@media (max-width:899px){
+
+  #stallNavigation{
+    top:auto;
+    width:100%;
+    height:68px;
+    bottom:0;
+    left:0;
+    right:0;
+    flex-direction:row;
+    overflow-x:auto;
+    overflow-y:hidden;
+    padding:6px 5px;
+    border-right:0;
+    border-top:1px solid rgba(0,0,0,.12);
+    background:#fff;
+    color:#17211e;
+  }
+
+  .stall-nav-brand,
+  .stall-nav-section,
+  .stall-nav-spacer,
+  .stall-admin-nav,
+  .stall-account-status,
+  .stall-logout{
+    display:none;
+  }
+
+  .stall-nav-item{
+    flex:0 0 72px;
+    min-height:55px;
+    margin:0;
+    padding:5px 3px;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    gap:3px;
+    color:#64716c;
+    border-radius:8px;
+    font-size:9px;
+  }
+
+  .stall-nav-item.active{
+    color:#10201c;
+    background:#eef6f1;
+    border-color:transparent;
+  }
+
+  .stall-nav-icon{
+    font-size:15px;
+  }
+
+  body{
+    padding-left:0;
+  }
+
+  main{
+    padding-bottom:84px;
+  }
+
+}
+
+</style>
+
+<style id="stall-shell-v1">
+
+.stall-brand-block{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+}
+
+.stall-logo{
+  width:74px;
+  height:74px;
+  object-fit:contain;
+  display:block;
+  margin-bottom:10px;
+  filter:drop-shadow(0 5px 12px rgba(0,0,0,.25));
+}
+
+.stall-brand-name{
+  color:#fff;
+  font-size:23px;
+  line-height:1.05;
+  font-weight:950;
+  letter-spacing:-.5px;
+}
+
+.stall-brand-product{
+  color:#d7b86b;
+  font-size:11px;
+  font-weight:750;
+  letter-spacing:.2px;
+  margin-top:4px;
+}
+
+.stall-brand-block .sub{
+  margin-top:9px;
+  font-size:10px;
+  color:#aebdb6;
+}
+
+@media (min-width:900px){
+
+  #stallHeader{
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    min-height:105px;
+  }
+
+  .stall-brand-block{
+    width:100%;
+  }
+
+}
+
+@media (max-width:899px){
+
+  #stallHeader{
+    padding:10px 15px;
+  }
+
+  .stall-brand-block{
+    flex-direction:row;
+    align-items:center;
+    text-align:left;
+    gap:9px;
+  }
+
+  .stall-logo{
+    width:43px;
+    height:43px;
+    margin:0;
+  }
+
+  .stall-brand-name{
+    font-size:18px;
+  }
+
+  .stall-brand-product{
+    font-size:10px;
+    margin-top:2px;
+  }
+
+  .stall-brand-block .sub{
+    display:none;
+  }
+
+}
+
+</style>
+
+<style id="stall-design-system">
+:root{
+  --stall-dark:#10201c;
+  --stall-dark-2:#172a24;
+  --stall-green:#17633f;
+  --stall-green-soft:#e8f6ef;
+  --stall-gold:#c9a45c;
+  --stall-gold-soft:#f8f1df;
+  --stall-bg:#f5f7f6;
+  --stall-card:#ffffff;
+  --stall-border:#e1e8e4;
+  --stall-text:#17211e;
+  --stall-muted:#68756f;
+  --stall-danger:#b94a48;
+  --stall-warning:#875d15;
+  --stall-radius:16px;
+  --stall-shadow:0 8px 30px rgba(16,32,28,.06);
+}
+
+html{
+  background:var(--stall-bg);
+}
+
+body{
+  background:var(--stall-bg);
+  color:var(--stall-text);
+  font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,
+    "Segoe UI",Arial,sans-serif;
+  line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+}
+
+header{
+  background:linear-gradient(
+    135deg,
+    var(--stall-dark),
+    var(--stall-dark-2)
+  );
+  padding:18px 22px;
+  box-shadow:0 2px 16px rgba(0,0,0,.08);
+}
+
+.brand{
+  font-size:21px;
+  letter-spacing:-.3px;
+  font-weight:900;
+}
+
+.sub{
+  color:#b9c8c1;
+  font-size:12px;
+  margin-top:4px;
+}
+
+main{
+  max-width:1180px;
+  padding:24px 20px 100px;
+}
+
+.hero,
+.card,
+.metric{
+  border:1px solid var(--stall-border);
+  background:var(--stall-card);
+  box-shadow:var(--stall-shadow);
+}
+
+.hero{
+  border-radius:var(--stall-radius);
+  padding:22px;
+}
+
+.card{
+  border-radius:var(--stall-radius);
+  padding:18px;
+}
+
+.metric{
+  border-radius:14px;
+  padding:17px;
+  transition:
+    transform .18s ease,
+    box-shadow .18s ease;
+}
+
+.metric:hover{
+  transform:translateY(-2px);
+  box-shadow:0 12px 34px rgba(16,32,28,.09);
+}
+
+.num{
+  font-size:28px;
+  font-weight:900;
+  letter-spacing:-.5px;
+}
+
+.muted{
+  color:var(--stall-muted);
+}
+
+.badge{
+  background:var(--stall-green-soft);
+  color:var(--stall-green);
+  letter-spacing:.3px;
+}
+
+.warn{
+  background:var(--stall-gold-soft);
+  color:var(--stall-warning);
+}
+
+button{
+  background:var(--stall-dark);
+  border-radius:10px;
+  padding:11px 15px;
+  transition:
+    transform .15s ease,
+    opacity .15s ease,
+    box-shadow .15s ease;
+}
+
+button:hover{
+  transform:translateY(-1px);
+  box-shadow:0 5px 16px rgba(16,32,28,.12);
+}
+
+button:active{
+  transform:translateY(0);
+}
+
+.secondary{
+  background:#fff;
+  color:var(--stall-dark);
+  border:1px solid var(--stall-border);
+}
+
+nav{
+  background:rgba(255,255,255,.97);
+  border-top:1px solid var(--stall-border);
+  box-shadow:0 -4px 20px rgba(16,32,28,.05);
+  backdrop-filter:blur(12px);
+}
+
+nav button{
+  color:#66736d;
+  box-shadow:none;
+}
+
+nav button:hover{
+  box-shadow:none;
+}
+
+nav button.active{
+  color:var(--stall-green);
+}
+
+.item{
+  border-bottom:1px solid #edf0ee;
+}
+
+input,
+textarea,
+select{
+  background:#fff;
+  color:var(--stall-text);
+  border:1px solid #d8e0dc;
+  outline:none;
+  transition:border-color .15s ease,box-shadow .15s ease;
+}
+
+input:focus,
+textarea:focus,
+select:focus{
+  border-color:var(--stall-green);
+  box-shadow:0 0 0 3px rgba(23,99,63,.10);
+}
+
+.toast{
+  background:var(--stall-dark);
+  box-shadow:0 8px 30px rgba(0,0,0,.18);
+}
+
+@media (min-width:900px){
+
+  body{
+    padding-left:230px;
+  }
+
+  header{
+    position:fixed;
+    left:0;
+    top:0;
+    bottom:0;
+    width:230px;
+    padding:28px 18px;
+    z-index:10;
+  }
+
+  header .brand{
+    font-size:23px;
+  }
+
+  header .sub{
+    margin-top:7px;
+  }
+
+  main{
+    margin:0;
+    max-width:none;
+    min-height:100vh;
+    padding:32px 34px 50px;
+  }
+
+  nav{
+    position:fixed;
+    left:0;
+    top:105px;
+    bottom:auto;
+    width:230px;
+    display:flex;
+    flex-direction:column;
+    border:0;
+    background:transparent;
+    box-shadow:none;
+    padding:12px;
+    gap:4px;
+  }
+
+  nav button{
+    width:100%;
+    text-align:left;
+    border-radius:10px;
+    padding:11px 14px;
+    background:transparent;
+    font-size:13px;
+  }
+
+  nav button.active{
+    background:var(--stall-green-soft);
+  }
+
+  nav button br{
+    display:none;
+  }
+}
+
+@media (max-width:899px){
+
+  header{
+    position:sticky;
+    top:0;
+  }
+
+  main{
+    padding-top:18px;
+  }
+
+}
+
+@media (max-width:600px){
+
+  main{
+    padding-left:14px;
+    padding-right:14px;
+  }
+
+  .hero{
+    padding:18px;
+  }
+
+  .card{
+    padding:15px;
+  }
+
+  .grid{
+    gap:8px;
+  }
+
+  .metric{
+    padding:13px;
+  }
+
+  .num{
+    font-size:23px;
+  }
+
+}
+</style>
+
 <style>
 #loginOverlay{position:fixed;inset:0;background:#10201c;color:#fff;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}
 .loginBox{width:min(420px,100%);background:#fff;color:#17211e;border-radius:18px;padding:26px;box-shadow:0 20px 60px #0008}
@@ -27,6 +945,17 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid 
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const year = document.getElementById('stallCopyrightYear');
+
+  if(year){
+    year.textContent = new Date().getFullYear();
+  }
+});
+</script>
 
 <script>
 const SUPABASE_URL = "https://opgnylgfzfaowjhwzceq.supabase.co";
@@ -40,6 +969,689 @@ const supabaseClient = window.supabase.createClient(
 window.supabaseClient = supabaseClient;
 
 </script>
+
+<style id="stall-shell-final">
+
+/* =========================================================
+   STall Application Shell — Final Structural Rules
+   ========================================================= */
+
+/* Desktop: content determines page height.
+   Footer follows the dashboard naturally. */
+@media (min-width:900px){
+
+  main{
+    min-height:0 !important;
+    height:auto !important;
+  }
+
+  #stallFooter{
+    margin-top:28px !important;
+  }
+
+  /* Desktop sidebar is a fixed application rail.
+     No internal scrollbar should be visible. */
+  #stallNavigation{
+    overflow:hidden !important;
+    overflow-y:hidden !important;
+    overflow-x:hidden !important;
+  }
+
+  #stallNavigation::-webkit-scrollbar{
+    display:none !important;
+    width:0 !important;
+    height:0 !important;
+  }
+
+}
+
+/* Mobile keeps normal document flow. */
+@media (max-width:899px){
+
+  main{
+    min-height:0 !important;
+    height:auto !important;
+  }
+
+  #stallFooter{
+    margin-top:24px !important;
+  }
+
+}
+
+</style>
+
+
+<style id="stall-footer-center-v1">
+
+@media (min-width:900px){
+
+  /* Footer belongs to the desktop content canvas,
+     not the full viewport including the sidebar. */
+  #stallFooter{
+    width:calc(100% - 248px) !important;
+    margin-left:248px !important;
+    margin-right:0 !important;
+    max-width:none !important;
+    padding:22px 32px 30px !important;
+    text-align:center !important;
+  }
+
+  #stallFooter .stall-footer-brand{
+    justify-content:center !important;
+  }
+
+  #stallFooter .stall-footer-meta{
+    justify-content:center !important;
+    flex-wrap:wrap !important;
+    text-align:center !important;
+  }
+
+}
+
+</style>
+
+
+<style id="stall-footer-spacing-final">
+
+@media (min-width:900px){
+
+  #stallFooter{
+    margin-top:32px !important;
+    padding-top:0 !important;
+    padding-bottom:28px !important;
+  }
+
+}
+
+</style>
+
+
+<style id="stall-footer-final">
+
+@media (max-width:899px){
+
+  /* Let the Home content determine its own height */
+  main,
+  #home{
+    min-height:0 !important;
+    height:auto !important;
+  }
+
+  /* Footer follows the actual dashboard content */
+  #stallFooter{
+    margin-top:18px !important;
+    padding-top:0 !important;
+    padding-bottom:82px !important;
+  }
+
+  /* No artificial vertical expansion */
+  #stallFooter::before{
+    display:none !important;
+  }
+
+}
+
+</style>
+
+<style id="stall-logout-final">
+
+/* STall Logout — final navigation placement */
+
+@media (min-width:900px){
+
+  .stall-nav-account{
+    margin-top:auto !important;
+    padding-top:12px !important;
+    border-top:1px solid rgba(255,255,255,.08) !important;
+    flex-shrink:0 !important;
+  }
+
+  .stall-logout{
+    display:block !important;
+    width:100% !important;
+    margin-top:8px !important;
+    padding:10px 12px !important;
+    text-align:left !important;
+    color:#d9e5df !important;
+    background:rgba(255,255,255,.04) !important;
+    border:1px solid rgba(255,255,255,.10) !important;
+    border-radius:9px !important;
+    font-size:12px !important;
+    font-weight:750 !important;
+    cursor:pointer !important;
+  }
+
+  .stall-logout:hover{
+    color:#fff !important;
+    background:rgba(255,255,255,.08) !important;
+  }
+
+}
+
+@media (max-width:899px){
+
+  /* Keep the account area visible in the mobile navigation */
+  .stall-nav-account{
+    display:flex !important;
+    flex:0 0 78px !important;
+    min-width:78px !important;
+    margin:0 !important;
+    padding:0 !important;
+    border:0 !important;
+    flex-direction:column !important;
+    align-items:center !important;
+    justify-content:center !important;
+  }
+
+  .stall-nav-account .stall-account-status{
+    display:none !important;
+  }
+
+  .stall-nav-account .stall-logout{
+    display:flex !important;
+    width:72px !important;
+    height:54px !important;
+    margin:0 !important;
+    padding:5px 4px !important;
+    flex-direction:column !important;
+    align-items:center !important;
+    justify-content:center !important;
+    gap:3px !important;
+    background:transparent !important;
+    border:0 !important;
+    color:#50605a !important;
+    font-size:10px !important;
+    font-weight:750 !important;
+  }
+
+  .stall-nav-account .stall-logout:hover{
+    background:#eef3f0 !important;
+    color:#10201c !important;
+  }
+
+}
+
+</style>
+
+
+<style id="stall-mobile-final-v1">
+
+@media (max-width:899px){
+
+  /*
+   * STall Mobile Final Architecture
+   * Dashboard
+   * → Navigation
+   * → Account
+   * → Logout
+   * → Footer
+   */
+
+  body{
+    display:flex !important;
+    flex-direction:column !important;
+    min-height:100dvh !important;
+    padding:0 !important;
+  }
+
+  main{
+    order:1 !important;
+    width:100% !important;
+    min-height:0 !important;
+    height:auto !important;
+    padding-bottom:24px !important;
+  }
+
+  #stallNavigation{
+    order:2 !important;
+
+    position:relative !important;
+    left:auto !important;
+    right:auto !important;
+    top:auto !important;
+    bottom:auto !important;
+
+    width:100% !important;
+    height:auto !important;
+    min-height:68px !important;
+
+    display:flex !important;
+    flex-wrap:wrap !important;
+    align-items:stretch !important;
+
+    padding:0 !important;
+    margin:0 !important;
+
+    overflow:visible !important;
+
+    background:#fff !important;
+    color:#17211e !important;
+
+    border-top:1px solid #dfe6e2 !important;
+    border-right:0 !important;
+    box-shadow:none !important;
+
+    z-index:10 !important;
+  }
+
+  /* Hide desktop-only navigation elements */
+  #stallNavigation .stall-nav-brand,
+  #stallNavigation .stall-nav-section,
+  #stallNavigation .stall-nav-spacer,
+  #stallNavigation .stall-admin-nav{
+    display:none !important;
+  }
+
+  /* Main mobile navigation items */
+  #stallNavigation .stall-nav-item{
+    display:flex !important;
+    flex:1 1 72px !important;
+    min-width:68px !important;
+    min-height:68px !important;
+    margin:0 !important;
+    padding:7px 3px !important;
+
+    flex-direction:column !important;
+    justify-content:center !important;
+    align-items:center !important;
+
+    background:#fff !important;
+    border:0 !important;
+    border-radius:0 !important;
+
+    color:#50605a !important;
+    font-size:10px !important;
+  }
+
+  #stallNavigation .stall-nav-item.active{
+    color:#10201c !important;
+    background:#f5f8f6 !important;
+  }
+
+  /* Account becomes the final item in the navigation row */
+  #stallNavigation .stall-nav-account{
+    display:contents !important;
+  }
+
+  #stallNavigation .stall-account-status{
+    display:flex !important;
+
+    flex:1 1 90px !important;
+    min-width:88px !important;
+    min-height:68px !important;
+
+    padding:8px 8px !important;
+
+    flex-direction:column !important;
+    justify-content:center !important;
+    align-items:center !important;
+
+    background:#fff !important;
+    border-left:1px solid #e1e8e4 !important;
+  }
+
+  #stallNavigation .stall-account-status > div{
+    text-align:center !important;
+  }
+
+  #stallNavigation .stall-account-name{
+    color:#10201c !important;
+    font-size:11px !important;
+    font-weight:850 !important;
+  }
+
+  #stallNavigation .stall-account-role{
+    color:#68756f !important;
+    font-size:9px !important;
+    margin-top:2px !important;
+  }
+
+  #stallNavigation .stall-online-dot{
+    display:block !important;
+    width:7px !important;
+    height:7px !important;
+    margin-bottom:4px !important;
+  }
+
+  /*
+   * Logout is deliberately a separate full-width row.
+   * It must NOT compete with the navigation icons.
+   */
+  #stallNavigation .stall-logout{
+    display:flex !important;
+
+    flex:0 0 100% !important;
+    width:100% !important;
+    min-height:58px !important;
+
+    margin:0 !important;
+    padding:12px 20px !important;
+
+    align-items:center !important;
+    justify-content:center !important;
+    gap:8px !important;
+
+    background:#fff !important;
+    color:#50605a !important;
+
+    border:0 !important;
+    border-top:1px solid #e1e8e4 !important;
+    border-radius:0 !important;
+
+    font-size:12px !important;
+    font-weight:800 !important;
+  }
+
+  #stallNavigation .stall-logout:hover{
+    background:#f5f8f6 !important;
+    color:#10201c !important;
+  }
+
+  /* Footer comes AFTER navigation and logout */
+  #stallFooter{
+    order:3 !important;
+
+    width:100% !important;
+    margin:0 !important;
+
+    padding:26px 18px 30px !important;
+
+    background:#f7f9f8 !important;
+    border-top:1px solid #e1e8e4 !important;
+
+    text-align:center !important;
+  }
+
+  #stallFooter .stall-footer-brand{
+    justify-content:center !important;
+  }
+
+  #stallFooter .stall-footer-meta{
+    flex-direction:column !important;
+    align-items:center !important;
+    justify-content:center !important;
+    gap:8px !important;
+
+    margin-top:18px !important;
+    padding-top:15px !important;
+  }
+
+  #stallFooter .stall-footer-links{
+    white-space:normal !important;
+  }
+
+  /* Remove artificial mobile footer spacing */
+  #stallFooter::before{
+    display:none !important;
+  }
+
+}
+
+</style>
+
+
+<style id="stall-mobile-nav-final">
+
+@media (max-width:899px){
+
+  /* Mobile navigation becomes a clean single row */
+  #stallNavigation{
+    position:relative !important;
+    left:auto !important;
+    right:auto !important;
+    top:auto !important;
+    bottom:auto !important;
+
+    width:100% !important;
+    height:auto !important;
+
+    display:flex !important;
+    flex-direction:column !important;
+
+    padding:0 !important;
+    margin:0 !important;
+
+    overflow:visible !important;
+
+    background:#fff !important;
+    color:#17211e !important;
+
+    border:0 !important;
+    border-top:1px solid #e1e8e4 !important;
+  }
+
+  /* Only the five primary mobile menus */
+  #stallNavigation .stall-mobile-primary{
+    display:grid !important;
+    grid-template-columns:repeat(5,minmax(0,1fr)) !important;
+    width:100% !important;
+    min-height:76px !important;
+    padding:6px 4px !important;
+    border-bottom:1px solid #e1e8e4 !important;
+    background:#fff !important;
+  }
+
+  #stallNavigation .stall-mobile-primary button{
+    appearance:none;
+    border:0;
+    background:transparent;
+    color:#17211e;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:4px;
+    min-width:0;
+    padding:5px 2px;
+    border-radius:10px;
+    font:inherit;
+    font-size:10px;
+    font-weight:700;
+    cursor:pointer;
+  }
+
+  #stallNavigation .stall-mobile-primary button .mobile-icon{
+    font-size:20px;
+    line-height:1;
+  }
+
+  #stallNavigation .stall-mobile-primary button.active{
+    color:#129447;
+  }
+
+  /* Flow Salon + Logout directly below menu row */
+  #stallNavigation .stall-mobile-account{
+    display:grid !important;
+    grid-template-columns:1fr 1fr;
+    min-height:72px;
+    width:100%;
+    background:#fff;
+  }
+
+  #stallNavigation .stall-mobile-account-info{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    border-right:1px solid #e1e8e4;
+  }
+
+  #stallNavigation .stall-mobile-account-info .online{
+    width:10px;
+    height:10px;
+    border-radius:50%;
+    background:#18a957;
+    box-shadow:0 0 0 5px #e8f7ef;
+  }
+
+  #stallNavigation .stall-mobile-account-name{
+    font-size:14px;
+    font-weight:850;
+    color:#10201c;
+  }
+
+  #stallNavigation .stall-mobile-account-role{
+    margin-top:2px;
+    font-size:11px;
+    color:#68756f;
+  }
+
+  #stallNavigation .stall-mobile-logout{
+    display:flex !important;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    border:0;
+    background:#fff;
+    color:#50605a;
+    font:inherit;
+    font-size:14px;
+    font-weight:800;
+    cursor:pointer;
+  }
+
+  #stallNavigation .stall-mobile-logout:hover{
+    background:#f5f8f6;
+  }
+
+  /* Existing desktop/navigation internals are hidden on mobile */
+  #stallNavigation > .stall-nav-brand,
+  #stallNavigation > .stall-nav-section,
+  #stallNavigation > .stall-nav-spacer,
+  #stallNavigation > .stall-admin-nav,
+  #stallNavigation > .stall-nav-account,
+  #stallNavigation > .stall-nav-logout{
+    display:none !important;
+  }
+
+  /* Footer follows the account row naturally */
+  #stallFooter{
+    position:relative !important;
+    margin:0 !important;
+    padding:28px 20px 100px !important;
+    width:100% !important;
+    max-width:none !important;
+    box-sizing:border-box !important;
+    background:#f8faf9 !important;
+    text-align:center !important;
+  }
+
+  #stallFooter .stall-footer-brand{
+    justify-content:center !important;
+  }
+
+  #stallFooter .stall-footer-meta{
+    justify-content:center !important;
+    align-items:center !important;
+    text-align:center !important;
+  }
+
+}
+
+</style>
+
+
+<style id="stall-desktop-final-v1">
+
+@media (min-width:900px){
+
+  /* ===== STall Desktop Shell ===== */
+
+  body{
+    padding-left:270px !important;
+    background:#f7faf8 !important;
+  }
+
+  #stallNavigation{
+    width:270px !important;
+    padding:28px 20px 22px !important;
+    box-sizing:border-box !important;
+  }
+
+  main{
+    width:100% !important;
+    max-width:1280px !important;
+    margin:0 auto !important;
+    padding:28px 28px 0 !important;
+    box-sizing:border-box !important;
+  }
+
+  /* Give desktop screens the spacious SaaS layout */
+  .screen.active > .hero,
+  .screen.active > .card{
+    border-radius:16px !important;
+  }
+
+  /* Lead / booking content */
+  .screen.active .item{
+    padding:18px 4px !important;
+    margin:0 !important;
+    border-bottom:1px solid #e1e8e4 !important;
+  }
+
+  .screen.active .item:last-child{
+    border-bottom:0 !important;
+  }
+
+  /* Buttons remain compact rather than stretching */
+  .screen.active .item button{
+    width:auto !important;
+    min-width:92px;
+  }
+
+  /* Footer belongs to the content column, not the sidebar */
+  #stallFooter{
+    width:100% !important;
+    max-width:1280px !important;
+    margin:28px auto 0 !important;
+    padding:30px 28px 34px !important;
+    box-sizing:border-box !important;
+    text-align:center !important;
+  }
+
+  #stallFooter .stall-footer-brand{
+    justify-content:center !important;
+  }
+
+  #stallFooter .stall-footer-meta{
+    justify-content:center !important;
+  }
+
+  /* Keep Flow Salon + Logout anchored at bottom of sidebar */
+  #stallNavigation .stall-nav-spacer{
+    flex:1 1 auto !important;
+  }
+
+  #stallNavigation .stall-nav-account{
+    margin-top:auto !important;
+  }
+
+  #stallNavigation .stall-logout{
+    width:100% !important;
+    margin-top:10px !important;
+  }
+
+}
+
+</style>
+
+
+<style id="stall-desktop-nav-final-v1">
+
+/* Desktop: hide the mobile-only navigation system */
+@media (min-width:900px){
+
+  #stallNavigation .stall-mobile-primary,
+  #stallNavigation .stall-mobile-account,
+  #stallNavigation .stall-mobile-logout{
+    display:none !important;
+  }
+
+}
+
+</style>
+
 </head>
 <body>
 <div id="forgotOverlay" style="display:none;position:fixed;inset:0;background:#10201c;color:#fff;z-index:10000;align-items:center;justify-content:center;padding:20px">
@@ -75,21 +1687,432 @@ window.supabaseClient = supabaseClient;
     <input id="loginPassword" type="password" placeholder="Password">
     <button onclick="storeLogin()">Sign In</button>
     <button id="forgotPasswordLink" class="demo" onclick="showForgotPassword()">Forgot Password?</button>
-    
+
     <button class="demo" onclick="flowDemo()">Use Flow Salon Demo</button><button class="demo" onclick="adminDemo()">Use STall Partners Admin Demo</button>
     <p id="loginError" style="text-align:center"></p>
   </div>
 </div>
 
-<header><div class="brand">STore Automation</div><div class="sub">STall Partners • Flow Salon</div></header>
+<header id="stallHeader">
+
+  <div class="stall-brand-block">
+
+    <img
+      src="assets/stall-logo.png"
+      alt="STall"
+      class="stall-logo"
+    >
+
+    <div class="stall-brand-name">
+      STall
+    </div>
+
+    <div class="stall-brand-product">
+      Store Automation
+    </div>
+
+    <div class="sub">
+      STall Partners • Flow Salon
+    </div>
+
+  </div>
+
+</header>
 <main>
 <section id="home" class="screen active">
-<div class="hero"><div class="badge">AUTOMATION ON</div><h1 style="margin-top:8px">Good morning, Flow Salon 👋</h1><div class="muted">Your marketing command centre.</div><div class="actions"><button onclick="show('content')">Review Today's Marketing</button><button class="secondary" onclick="toast('All approved assets are queued for publishing')">Approve All</button></div></div>
-<div class="grid"><div class="metric"><div class="muted">Today's assets</div><div class="num">3</div></div><div class="metric"><div class="muted">Reviews</div><div class="num">3</div></div><div class="metric"><div class="muted">Leads</div><div class="num">12</div></div><div class="metric"><div class="muted">Bookings</div><div class="num">7</div></div></div>
-<div class="card"><h2>Today's priorities</h2>
-<div class="item"><b>🎨 Instagram post</b><div class="muted">Weekend Glow-Up</div></div>
-<div class="item"><b>🎁 Offer</b><div class="muted">New Customer Welcome</div></div>
-<div class="item"><b>⭐ Google reviews</b><div class="muted">3 responses waiting for approval</div></div></div>
+
+  <div class="hero" style="position:relative;overflow:hidden">
+
+    <div style="
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:16px;
+      flex-wrap:wrap;
+    ">
+
+      <div>
+        <div class="badge">● STALL IS ACTIVE</div>
+
+        <h1 style="
+          margin-top:10px;
+          font-size:clamp(24px,4vw,34px);
+          letter-spacing:-.8px;
+        ">
+          Good morning, Flow Salon <span class="greeting-emoji">👋</span>
+        </h1>
+
+        <div class="muted" style="font-size:14px">
+          Here's what STall is handling for your business today.
+        </div>
+      </div>
+
+      <div style="
+        display:flex;
+        align-items:center;
+        gap:8px;
+        padding:9px 12px;
+        border:1px solid #e1e8e4;
+        border-radius:10px;
+        background:#fff;
+        font-size:12px;
+        font-weight:800;
+      ">
+        <span style="
+          width:8px;
+          height:8px;
+          border-radius:50%;
+          background:#17633f;
+          display:inline-block;
+        "></span>
+        Automation running
+      </div>
+
+    </div>
+
+    <div class="actions" style="margin-top:18px">
+      <button onclick="show('content')">
+        Review Today's Marketing
+      </button>
+
+      <button
+        class="secondary"
+        onclick="toast('All approved assets are queued for publishing')">
+        Approve All
+      </button>
+    </div>
+
+  </div>
+
+
+  <!-- KPI SUMMARY -->
+
+  <div
+    class="grid"
+    style="
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      margin-top:14px;
+    ">
+
+    <div class="metric">
+      <div class="muted">Leads</div>
+      <div class="num">12</div>
+      <div class="badge" style="margin-top:8px">
+        +3 today
+      </div>
+    </div>
+
+    <div class="metric">
+      <div class="muted">Bookings</div>
+      <div class="num">7</div>
+      <div class="badge" style="margin-top:8px">
+        2 new
+      </div>
+    </div>
+
+    <div class="metric">
+      <div class="muted">Reviews</div>
+      <div class="num">3</div>
+      <div class="badge warn" style="margin-top:8px">
+        Awaiting reply
+      </div>
+    </div>
+
+    <div class="metric">
+      <div class="muted">Marketing</div>
+      <div class="num">3</div>
+      <div class="badge" style="margin-top:8px">
+        Ready
+      </div>
+    </div>
+
+  </div>
+
+
+  <!-- NEEDS YOUR ATTENTION -->
+
+  <div class="card" style="margin-top:14px">
+
+    <div style="
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+    ">
+      <div>
+        <h2>⚡ Needs Your Attention</h2>
+        <div class="muted">
+          STall has prepared these items for your approval.
+        </div>
+      </div>
+
+      <span class="badge warn">3 ITEMS</span>
+    </div>
+
+
+    <div class="item">
+
+      <div style="
+        display:flex;
+        justify-content:space-between;
+        gap:12px;
+        align-items:flex-start;
+      ">
+
+        <div>
+          <b>⭐ Google Reviews</b>
+
+          <div class="muted">
+            3 responses are waiting for approval.
+          </div>
+        </div>
+
+        <button
+          class="secondary"
+          onclick="show('reviews')">
+          Review
+        </button>
+
+      </div>
+
+    </div>
+
+
+    <div class="item">
+
+      <div style="
+        display:flex;
+        justify-content:space-between;
+        gap:12px;
+        align-items:flex-start;
+      ">
+
+        <div>
+          <b>📣 Marketing Assets</b>
+
+          <div class="muted">
+            2 social assets are ready to publish.
+          </div>
+        </div>
+
+        <button
+          class="secondary"
+          onclick="show('content')">
+          Review
+        </button>
+
+      </div>
+
+    </div>
+
+
+    <div class="item">
+
+      <div style="
+        display:flex;
+        justify-content:space-between;
+        gap:12px;
+        align-items:flex-start;
+      ">
+
+        <div>
+          <b>👥 Lead Follow-up</b>
+
+          <div class="muted">
+            2 leads have not received a follow-up yet.
+          </div>
+        </div>
+
+        <button
+          class="secondary"
+          onclick="show('leads')">
+          Follow Up
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- STALL AUTOMATION -->
+
+  <div class="card" style="margin-top:14px">
+
+    <div>
+      <h2>🤖 STall is Working for You</h2>
+
+      <div class="muted">
+        Your automation engine is active in the background.
+      </div>
+    </div>
+
+
+    <div
+      class="grid"
+      style="
+        grid-template-columns:repeat(2,minmax(0,1fr));
+        margin-top:12px;
+      ">
+
+      <div class="metric">
+
+        <div style="
+          display:flex;
+          justify-content:space-between;
+          gap:8px;
+        ">
+          <b>Daily Marketing</b>
+          <span class="badge">ON</span>
+        </div>
+
+        <div class="muted" style="margin-top:7px">
+          Content is generated from your approved salon profile.
+        </div>
+
+      </div>
+
+
+      <div class="metric">
+
+        <div style="
+          display:flex;
+          justify-content:space-between;
+          gap:8px;
+        ">
+          <b>Review Monitoring</b>
+          <span class="badge">ON</span>
+        </div>
+
+        <div class="muted" style="margin-top:7px">
+          New Google reviews are monitored automatically.
+        </div>
+
+      </div>
+
+
+      <div class="metric">
+
+        <div style="
+          display:flex;
+          justify-content:space-between;
+          gap:8px;
+        ">
+          <b>Lead Follow-up</b>
+          <span class="badge">ON</span>
+        </div>
+
+        <div class="muted" style="margin-top:7px">
+          STall identifies leads that need attention.
+        </div>
+
+      </div>
+
+
+      <div class="metric">
+
+        <div style="
+          display:flex;
+          justify-content:space-between;
+          gap:8px;
+        ">
+          <b>Booking Reminders</b>
+          <span class="badge">ON</span>
+        </div>
+
+        <div class="muted" style="margin-top:7px">
+          Customer reminders are prepared automatically.
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- PERFORMANCE -->
+
+  <div class="card" style="margin-top:14px">
+
+    <div>
+      <h2>📊 This Week</h2>
+
+      <div class="muted">
+        A quick view of your business activity.
+      </div>
+    </div>
+
+
+    <div
+      class="grid"
+      style="
+        grid-template-columns:repeat(4,minmax(0,1fr));
+        margin-top:12px;
+      ">
+
+      <div class="metric">
+        <div class="muted">Bookings</div>
+        <div class="num">42</div>
+      </div>
+
+      <div class="metric">
+        <div class="muted">New Leads</div>
+        <div class="num">31</div>
+      </div>
+
+      <div class="metric">
+        <div class="muted">Reviews</div>
+        <div class="num">18</div>
+      </div>
+
+      <div class="metric">
+        <div class="muted">Marketing</div>
+        <div class="num">11</div>
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- QUICK ACTIONS -->
+
+  <div class="card" style="margin-top:14px">
+
+    <h2>Quick Actions</h2>
+
+    <div class="muted">
+      Jump directly to the areas that need you.
+    </div>
+
+    <div class="actions">
+
+      <button onclick="show('content')">
+        📣 Marketing
+      </button>
+
+      <button onclick="show('reviews')">
+        ⭐ Reviews
+      </button>
+
+      <button onclick="show('leads')">
+        👥 Leads
+      </button>
+
+      <button
+        class="secondary"
+        onclick="show('more')">
+        🏢 Business
+      </button>
+
+    </div>
+
+  </div>
+
+</section>
+
 </section>
 
 <section id="content" class="screen">
@@ -275,7 +2298,7 @@ Discover Google Business Profile
   <h4>STore Google Access</h4>
 
   <div id="googleStoreAccessStatus" class="muted">
-    Google Business Profile selected.
+    Google Business Profile access verification is required.
   </div>
 
   <div class="muted" style="margin-top:6px">
@@ -339,8 +2362,248 @@ Discover Google Business Profile
 <div class="card"><h3>Salon profile</h3><label>Salon name<input value="Flow Salon"></label><label>Location<input value="Thubarahalli, Whitefield, Bengaluru"></label><label>Booking URL<input value="https://www.flowunisexsalon.com/home/"></label><div class="actions"><button onclick="toast('Profile saved')">Save</button></div></div>
 </section>
 </main>
-<nav>
-<button id="adminNav" style="display:none" onclick="show('admin',this)">◆<br>Admin</button><button onclick="logoutStore()">↪<br>Logout</button><button class="active" onclick="show('home',this)">⌂<br>Home</button><button onclick="show('content',this)">✦<br>Marketing</button><button onclick="show('reviews',this)">★<br>Reviews</button><button onclick="show('leads',this)">●<br>Leads</button><button onclick="show('more',this)">☰<br>More</button>
+
+<footer id="stallFooter">
+
+  <div class="stall-footer-brand">
+    <img
+      src="assets/stall-logo.png"
+      alt="STall"
+      class="stall-footer-logo"
+    >
+
+    <div>
+      <div class="stall-footer-title">
+        STall — Store Automation
+      </div>
+
+      <div class="stall-footer-tagline">
+        Store Automation for modern businesses
+      </div>
+    </div>
+  </div>
+
+  <div class="stall-footer-meta">
+    <span>
+      © <span id="stallCopyrightYear"></span> STall.
+      All rights reserved.
+    </span>
+
+    <span class="stall-footer-links">
+      Privacy&nbsp;&nbsp;•&nbsp;&nbsp;Terms&nbsp;&nbsp;•&nbsp;&nbsp;Support
+    </span>
+  </div>
+
+</footer>
+
+<nav id="stallNavigation">
+
+  <div class="stall-nav-brand">
+    <img
+      src="assets/stall-logo.png"
+      alt="STall"
+      class="stall-nav-logo"
+    >
+    <div>
+      <div class="stall-nav-title">STall</div>
+      <div class="stall-nav-product">Store Automation</div>
+    </div>
+  </div>
+
+
+  <div class="stall-nav-section">
+    <div class="stall-nav-label">WORKSPACE</div>
+
+    <button
+      id="navHome"
+      class="stall-nav-item active"
+      onclick="show('home',this)">
+      <span class="stall-nav-icon">⌂</span>
+      <span>Home</span>
+    </button>
+  </div>
+
+
+  <div class="stall-nav-section">
+
+    <div class="stall-nav-label">GROW</div>
+
+    <button
+      id="navMarketing"
+      class="stall-nav-item"
+      onclick="show('content',this)">
+      <span class="stall-nav-icon">✦</span>
+      <span>Marketing</span>
+    </button>
+
+    <button
+      id="navReviews"
+      class="stall-nav-item"
+      onclick="show('reviews',this)">
+      <span class="stall-nav-icon">★</span>
+      <span>Reviews</span>
+    </button>
+
+    <button
+      id="navLeads"
+      class="stall-nav-item"
+      onclick="show('leads',this)">
+      <span class="stall-nav-icon">●</span>
+      <span>Leads</span>
+    </button>
+
+    <button
+      id="navBookings"
+      class="stall-nav-item"
+      onclick="toast('Bookings workspace coming next')">
+      <span class="stall-nav-icon">▣</span>
+      <span>Bookings</span>
+    </button>
+
+    <button
+      id="navCustomers"
+      class="stall-nav-item"
+      onclick="toast('Customers workspace coming next')">
+      <span class="stall-nav-icon">●</span>
+      <span>Customers</span>
+    </button>
+
+  </div>
+
+
+  <div class="stall-nav-section">
+
+    <div class="stall-nav-label">AUTOMATION</div>
+
+    <button
+      id="navAutomation"
+      class="stall-nav-item"
+      onclick="toast('Automation centre coming next')">
+      <span class="stall-nav-icon">✦</span>
+      <span>Automation</span>
+    </button>
+
+    <button
+      id="navInsights"
+      class="stall-nav-item"
+      onclick="toast('Insights dashboard coming next')">
+      <span class="stall-nav-icon">▥</span>
+      <span>Insights</span>
+    </button>
+
+  </div>
+
+
+  <div class="stall-nav-section">
+
+    <div class="stall-nav-label">BUSINESS</div>
+
+    <button
+      id="navBusiness"
+      class="stall-nav-item"
+      onclick="show('more',this)">
+      <span class="stall-nav-icon">⌂</span>
+      <span>Business</span>
+    </button>
+
+    <button
+      id="navSettings"
+      class="stall-nav-item"
+      onclick="toast('Settings coming next')">
+      <span class="stall-nav-icon">⚙</span>
+      <span>Settings</span>
+    </button>
+
+  </div>
+
+
+  <div class="stall-nav-spacer"></div>
+
+
+  <div
+    id="adminNav"
+    class="stall-admin-nav"
+    style="display:none">
+
+    <button
+      class="stall-nav-item"
+      onclick="show('admin',this)">
+      <span class="stall-nav-icon">◆</span>
+      <span>STall Partners Admin</span>
+    </button>
+
+  </div>
+
+
+
+
+<div class="stall-mobile-primary">
+
+  <button type="button" data-mobile-target="home" class="active">
+    <span class="mobile-icon">⌂</span>
+    <span>Home</span>
+  </button>
+
+  <button type="button" data-mobile-target="content">
+    <span class="mobile-icon">📣</span>
+    <span>Marketing</span>
+  </button>
+
+  <button type="button" data-mobile-target="reviews">
+    <span class="mobile-icon">⭐</span>
+    <span>Reviews</span>
+  </button>
+
+  <button type="button" data-mobile-target="leads">
+    <span class="mobile-icon">👥</span>
+    <span>Leads</span>
+  </button>
+
+  <button type="button" data-mobile-more="true">
+    <span class="mobile-icon">•••</span>
+    <span>More</span>
+  </button>
+
+</div>
+
+<div class="stall-mobile-account">
+
+  <div class="stall-mobile-account-info">
+    <span class="online"></span>
+    <div>
+      <div class="stall-mobile-account-name">Flow Salon</div>
+      <div class="stall-mobile-account-role">Owner</div>
+    </div>
+  </div>
+
+  <button
+    type="button"
+    class="stall-mobile-logout"
+    onclick="logoutStore()">
+    <span>↪</span>
+    <span>Logout</span>
+  </button>
+
+</div>
+
+<div class="stall-nav-account">
+
+    <div class="stall-account-status">
+      <span class="stall-online-dot"></span>
+      <div>
+        <div class="stall-account-name">Flow Salon</div>
+        <div class="stall-account-role">Owner</div>
+      </div>
+    </div>
+
+    <button
+      class="stall-logout"
+      onclick="logoutStore()">
+      ↪ Logout
+    </button>
+
+  </div>
+
 </nav><div id="toast" class="toast"></div>
 <script>
 
@@ -796,6 +3059,36 @@ async function getActiveSalonId(){
 
 
 
+async function getActiveBusinessId(){
+  const activeBusiness = JSON.parse(
+    localStorage.getItem('activeBusiness') || '{}'
+  );
+
+  if(activeBusiness.id){
+    return activeBusiness.id;
+  }
+
+  const {data:sessionData}=await supabaseClient.auth.getSession();
+  if(!sessionData.session)return null;
+
+  const {data,error}=await supabaseClient
+    .from('business_users')
+    .select('business_id,created_at')
+    .eq('user_id',sessionData.session.user.id)
+    .order('created_at',{ascending:false})
+    .limit(1)
+    .single();
+
+  if(error){
+    console.error('Business membership error:',error);
+    return null;
+  }
+
+  return data.business_id;
+}
+
+
+
 /*
  * Finalize the universal Google Business connection after OAuth.
  *
@@ -904,25 +3197,83 @@ async function finalizeGoogleBusinessConnection(){
     }
 
     /*
-     * Exact Place ID match was persisted by the backend.
+     * Exact Place ID -> GBP location verification.
+     *
+     * The invitation button is enabled ONLY when the backend
+     * confirms both authorization and exact location verification.
      */
-    if(
-      result.connection?.connection_status ===
-        'location_selected'
-    ){
+    const googleBusinessVerified =
+      result.google_business_connected === true &&
+      result.connection?.access_status === 'verified' &&
+      result.connection?.connection_status === 'location_selected';
+
+    const accessPanel =
+      document.getElementById(
+        'googleStoreAccessPanel'
+      );
+
+    const accessStatus =
+      document.getElementById(
+        'googleStoreAccessStatus'
+      );
+
+    const accessButton =
+      document.getElementById(
+        'sendStoreGoogleInvitationButton'
+      );
+
+    if(googleBusinessVerified){
+
       console.log(
         '✓ Google Business Profile location verified:',
         result.connection
       );
 
+      if(accessPanel){
+        accessPanel.style.display = 'block';
+      }
+
+      if(accessStatus){
+        accessStatus.innerText =
+          '✓ Google Business Profile verified. ' +
+          'STore can now request Manager access.';
+      }
+
+      if(accessButton){
+        accessButton.disabled = false;
+        accessButton.onclick =
+          sendStoreGoogleInvitation;
+        accessButton.innerText =
+          'Send STore Access Invitation';
+      }
+
       toast(
         '✓ Google Business Profile connected and verified.'
       );
+
     } else {
+
       console.warn(
-        'Google authorization succeeded, but no exact GBP location was selected.',
+        'Google authorization succeeded, but exact GBP verification is incomplete.',
         result
       );
+
+      if(accessPanel){
+        accessPanel.style.display = 'block';
+      }
+
+      if(accessStatus){
+        accessStatus.innerText =
+          'Google account connected, but the exact Google Business Profile ' +
+          'listing still needs verification.';
+      }
+
+      if(accessButton){
+        accessButton.disabled = true;
+        accessButton.onclick = null;
+        accessButton.innerText =
+          'Waiting for GBP Verification';
+      }
 
       toast(
         'Google connected. The Business Profile location still needs verification.'
@@ -961,7 +3312,7 @@ async function connectGoogleBusiness(){
     }
 
     /*
-     * Get business_id from localStorage (set by selectGoogleBusinessLocation).
+     * Get business_id from the active universal Business context.
      */
     const activeBusiness = JSON.parse(
       localStorage.getItem('activeBusiness') || '{}'
@@ -1384,7 +3735,11 @@ async function selectGoogleBusinessLocation(
     }
 
     /*
-     * Show Google authorization button.
+     * Google connection has not yet been authorized.
+     *
+     * The button intentionally starts the OAuth flow.
+     * It must NOT send the STore manager invitation until
+     * the exact Google Place ID -> GBP location match succeeds.
      */
     const accessPanel =
       document.getElementById(
@@ -1473,14 +3828,14 @@ async function sendStoreGoogleInvitation(){
       return;
     }
 
-    const salonId =
-      await getActiveSalonId();
+    const businessId =
+      await getActiveBusinessId();
 
-    if(!salonId){
+    if(!businessId){
 
       if(status){
         status.innerText =
-          'Unable to determine the active salon.';
+          'Unable to determine the active business.';
       }
 
       if(button){
@@ -1507,7 +3862,7 @@ async function sendStoreGoogleInvitation(){
           },
 
           body: JSON.stringify({
-            salon_id: salonId
+            business_id: businessId
           })
         }
       );
@@ -1864,3 +4219,70 @@ function flowDemo(){
 </script>
 
 </body></html>
+<script>
+(function(){
+  function initStallMobileNav(){
+    const nav = document.getElementById('stallNavigation');
+    if(!nav) return;
+
+    const buttons = nav.querySelectorAll('[data-mobile-target]');
+
+    buttons.forEach(btn => {
+      btn.addEventListener('click', function(){
+        const target = this.getAttribute('data-mobile-target');
+
+        buttons.forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+
+        const targetEl = document.getElementById(target);
+        if(targetEl){
+          document.querySelectorAll('.screen').forEach(s => {
+            s.classList.remove('active');
+          });
+
+          targetEl.classList.add('active');
+          window.scrollTo({top:0, behavior:'smooth'});
+        }
+      });
+    });
+
+    const more = nav.querySelector('[data-mobile-more]');
+    if(more){
+      more.addEventListener('click', function(){
+        const items = nav.querySelectorAll(
+          '.stall-nav-item, .stall-admin-nav button'
+        );
+
+        const hidden = Array.from(items).filter(item => {
+          const text = item.textContent.trim().toLowerCase();
+          return ![
+            'home',
+            'marketing',
+            'reviews',
+            'leads'
+          ].includes(text);
+        });
+
+        if(hidden.length){
+          hidden[0].click();
+        }else{
+          const settings = document.getElementById('settings');
+          if(settings){
+            document.querySelectorAll('.screen').forEach(s => {
+              s.classList.remove('active');
+            });
+            settings.classList.add('active');
+            window.scrollTo({top:0, behavior:'smooth'});
+          }
+        }
+      });
+    }
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', initStallMobileNav);
+  }else{
+    initStallMobileNav();
+  }
+})();
+</script>
