@@ -1,7 +1,10 @@
 import crypto from 'node:crypto';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_SERVICE_ROLE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_PUBLISHABLE_KEY =
+  process.env.SUPABASE_PUBLISHABLE_KEY;
 
 export default {
   async fetch(request) {
@@ -18,8 +21,15 @@ export default {
 
       const accessToken = authHeader.slice(7);
 
-      if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-        return json({ error: 'Supabase server configuration missing' }, 500);
+      if (
+        !SUPABASE_URL ||
+        !SUPABASE_SERVICE_ROLE_KEY ||
+        !SUPABASE_PUBLISHABLE_KEY
+      ) {
+        return json(
+          { error: 'Supabase server configuration missing' },
+          500
+        );
       }
 
       // Validate the currently logged-in STore Automation user.
@@ -27,7 +37,7 @@ export default {
         `${SUPABASE_URL}/auth/v1/user`,
         {
           headers: {
-            apikey: SUPABASE_SERVICE_ROLE_KEY,
+            apikey: SUPABASE_PUBLISHABLE_KEY,
             Authorization: `Bearer ${accessToken}`
           }
         }
