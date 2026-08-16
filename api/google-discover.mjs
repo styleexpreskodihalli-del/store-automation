@@ -1,6 +1,10 @@
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
+const SUPABASE_SERVICE_ROLE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_PUBLISHABLE_KEY =
+  process.env.SUPABASE_PUBLISHABLE_KEY;
+const GOOGLE_MAPS_API_KEY =
+  process.env.GOOGLE_MAPS_API_KEY;
 
 export default {
   async fetch(request) {
@@ -36,7 +40,7 @@ export default {
         `${SUPABASE_URL}/auth/v1/user`,
         {
           headers: {
-            apikey: SUPABASE_SERVICE_ROLE_KEY,
+            apikey: SUPABASE_PUBLISHABLE_KEY,
             Authorization: `Bearer ${supabaseAccessToken}`
           }
         }
