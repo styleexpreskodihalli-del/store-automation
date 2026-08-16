@@ -711,8 +711,12 @@ export default {
             connection.authorization_status ||
             null,
           connection_status:
-            connection.connection_status ||
-            null
+            matchedLocation
+              ? 'location_selected'
+              : (
+                  connection.connection_status ||
+                  null
+                )
         },
 
         accounts: accounts.map(
