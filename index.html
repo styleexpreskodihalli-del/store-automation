@@ -632,6 +632,13 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
   }
 });
 
+/*
+ * Complete the universal Google Business connection
+ * after returning from Google OAuth.
+ */
+finalizeGoogleBusinessConnection();
+
+
 async function storeLogin(){
   const email = document.getElementById('loginEmail').value.trim();
   const password = document.getElementById('loginPassword').value;
@@ -713,6 +720,162 @@ async function getActiveSalonId(){
   return data.salon_id;
 }
 
+
+
+/*
+ * Finalize the universal Google Business connection after OAuth.
+ *
+ * Google OAuth returns to:
+ *   /?google_connected=1&business_id=<UUID>
+ *
+ * The backend then:
+ *   1. Refreshes the Google access token if required.
+ *   2. Discovers accessible GBP accounts and locations.
+ *   3. Matches the exact universal-business Place ID.
+ *   4. Persists the GBP account/location mapping.
+ */
+async function finalizeGoogleBusinessConnection(){
+  try {
+    const params =
+      new URLSearchParams(window.location.search);
+
+    if(
+      params.get('google_connected') !== '1' ||
+      !params.get('business_id')
+    ){
+      return;
+    }
+
+    const businessId =
+      params.get('business_id');
+
+    console.log(
+      'Finalizing Google Business connection:',
+      businessId
+    );
+
+    const { data, error } =
+      await supabaseClient.auth.getSession();
+
+    if(error || !data.session){
+      console.error(
+        'Google Business finalization: no active Supabase session',
+        error
+      );
+
+      toast(
+        'Google connected, but your STore session needs to be refreshed.'
+      );
+
+      return;
+    }
+
+    const response =
+      await fetch(
+        '/api/google-business-locations?business_id=' +
+        encodeURIComponent(businessId),
+        {
+          method: 'GET',
+          headers: {
+            Authorization:
+              `Bearer ${data.session.access_token}`
+          }
+        }
+      );
+
+    const result =
+      await response.json().catch(
+        () => ({})
+      );
+
+    console.log(
+      'Google Business finalization result:',
+      result
+    );
+
+    if(!response.ok){
+      console.error(
+        'Google Business finalization failed:',
+        result
+      );
+
+      toast(
+        result.error ||
+        'Google connected, but the Business Profile location could not be verified.'
+      );
+
+      return;
+    }
+
+    /*
+     * Store the confirmed business context locally.
+     */
+    if(result.business){
+      localStorage.setItem(
+        'activeBusiness',
+        JSON.stringify({
+          id:
+            result.business.id ||
+            businessId,
+
+          business_name:
+            result.business.business_name ||
+            null,
+
+          google_place_id:
+            result.business.google_place_id ||
+            null
+        })
+      );
+    }
+
+    /*
+     * Exact Place ID match was persisted by the backend.
+     */
+    if(
+      result.connection?.connection_status ===
+        'location_selected'
+    ){
+      console.log(
+        '✓ Google Business Profile location verified:',
+        result.connection
+      );
+
+      toast(
+        '✓ Google Business Profile connected and verified.'
+      );
+    } else {
+      console.warn(
+        'Google authorization succeeded, but no exact GBP location was selected.',
+        result
+      );
+
+      toast(
+        'Google connected. The Business Profile location still needs verification.'
+      );
+    }
+
+    /*
+     * Remove OAuth parameters from the browser URL
+     * without reloading the page.
+     */
+    window.history.replaceState(
+      {},
+      document.title,
+      window.location.pathname
+    );
+
+  } catch(error) {
+    console.error(
+      'Google Business finalization exception:',
+      error
+    );
+
+    toast(
+      'Google connected, but Business Profile verification failed.'
+    );
+  }
+}
 
 async function connectGoogleBusiness(){
   try {

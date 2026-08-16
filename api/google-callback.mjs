@@ -318,6 +318,27 @@ export default {
         );
       }
 
+      /*
+       * Universal business flow:
+       * Return the user to STore Automation after OAuth.
+       *
+       * The frontend will then call /api/google-business-locations
+       * using the authenticated Supabase session. That endpoint
+       * performs the exact Google Place ID -> GBP location match.
+       */
+      if (businessId) {
+        const redirectUrl =
+          `/?google_connected=1&business_id=${encodeURIComponent(businessId)}`;
+
+        return new Response(null, {
+          status: 302,
+          headers: {
+            Location: redirectUrl,
+            'cache-control': 'no-store'
+          }
+        });
+      }
+
       return html(
         200,
         `
