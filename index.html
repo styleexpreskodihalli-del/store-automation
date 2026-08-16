@@ -66,7 +66,7 @@ window.supabaseClient = supabaseClient;
   </div>
 </div>
 
-<div id="loginOverlay">
+<div id="loginOverlay" style="display:none;">
   <div class="loginBox">
     <div style="font-size:12px;font-weight:800;color:#17633f">STALL PARTNERS</div>
     <h1>STore Automation</h1>
@@ -633,10 +633,84 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
 });
 
 /*
- * Complete the universal Google Business connection
- * after returning from Google OAuth.
+ * Restore an existing Supabase session after a full-page
+ * navigation such as the Google OAuth callback redirect.
+ *
+ * The Supabase session survives the redirect, but the STore
+ * UI must explicitly restore the authenticated workspace.
  */
-finalizeGoogleBusinessConnection();
+async function restoreStoreSession(){
+  try {
+    const { data, error } =
+      await supabaseClient.auth.getSession();
+
+    if(error){
+      console.error(
+        'Session restoration error:',
+        error
+      );
+      return;
+    }
+
+    if(!data.session){
+      const loginOverlay =
+        document.getElementById(
+          'loginOverlay'
+        );
+
+      if(loginOverlay){
+        loginOverlay.style.display =
+          'flex';
+      }
+
+      return;
+    }
+
+    console.log(
+      '✓ Existing STore session restored:',
+      data.session.user?.email
+    );
+
+    localStorage.setItem(
+      'storeLoggedIn',
+      'true'
+    );
+
+    localStorage.setItem(
+      'storeUser',
+      data.session.user?.email || ''
+    );
+
+    await loadRealUser(
+      data.session.user
+    );
+
+    const loginOverlay =
+      document.getElementById(
+        'loginOverlay'
+      );
+
+    if(loginOverlay){
+      loginOverlay.style.display =
+        'none';
+    }
+
+    /*
+     * Only finalize Google Business after the
+     * authenticated STore session has been restored.
+     */
+    await finalizeGoogleBusinessConnection();
+
+  } catch(error) {
+    console.error(
+      'Session restoration exception:',
+      error
+    );
+  }
+}
+
+
+restoreStoreSession();
 
 
 async function storeLogin(){
