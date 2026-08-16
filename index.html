@@ -35,6 +35,10 @@ const supabaseClient = window.supabase.createClient(
   SUPABASE_URL,
   SUPABASE_PUBLISHABLE_KEY
 );
+
+// TEMP DEBUG: expose Supabase client for GBP location testing
+window.supabaseClient = supabaseClient;
+
 </script>
 </head>
 <body>
@@ -209,13 +213,62 @@ const supabaseClient = window.supabase.createClient(
 <button type="button" onclick="connectGoogleBusiness()">
 Connect Google Business
 </button>
-<button type="button" class="secondary" onclick="discoverGoogleBusiness()">
+<button type="button" class="secondary" onclick="showGoogleDiscover()">
 Discover Google Business Profile
 </button>
 <span id="googleConnectionStatus" class="muted"></span>
 </div>
 
-<div id="googleLocationsPanel" style="display:none;margin-top:12px"></div>
+<div id="googleDiscoverPanel"
+     style="display:none;margin-top:12px;padding:14px;border:1px solid #ddd;border-radius:8px">
+
+  <h4>Find Google Business Profile</h4>
+
+  <div class="muted" style="margin-bottom:10px">
+    Search only within the location you select.
+  </div>
+
+  <label>
+    Country
+    <input id="googleSearchCountry"
+           value="India"
+           placeholder="India">
+  </label>
+
+  <label>
+    City
+    <input id="googleSearchCity"
+           placeholder="Bengaluru"
+           required>
+  </label>
+
+  <label>
+    Area / Locality
+    <input id="googleSearchArea"
+           placeholder="Whitefield">
+  </label>
+
+  <label>
+    Business Name
+    <input id="googleSearchQuery"
+           placeholder="Cut N Cute Studio Salon">
+  </label>
+
+  <div class="actions">
+    <button type="button"
+            onclick="discoverGoogleBusiness()">
+      Search Google
+    </button>
+  </div>
+
+  <div id="googleDiscoverMessage"
+       class="muted"
+       style="margin-top:8px"></div>
+
+  <div id="googleLocationsPanel"
+       style="display:none;margin-top:12px"></div>
+
+</div>
 <div id="googleStoreAccessPanel"
      style="display:none;margin-top:12px;padding:14px;border:1px solid #ddd;border-radius:8px">
 
@@ -670,12 +723,29 @@ async function connectGoogleBusiness(){
       return;
     }
 
-    const response = await fetch('/api/google-start', {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${data.session.access_token}`
+    /*
+     * Get business_id from localStorage (set by selectGoogleBusinessLocation).
+     */
+    const activeBusiness = JSON.parse(
+      localStorage.getItem('activeBusiness') || '{}'
+    );
+
+    const businessId = activeBusiness.id;
+
+    if(!businessId){
+      toast('No business selected. Please search and map a business first.');
+      return;
+    }
+
+    const response = await fetch(
+      '/api/google-start?business_id=' + encodeURIComponent(businessId),
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${data.session.access_token}`
+        }
       }
-    });
+    );
 
     const result = await response.json().catch(() => ({}));
 
@@ -700,12 +770,56 @@ async function connectGoogleBusiness(){
 }
 
 
+function showGoogleDiscover(){
+  const panel =
+    document.getElementById('googleDiscoverPanel');
+
+  if(panel){
+    panel.style.display =
+      panel.style.display === 'none'
+        ? 'block'
+        : 'none';
+  }
+}
+
 async function discoverGoogleBusiness(){
-  const status = document.getElementById('googleConnectionStatus');
-  const panel = document.getElementById('googleLocationsPanel');
+
+  const status =
+    document.getElementById('googleConnectionStatus');
+
+  const message =
+    document.getElementById('googleDiscoverMessage');
+
+  const panel =
+    document.getElementById('googleLocationsPanel');
+
+  const country =
+    document.getElementById('googleSearchCountry')?.value.trim();
+
+  const city =
+    document.getElementById('googleSearchCity')?.value.trim();
+
+  const area =
+    document.getElementById('googleSearchArea')?.value.trim();
+
+  const query =
+    document.getElementById('googleSearchQuery')?.value.trim();
+
+  if(!city && !query){
+    if(message){
+      message.innerText =
+        'Please enter a city or business name.';
+    }
+    return;
+  }
+
+  if(message){
+    message.innerText =
+      'Searching Google Maps...';
+  }
 
   if(status){
-    status.innerText = 'Discovering Google Business locations...';
+    status.innerText = '';
   }
 
   if(panel){
@@ -718,43 +832,70 @@ async function discoverGoogleBusiness(){
       await supabaseClient.auth.getSession();
 
     if(error || !data.session){
-      if(status) status.innerText = 'Please log in again.';
+      if(message){
+        message.innerText =
+          'Please log in again.';
+      }
       return;
     }
 
-    const response = await fetch('/api/google-discover', {
-      method: 'GET',
-      headers: {
-        Authorization:
-          `Bearer ${data.session.access_token}`
-      }
-    });
+    const params = new URLSearchParams();
+
+    if(country) params.set('country', country);
+    if(city) params.set('city', city);
+    if(area) params.set('area', area);
+    if(query) params.set('query', query);
+
+    const response =
+      await fetch(
+        '/api/google-discover?' +
+        params.toString(),
+        {
+          method: 'GET',
+          headers: {
+            Authorization:
+              `Bearer ${data.session.access_token}`
+          }
+        }
+      );
 
     const result =
       await response.json().catch(() => ({}));
 
     if(!response.ok){
-      console.error('Google discovery error:', result);
+      console.error(
+        'Google Places discovery error:',
+        result
+      );
 
-      if(status){
-        status.innerText =
+      if(message){
+        message.innerText =
           result.error ||
-          'Unable to discover Google Business locations.';
+          'Unable to search Google Maps.';
       }
 
       return;
     }
 
-    if(status){
-      status.innerText =
-        `${result.locations_found || 0} Google Business location(s) found.`;
+    const locations =
+      Array.isArray(result.locations)
+        ? result.locations
+        : [];
+
+    if(message){
+      message.innerText =
+        locations.length
+          ? `${locations.length} local result(s) found.`
+          : 'No matching businesses found.';
     }
 
-    if(!result.locations || !result.locations.length){
+    if(!locations.length){
       if(panel){
         panel.style.display = 'block';
         panel.innerHTML =
-          '<div class="muted">No Google Business locations were found for this Google account.</div>';
+          '<div class="muted">' +
+          'No businesses were found in the selected location.' +
+          '</div>';
       }
       return;
     }
@@ -766,11 +907,12 @@ async function discoverGoogleBusiness(){
         document.createElement('h4');
 
       heading.innerText =
-        'Select your Google Business Profile';
+        'Select the correct business';
 
       panel.appendChild(heading);
 
-      result.locations.forEach((location, index) => {
+      locations.forEach(location => {
+
         const card =
           document.createElement('div');
 
@@ -784,7 +926,7 @@ async function discoverGoogleBusiness(){
 
         title.innerText =
           location.location_name ||
-          'Unnamed Google Business Profile';
+          'Unnamed business';
 
         card.appendChild(title);
 
@@ -792,7 +934,6 @@ async function discoverGoogleBusiness(){
           document.createElement('div');
 
         details.className = 'muted';
-
         details.style.marginTop = '5px';
 
         details.innerText =
@@ -800,55 +941,83 @@ async function discoverGoogleBusiness(){
             location.address,
             location.phone,
             location.website,
-            `Match score: ${location.match_score || 0}%`
+            location.rating
+              ? `⭐ ${location.rating}`
+              : null,
+            location.user_rating_count
+              ? `${location.user_rating_count} reviews`
+              : null
           ]
           .filter(Boolean)
           .join(' • ');
 
         card.appendChild(details);
 
+        if(location.google_maps_url){
+          const mapsLink =
+            document.createElement('a');
+
+          mapsLink.href =
+            location.google_maps_url;
+
+          mapsLink.target = '_blank';
+          mapsLink.rel = 'noopener noreferrer';
+          mapsLink.innerText =
+            'View on Google Maps';
+
+          mapsLink.style.display =
+            'inline-block';
+
+          mapsLink.style.marginTop =
+            '6px';
+
+          card.appendChild(mapsLink);
+        }
+
         const button =
           document.createElement('button');
 
         button.type = 'button';
         button.style.marginTop = '8px';
-
         button.innerText =
-          'Use this Google Business Profile';
+          'MAP THIS LISTING';
 
-        button.onclick = () =>
-          selectGoogleBusinessLocation(
-            result.salon.id,
-            location
-          );
+        button.onclick =
+          () =>
+            selectGoogleBusinessLocation(
+              location
+            );
 
         card.appendChild(button);
-
         panel.appendChild(card);
       });
     }
 
   } catch(error) {
     console.error(
-      'Google discovery exception:',
+      'Google Places discovery exception:',
       error
     );
 
-    if(status){
-      status.innerText =
-        'Unable to discover Google Business locations.';
+    if(message){
+      message.innerText =
+        'Unable to search Google Maps.';
     }
   }
 }
 
 async function selectGoogleBusinessLocation(
-  salonId,
   location
 ){
   const status =
     document.getElementById(
       'googleConnectionStatus'
     );
+
+  if(status){
+    status.innerText =
+      'Mapping business profile...';
+  }
 
   try {
     const { data, error } =
@@ -860,9 +1029,13 @@ async function selectGoogleBusinessLocation(
       return;
     }
 
-    const response =
+    /*
+     * Call /api/map-business to auto-create or reuse business.
+     * This endpoint populates all business data from Google Places.
+     */
+    const mapResponse =
       await fetch(
-        '/api/google-select-location',
+        '/api/map-business',
         {
           method: 'POST',
 
@@ -875,37 +1048,93 @@ async function selectGoogleBusinessLocation(
           },
 
           body: JSON.stringify({
-            salon_id: salonId,
-            business_account_id:
-              location.account_name,
-            business_location_id:
-              location.location_id,
-            business_location_name:
-              location.location_name
+            place_id:
+              location.place_id,
+            business_name:
+              location.location_name,
+            phone:
+              location.phone,
+            website:
+              location.website,
+            address:
+              location.address,
+            city:
+              location.city,
+            state:
+              location.state,
+            country:
+              location.country,
+            postal_code:
+              location.postal_code,
+            latitude:
+              location.latitude,
+            longitude:
+              location.longitude,
+            google_maps_url:
+              location.google_maps_url,
+            google_rating:
+              location.rating,
+            google_review_count:
+              location.user_rating_count
           })
         }
       );
 
     const result =
-      await response.json().catch(() => ({}));
+      await mapResponse.json().catch(() => ({}));
 
-    if(!response.ok){
+    if(!mapResponse.ok){
       console.error(
-        'Google location selection error:',
+        'Map business error:',
         result
       );
 
       if(status) status.innerText =
         result.error ||
-        'Unable to save Google Business Profile.';
+        'Unable to map business profile.';
 
       return;
     }
 
+    if(result.success === false){
+      /*
+       * Business exists and is claimed by another user.
+       */
+      console.warn(
+        'Business already claimed:',
+        result.business_id
+      );
+
+      if(status){
+        status.innerText =
+          'This business profile is already connected to another account. ' +
+          'Access approval is required.';
+      }
+
+      return;
+    }
+
+    /*
+     * Business successfully mapped/created and user is owner.
+     */
+    const business = result.business;
+
     if(status){
       status.innerText =
-        '✓ Google Business Profile selected.';
+        '✓ Business profile mapped. Ready to connect Google.';
     }
+
+    /*
+     * Store business_id in localStorage for next step (OAuth).
+     */
+    localStorage.setItem(
+      'activeBusiness',
+      JSON.stringify({
+        id: business.id,
+        business_name: business.business_name,
+        google_place_id: business.google_place_id
+      })
+    );
 
     const panel =
       document.getElementById(
@@ -918,8 +1147,7 @@ async function selectGoogleBusinessLocation(
     }
 
     /*
-     * Listing selection is complete.
-     * STore still needs Manager access from the owner.
+     * Show Google authorization button.
      */
     const accessPanel =
       document.getElementById(
@@ -937,7 +1165,8 @@ async function selectGoogleBusinessLocation(
 
     if(accessStatus){
       accessStatus.innerText =
-        '✓ Listing selected. STore access has not yet been granted.';
+        '✓ Business profile mapped. ' +
+        'Next: Connect your Google Account.';
     }
 
     const accessButton =
@@ -947,21 +1176,20 @@ async function selectGoogleBusinessLocation(
 
     if(accessButton){
       accessButton.disabled = false;
+      accessButton.onclick = connectGoogleBusiness;
       accessButton.innerText =
-        'Send STore Access Invitation';
+        'Connect Google Account';
     }
-
-    await loadSalonWorkspaceData();
 
   } catch(error) {
     console.error(
-      'Google location selection exception:',
+      'Map business exception:',
       error
     );
 
     if(status){
       status.innerText =
-        'Unable to save Google Business Profile.';
+        'Unable to map business profile.';
     }
   }
 }
