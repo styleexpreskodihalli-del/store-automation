@@ -156,10 +156,68 @@ export default {
         ).padStart(3, '0')}`;
 
       /*
-       * Create the salon.
+       * Create the universal business.
+       *
+       * This admin-created-owner flow creates a NEW business.
+       * Existing businesses are never matched by name.
+       *
+       * Google listing identity is resolved separately through
+       * google_place_id in the business-mapping flow.
+       */
+      const businessResponse =
+        await supabaseFetch(
+          `/rest/v1/businesses`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Prefer: 'return=representation'
+            },
+            body: JSON.stringify({
+              business_name: name.trim(),
+              business_type: 'salon',
+              phone: phone?.trim() || null,
+              website: website?.trim() || null,
+              address: address?.trim() || null,
+              status: 'active',
+              automation_enabled: true,
+              approval_required: true
+            })
+          }
+        );
+
+      if (!businessResponse.ok) {
+        console.error(
+          'Business creation failed:',
+          await businessResponse.text()
+        );
+
+        return json({
+          error: 'Unable to create business'
+        }, 500);
+      }
+
+      const createdBusinesses =
+        await businessResponse.json();
+
+      const business =
+        Array.isArray(createdBusinesses)
+          ? createdBusinesses[0]
+          : createdBusinesses;
+
+      if (!business?.id) {
+        return json({
+          error:
+            'Business was created but no business ID was returned'
+        }, 500);
+      }
+
+      /*
+       * Create the salon and explicitly link it to the business.
        */
       const newSalon = {
         salon_code: salonCode,
+        business_id: business.id,
         name: name.trim(),
         owner_name: owner_name.trim(),
         owner_email: email,
@@ -392,7 +450,44 @@ export default {
       }
 
       /*
+       * Create universal business ownership.
+       *
+       * Business ownership is the canonical authorization layer.
+       */
+      const businessMembershipResponse =
+        await supabaseFetch(
+          `/rest/v1/business_users`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Prefer: 'return=minimal'
+            },
+            body: JSON.stringify({
+              business_id: business.id,
+              user_id: ownerUserId,
+              role: 'owner'
+            })
+          }
+        );
+
+      if (!businessMembershipResponse.ok) {
+        console.error(
+          'Business ownership creation failed:',
+          await businessMembershipResponse.text()
+        );
+
+        return json({
+          error:
+            'Salon was created, but universal business ownership could not be established'
+        }, 500);
+      }
+
+      /*
        * Create salon membership.
+       *
+       * Kept temporarily for backward compatibility with the existing
+       * salon-based application flows.
        */
       const membershipResponse =
         await supabaseFetch(
@@ -426,6 +521,7 @@ export default {
       return json({
         success: true,
         salon_id: salon.id,
+        business_id: business.id,
         salon_code: salon.salon_code,
         salon_name: salon.name,
         owner_name: owner_name.trim(),

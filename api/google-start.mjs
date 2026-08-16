@@ -44,7 +44,6 @@ export default {
       const businessId = url.searchParams.get('business_id');
 
       let targetBusinessId = null;
-      let targetSalonId = null;
 
       if (businessId) {
         /*
@@ -87,40 +86,6 @@ export default {
             user_role: memberships[0].role
           }
         );
-      } else {
-        /*
-         * Legacy salon flow: fall back to salon_members lookup.
-         */
-        const membershipResponse = await fetch(
-          `${SUPABASE_URL}/rest/v1/salon_members?select=salon_id,role&user_id=eq.${encodeURIComponent(user.id)}&limit=1`,
-          {
-            headers: {
-              apikey: SUPABASE_SERVICE_ROLE_KEY,
-              Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
-            }
-          }
-        );
-
-        if (!membershipResponse.ok) {
-          return json({ error: 'Unable to find salon membership' }, 500);
-        }
-
-        const memberships = await membershipResponse.json();
-
-        if (!memberships.length) {
-          return json({ error: 'No salon membership found' }, 403);
-        }
-
-        targetSalonId = memberships[0].salon_id;
-
-        console.log(
-          'OAuth flow initiated for legacy salon:',
-          {
-            salon_id: targetSalonId,
-            user_id: user.id,
-            user_role: memberships[0].role
-          }
-        );
       }
 
       // Generate a cryptographically random one-time state.
@@ -145,10 +110,6 @@ export default {
       if (targetBusinessId) {
         stateBody.business_id = targetBusinessId;
       }
-      if (targetSalonId) {
-        stateBody.salon_id = targetSalonId;
-      }
-
       const stateResponse = await fetch(
         `${SUPABASE_URL}/rest/v1/google_oauth_states`,
         {

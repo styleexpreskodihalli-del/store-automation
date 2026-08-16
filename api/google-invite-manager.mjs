@@ -52,23 +52,23 @@ export default {
       const body =
         await request.json().catch(() => null);
 
-      if (!body?.salon_id) {
+      if (!body?.business_id) {
         return json({
-          error: 'Salon ID is required'
+          error: 'Business ID is required'
         }, 400);
       }
 
-      const salonId = body.salon_id;
+      const businessId = body.business_id;
 
       /*
        * Verify that the authenticated STore user
-       * belongs to this salon.
+       * belongs to this Business.
        */
       const memberResponse = await supabaseFetch(
-        `/rest/v1/salon_members` +
-        `?salon_id=eq.${encodeURIComponent(salonId)}` +
+        `/rest/v1/business_users` +
+        `?business_id=eq.${encodeURIComponent(businessId)}` +
         `&user_id=eq.${encodeURIComponent(user.id)}` +
-        `&select=salon_id,role` +
+        `&select=business_id,role` +
         `&limit=1`
       );
 
@@ -89,18 +89,18 @@ export default {
       if (!members.length) {
         return json({
           error:
-            'You are not authorized to manage this salon'
+            'You are not authorized to manage this business'
         }, 403);
       }
 
       /*
-       * Load the selected Google Business location.
+       * Load the verified Google Business Profile connection.
        */
       const connectionResponse =
         await supabaseFetch(
-          `/rest/v1/google_business_connections` +
-          `?salon_id=eq.${encodeURIComponent(salonId)}` +
-          `&select=id,business_account_id,business_location_id,business_location_name,access_token,refresh_token,token_expires_at,connection_status` +
+          `/rest/v1/google_connections` +
+          `?business_id=eq.${encodeURIComponent(businessId)}` +
+          `&select=id,business_id,business_profile_account_id,business_profile_location_id,business_profile_location_name,access_token,refresh_token,token_expires_at,authorization_status,access_status,connection_status` +
           `&limit=1`
         );
 
@@ -128,11 +128,15 @@ export default {
 
       const connection = connections[0];
 
-      if (!connection.business_location_id) {
+      if (
+        connection.access_status !== 'verified' ||
+        connection.connection_status !== 'location_selected' ||
+        !connection.business_profile_location_id
+      ) {
         return json({
           error:
-            'Please select the Google Business Profile first'
-        }, 400);
+            'The Google Business Profile listing has not been verified yet'
+        }, 409);
       }
 
       if (!connection.refresh_token) {
@@ -227,7 +231,7 @@ export default {
             : null;
 
         await updateConnection(
-          salonId,
+          businessId,
           {
             access_token:
               accessToken,
@@ -251,7 +255,7 @@ export default {
        * with the invitee email and MANAGER role.
        */
       const locationId =
-        connection.business_location_id;
+        connection.business_profile_location_id;
 
       if (!locationId.startsWith('locations/')) {
         return json({
@@ -289,7 +293,7 @@ export default {
         );
 
         await updateConnection(
-          salonId,
+          businessId,
           {
             store_manager_email:
               STORE_GOOGLE_MANAGER_EMAIL,
@@ -352,10 +356,12 @@ export default {
           STORE_GOOGLE_MANAGER_EMAIL,
         invitation_id:
           invitationId,
-        business_location_id:
+        business_id:
+          businessId,
+        business_profile_location_id:
           locationId,
-        business_location_name:
-          connection.business_location_name
+        business_profile_location_name:
+          connection.business_profile_location_name
       });
 
     } catch (error) {
@@ -392,13 +398,13 @@ async function supabaseFetch(
 }
 
 async function updateConnection(
-  salonId,
+  businessId,
   values
 ) {
   const response =
     await supabaseFetch(
-      `/rest/v1/google_business_connections` +
-      `?salon_id=eq.${encodeURIComponent(salonId)}`,
+      `/rest/v1/google_connections` +
+      `?business_id=eq.${encodeURIComponent(businessId)}`,
       {
         method: 'PATCH',
         headers: {
