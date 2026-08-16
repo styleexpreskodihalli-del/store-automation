@@ -743,13 +743,23 @@ export default {
     } catch (error) {
       console.error(
         'Google business locations error:',
-        error
+        {
+          name:
+            error?.name || null,
+          message:
+            error?.message || String(error),
+          stack:
+            error?.stack || null
+        }
       );
 
       return json(
         {
           error:
-            'Unable to load Google Business locations'
+            'Unable to load Google Business locations',
+          details:
+            error?.message ||
+            String(error)
         },
         500
       );
