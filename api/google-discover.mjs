@@ -1,7 +1,6 @@
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 
 export default {
   async fetch(request) {
@@ -13,11 +12,26 @@ export default {
       const authHeader = request.headers.get('authorization');
 
       if (!authHeader?.startsWith('Bearer ')) {
-        return json({ error: 'Missing Supabase authorization' }, 401);
+        return json(
+          { error: 'Missing Supabase authorization' },
+          401
+        );
+      }
+
+      if (!GOOGLE_MAPS_API_KEY) {
+        console.error('GOOGLE_MAPS_API_KEY is not configured');
+
+        return json(
+          { error: 'Google Places discovery is not configured' },
+          500
+        );
       }
 
       const supabaseAccessToken = authHeader.slice(7);
 
+      /*
+       * Validate the logged-in STore user.
+       */
       const userResponse = await fetch(
         `${SUPABASE_URL}/auth/v1/user`,
         {
@@ -29,517 +43,521 @@ export default {
       );
 
       if (!userResponse.ok) {
-        return json({ error: 'Invalid Supabase session' }, 401);
+        return json(
+          { error: 'Invalid Supabase session' },
+          401
+        );
       }
 
       const user = await userResponse.json();
 
       /*
-       * Find the salon owned by the authenticated user.
+       * Geographic search inputs.
+       *
+       * For new users without a business yet, only geographic
+       * restrictions are used. No business profile comparison.
+       *
+       * The caller may optionally supply:
+       *
+       *   ?city=Bengaluru
+       *   ?country=India
+       *   ?area=Whitefield
+       *   ?query=Cut N Cute Studio Salon
+       *
+       * These values are used for discovery only.
        */
-      const memberResponse = await supabaseFetch(
-        `/rest/v1/salon_members` +
-        `?user_id=eq.${encodeURIComponent(user.id)}` +
-        `&select=salon_id,role` +
-        `&limit=1`
-      );
-
-      if (!memberResponse.ok) {
-        console.error(
-          'Salon membership lookup failed:',
-          await memberResponse.text()
-        );
-        return json({ error: 'Unable to find salon' }, 500);
-      }
-
-      const members = await memberResponse.json();
-
-      if (!members.length) {
-        return json({ error: 'No salon is assigned to this account' }, 404);
-      }
-
-      const salonId = members[0].salon_id;
 
       /*
-       * Read salon information for matching.
+       * Geographic search inputs.
        */
-      const salonResponse = await supabaseFetch(
-        `/rest/v1/salons` +
-        `?id=eq.${encodeURIComponent(salonId)}` +
-        `&select=id,name,address,phone,website` +
-        `&limit=1`
-      );
+      const url = new URL(request.url);
 
-      if (!salonResponse.ok) {
-        console.error(
-          'Salon lookup failed:',
-          await salonResponse.text()
-        );
-        return json({ error: 'Unable to load salon' }, 500);
-      }
+      const country =
+        clean(url.searchParams.get('country'));
 
-      const salons = await salonResponse.json();
+      const city =
+        clean(url.searchParams.get('city'));
 
-      if (!salons.length) {
-        return json({ error: 'Salon not found' }, 404);
-      }
+      const area =
+        clean(url.searchParams.get('area'));
 
-      const salon = salons[0];
+      const requestedQuery =
+        clean(url.searchParams.get('query'));
 
       /*
-       * Read the stored Google connection.
+       * Require at least a city or an explicit search query.
+       *
+       * We intentionally do NOT allow a blank global search.
        */
-      const connectionResponse = await supabaseFetch(
-        `/rest/v1/google_business_connections` +
-        `?salon_id=eq.${encodeURIComponent(salonId)}` +
-        `&select=id,google_account_id,google_account_email,access_token,refresh_token,token_expires_at,scope,connection_status` +
-        `&limit=1`
-      );
-
-      if (!connectionResponse.ok) {
-        console.error(
-          'Google connection lookup failed:',
-          await connectionResponse.text()
-        );
-        return json({ error: 'Unable to load Google connection' }, 500);
-      }
-
-      const connections = await connectionResponse.json();
-
-      if (!connections.length) {
-        return json({ error: 'Google Business is not connected' }, 404);
-      }
-
-      const connection = connections[0];
-
-      if (!connection.refresh_token) {
-        return json({
-          error: 'Google connection is missing a refresh token. Please reconnect Google Business.'
-        }, 400);
-      }
-
-      /*
-       * Refresh access token when missing or expired.
-       */
-      let accessToken = connection.access_token;
-
-      const expiresAt = connection.token_expires_at
-        ? new Date(connection.token_expires_at).getTime()
-        : 0;
-
-      const needsRefresh =
-        !accessToken ||
-        !expiresAt ||
-        expiresAt <= Date.now() + 60 * 1000;
-
-      if (needsRefresh) {
-        const tokenResponse = await fetch(
-          'https://oauth2.googleapis.com/token',
+      if (!city && !requestedQuery) {
+        return json(
           {
-            method: 'POST',
-            headers: {
-              'content-type': 'application/x-www-form-urlencoded'
+            error:
+              'Please select a city or enter a business search.'
+          },
+          400
+        );
+      }
+
+      /*
+       * Build a geographic search phrase.
+       *
+       * Examples:
+       *
+       * "Cut N Cute Studio Salon, Whitefield, Bengaluru, India"
+       * or
+       * "salon, Whitefield, Bengaluru, India" (if no query provided)
+       */
+      const searchParts = [];
+
+      if (requestedQuery) {
+        searchParts.push(requestedQuery);
+      } else {
+        /*
+         * No specific business name provided.
+         * Use a generic business type as fallback.
+         */
+        searchParts.push('business');
+      }
+
+      if (area) {
+        searchParts.push(area);
+      }
+
+      if (city) {
+        searchParts.push(city);
+      }
+
+      if (country) {
+        searchParts.push(country);
+      }
+
+      const textQuery = searchParts.join(', ');
+
+      /*
+       * Optional rectangular restriction.
+       *
+       * The UI can supply:
+       *
+       * minLat
+       * minLng
+       * maxLat
+       * maxLng
+       *
+       * When supplied, Google will NOT return results
+       * outside this rectangle.
+       *
+       * This is stronger than locationBias.
+       */
+      const minLat =
+        numberParam(url.searchParams.get('minLat'));
+
+      const minLng =
+        numberParam(url.searchParams.get('minLng'));
+
+      const maxLat =
+        numberParam(url.searchParams.get('maxLat'));
+
+      const maxLng =
+        numberParam(url.searchParams.get('maxLng'));
+
+      const hasRestriction =
+        [minLat, minLng, maxLat, maxLng]
+          .every(value => value !== null);
+
+      /*
+       * Build Google Places Text Search request.
+       */
+      const placesBody = {
+        textQuery,
+        pageSize: 20,
+        languageCode: 'en',
+        includePureServiceAreaBusinesses: false
+      };
+
+      if (hasRestriction) {
+        placesBody.locationRestriction = {
+          rectangle: {
+            low: {
+              latitude: minLat,
+              longitude: minLng
             },
-            body: new URLSearchParams({
-              client_id: GOOGLE_CLIENT_ID,
-              client_secret: GOOGLE_CLIENT_SECRET,
-              refresh_token: connection.refresh_token,
-              grant_type: 'refresh_token'
-            })
-          }
-        );
-
-        const tokenData = await tokenResponse.json();
-
-        if (!tokenResponse.ok || !tokenData.access_token) {
-          console.error(
-            'Google token refresh failed:',
-            tokenData.error || tokenData.error_description || 'unknown error'
-          );
-
-          await updateConnection(salonId, {
-            connection_status: 'error',
-            last_error: 'Google access token refresh failed',
-            updated_at: new Date().toISOString()
-          });
-
-          return json({
-            error: 'Google authorization has expired. Please reconnect Google Business.'
-          }, 401);
-        }
-
-        accessToken = tokenData.access_token;
-
-        const newExpiresAt = tokenData.expires_in
-          ? new Date(
-              Date.now() + Number(tokenData.expires_in) * 1000
-            ).toISOString()
-          : null;
-
-        await updateConnection(salonId, {
-          access_token: accessToken,
-          token_expires_at: newExpiresAt,
-          connection_status: 'connected',
-          last_error: null,
-          updated_at: new Date().toISOString()
-        });
-      }
-
-      /*
-       * Discover all Business Profile accounts accessible
-       * to the connected Google user.
-       */
-      const accounts = [];
-
-      let accountPageToken = null;
-
-      do {
-        const accountUrl =
-          new URL(
-            'https://mybusinessaccountmanagement.googleapis.com/v1/accounts'
-          );
-
-        accountUrl.searchParams.set('pageSize', '20');
-
-        if (accountPageToken) {
-          accountUrl.searchParams.set(
-            'pageToken',
-            accountPageToken
-          );
-        }
-
-        const accountsResponse = await fetch(
-          accountUrl.toString(),
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`
+            high: {
+              latitude: maxLat,
+              longitude: maxLng
             }
           }
-        );
-
-        const accountsData = await accountsResponse.json();
-
-        if (!accountsResponse.ok) {
-          console.error(
-            'Google accounts.list failed:',
-            accountsData
-          );
-
-          return json({
-            error: 'Unable to retrieve Google Business accounts',
-            google_status: accountsResponse.status
-          }, 502);
-        }
-
-        if (Array.isArray(accountsData.accounts)) {
-          accounts.push(...accountsData.accounts);
-        }
-
-        accountPageToken = accountsData.nextPageToken || null;
-
-      } while (accountPageToken);
-
-      /*
-       * Retrieve locations from each accessible account.
-       *
-       * We request only the fields required for matching and display.
-       */
-      const locations = [];
-
-      for (const account of accounts) {
-        if (!account?.name) continue;
-
-        let pageToken = null;
-
-        do {
-          const locationUrl =
-            new URL(
-              `https://mybusinessbusinessinformation.googleapis.com/v1/${account.name}/locations`
-            );
-
-          locationUrl.searchParams.set(
-            'readMask',
-            [
-              'name',
-              'title',
-              'storeCode',
-              'phoneNumbers',
-              'websiteUri',
-              'storefrontAddress'
-            ].join(',')
-          );
-
-          locationUrl.searchParams.set('pageSize', '100');
-
-          if (pageToken) {
-            locationUrl.searchParams.set(
-              'pageToken',
-              pageToken
-            );
-          }
-
-          const locationsResponse = await fetch(
-            locationUrl.toString(),
-            {
-              headers: {
-                Authorization: `Bearer ${accessToken}`
-              }
-            }
-          );
-
-          const locationsData =
-            await locationsResponse.json();
-
-          if (!locationsResponse.ok) {
-            console.error(
-              'Google locations.list failed:',
-              locationsData
-            );
-
-            /*
-             * Continue to other accessible accounts instead
-             * of failing the entire discovery.
-             */
-            break;
-          }
-
-          for (const location of locationsData.locations || []) {
-            locations.push({
-              account_name: account.name,
-              account_display_name: account.accountName || null,
-              account_type: account.type || null,
-
-              location_id: location.name || null,
-              location_name: location.title || null,
-              store_code: location.storeCode || null,
-
-              phone:
-                location.phoneNumbers?.primaryPhone || null,
-
-              website:
-                location.websiteUri || null,
-
-              address:
-                formatAddress(location.storefrontAddress),
-
-              raw_name:
-                location.name || null
-            });
-          }
-
-          pageToken =
-            locationsData.nextPageToken || null;
-
-        } while (pageToken);
+        };
       }
 
-      /*
-       * Also discover indirectly owned/managed locations.
-       *
-       * Google supports accounts/-/locations specifically for
-       * locations accessible through groups or other indirect
-       * account relationships.
-       *
-       * Keep the existing account-based discovery above because
-       * it provides useful account metadata. This additional
-       * request expands discovery without changing the salon
-       * selection logic.
-       */
-      {
-        let pageToken = null;
-
-        do {
-          const wildcardLocationUrl =
-            new URL(
-              'https://mybusinessbusinessinformation.googleapis.com/v1/accounts/-/locations'
-            );
-
-          wildcardLocationUrl.searchParams.set(
-            'readMask',
-            [
-              'name',
-              'title',
-              'storeCode',
-              'phoneNumbers',
-              'websiteUri',
-              'storefrontAddress'
-            ].join(',')
-          );
-
-          wildcardLocationUrl.searchParams.set('pageSize', '100');
-
-          if (pageToken) {
-            wildcardLocationUrl.searchParams.set(
-              'pageToken',
-              pageToken
-            );
-          }
-
-          const wildcardResponse = await fetch(
-            wildcardLocationUrl.toString(),
-            {
-              headers: {
-                Authorization: `Bearer ${accessToken}`
-              }
-            }
-          );
-
-          const wildcardData =
-            await wildcardResponse.json();
-
-          if (!wildcardResponse.ok) {
-            console.error(
-              'Google wildcard locations.list failed:',
-              wildcardData
-            );
-
-            break;
-          }
-
-          for (const location of wildcardData.locations || []) {
-            locations.push({
-              account_name: 'accounts/-',
-              account_display_name: 'Indirect / group access',
-              account_type: null,
-
-              location_id: location.name || null,
-              location_name: location.title || null,
-              store_code: location.storeCode || null,
-
-              phone:
-                location.phoneNumbers?.primaryPhone || null,
-
-              website:
-                location.websiteUri || null,
-
-              address:
-                formatAddress(location.storefrontAddress),
-
-              raw_name:
-                location.name || null
-            });
-          }
-
-          pageToken =
-            wildcardData.nextPageToken || null;
-
-        } while (pageToken);
-      }
-
-      /*
-       * Remove duplicate locations returned by both direct
-       * account discovery and wildcard discovery.
-       */
-      const uniqueLocations = Array.from(
-        new Map(
-          locations
-            .filter(location => location.location_id)
-            .map(location => [
-              location.location_id,
-              location
-            ])
-        ).values()
+      console.log(
+        'Google Places discovery:',
+        {
+          user_id: user.id,
+          textQuery,
+          country,
+          city,
+          area,
+          restricted: hasRestriction
+        }
       );
 
       /*
-       * Match the discovered locations against the salon.
+       * Call Places API (New).
        */
-      const rankedLocations = uniqueLocations
-        .map(location => ({
-          ...location,
-          match_score: matchLocation(salon, location)
-        }))
-        .sort((a, b) => b.match_score - a.match_score);
+      const placesResponse = await fetch(
+        'https://places.googleapis.com/v1/places:searchText',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
+            'X-Goog-FieldMask': [
+              'places.id',
+              'places.name',
+              'places.displayName',
+              'places.formattedAddress',
+              'places.shortFormattedAddress',
+              'places.googleMapsUri',
+              'places.websiteUri',
+              'places.nationalPhoneNumber',
+              'places.internationalPhoneNumber',
+              'places.location',
+              'places.types',
+              'places.primaryType',
+              'places.primaryTypeDisplayName',
+              'places.rating',
+              'places.userRatingCount',
+              'places.addressComponents'
+            ].join(',')
+          },
+          body: JSON.stringify(placesBody)
+        }
+      );
+
+      const placesData =
+        await placesResponse
+          .json()
+          .catch(() => null);
+
+      if (!placesResponse.ok) {
+        console.error(
+          'Google Places search failed:',
+          {
+            status: placesResponse.status,
+            data: placesData
+          }
+        );
+
+        return json(
+          {
+            error:
+              placesData?.error?.message ||
+              'Unable to search Google Places',
+            google_status:
+              placesResponse.status
+          },
+          502
+        );
+      }
 
       /*
-       * Do not automatically attach a weak match.
-       * Return candidates to the owner/UI.
+       * Convert Google Places results into our
+       * STore discovery format.
        */
-      const bestMatch =
-        rankedLocations.length
-          ? rankedLocations[0]
-          : null;
+      const places =
+        Array.isArray(placesData?.places)
+          ? placesData.places
+          : [];
 
+      const locations = places.map(place => {
+        /*
+         * Extract structured address components for city, state, country, postal_code.
+         */
+        const addressComponents =
+          place.addressComponents || [];
+
+        let city = null;
+        let state = null;
+        let country = null;
+        let postalCode = null;
+
+        for (const component of addressComponents) {
+          const types = component.types || [];
+
+          if (types.includes('locality') && !city) {
+            city = component.longText;
+          } else if (
+            (types.includes('administrative_area_level_1') ||
+              types.includes('administrative_area_level_2')) &&
+            !state
+          ) {
+            state = component.longText;
+          } else if (types.includes('country') && !country) {
+            country = component.longText;
+          } else if (types.includes('postal_code') && !postalCode) {
+            postalCode = component.longText;
+          }
+        }
+
+        return {
+          place_id:
+            place.id || null,
+
+          location_id:
+            place.id || null,
+
+          location_name:
+            place.displayName?.text || null,
+
+          address:
+            place.formattedAddress ||
+            place.shortFormattedAddress ||
+            null,
+
+          city: city,
+          state: state,
+          country: country,
+          postal_code: postalCode,
+
+          phone:
+            place.nationalPhoneNumber ||
+            place.internationalPhoneNumber ||
+            null,
+
+          website:
+            place.websiteUri || null,
+
+          google_maps_url:
+            place.googleMapsUri || null,
+
+          latitude:
+            place.location?.latitude ?? null,
+
+          longitude:
+            place.location?.longitude ?? null,
+
+          primary_type:
+            place.primaryType || null,
+
+          primary_type_display_name:
+            place.primaryTypeDisplayName?.text || null,
+
+          rating:
+            place.rating ?? null,
+
+          user_rating_count:
+            place.userRatingCount ?? null,
+
+          source:
+            'google_places'
+        };
+      });
+
+      /*
+       * Return all discovered locations without ranking.
+       * For new users, there is no profile to compare against.
+       * Results are presented in the order returned by Google Places.
+       */
       return json({
         success: true,
 
-        salon: {
-          id: salon.id,
-          name: salon.name
+        search: {
+          country: country || null,
+          city: city || null,
+          area: area || null,
+          query: requestedQuery || null,
+          text_query: textQuery,
+          restricted: hasRestriction
         },
 
-        google_account: {
-          email: connection.google_account_email || null,
-          accounts_found: accounts.length
-        },
+        locations_found:
+          locations.length,
 
-        locations_found: rankedLocations.length,
-
-        best_match:
-          bestMatch && bestMatch.match_score >= 60
-            ? bestMatch
-            : null,
-
-        locations: rankedLocations.slice(0, 50)
+        locations:
+          locations.slice(0, 10)
       });
 
     } catch (error) {
-      console.error('Google discovery error:', error);
+      console.error(
+        'Google Places discovery error:',
+        error
+      );
 
-      return json({
-        error: 'Unable to discover Google Business locations'
-      }, 500);
+      return json(
+        {
+          error:
+            'Unable to discover Google Business listings'
+        },
+        500
+      );
     }
   }
 };
 
-async function supabaseFetch(path, options = {}) {
+async function supabaseFetch(
+  path,
+  options = {}
+) {
   return fetch(
     `${SUPABASE_URL}${path}`,
     {
       ...options,
       headers: {
-        apikey: SUPABASE_SERVICE_ROLE_KEY,
-        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        apikey:
+          SUPABASE_SERVICE_ROLE_KEY,
+
+        Authorization:
+          `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+
         ...(options.headers || {})
       }
     }
   );
 }
 
-async function updateConnection(salonId, values) {
-  const response = await supabaseFetch(
-    `/rest/v1/google_business_connections` +
-    `?salon_id=eq.${encodeURIComponent(salonId)}`,
-    {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(values)
-    }
-  );
-
-  if (!response.ok) {
-    console.error(
-      'Google connection update failed:',
-      await response.text()
-    );
-  }
-}
-
-function formatAddress(address) {
-  if (!address) return null;
-
-  return [
-    ...(address.addressLines || []),
-    address.locality,
-    address.administrativeArea,
-    address.postalCode,
-    address.regionCode
+async function matchPlace(
+  salon,
+  place
+) {
+  const values = [
+    salon.name,
+    salon.address,
+    salon.phone,
+    salon.website
   ]
     .filter(Boolean)
-    .join(', ');
+    .map(normalize);
+
+  let score = 0;
+
+  const placeName =
+    normalize(place.location_name);
+
+  const placeAddress =
+    normalize(place.address);
+
+  const salonName =
+    normalize(salon.name);
+
+  if (
+    salonName &&
+    placeName
+  ) {
+    if (
+      placeName === salonName
+    ) {
+      score += 60;
+    } else if (
+      placeName.includes(salonName) ||
+      salonName.includes(placeName)
+    ) {
+      score += 40;
+    } else {
+      const salonWords =
+        salonName
+          .split(/\s+/)
+          .filter(word => word.length > 2);
+
+      const matches =
+        salonWords.filter(
+          word =>
+            placeName.includes(word)
+        );
+
+      if (salonWords.length) {
+        score += Math.round(
+          40 *
+          (matches.length /
+            salonWords.length)
+        );
+      }
+    }
+  }
+
+  if (
+    salon.address &&
+    place.address
+  ) {
+    const salonAddress =
+      normalize(salon.address);
+
+    if (
+      placeAddress.includes(salonAddress) ||
+      salonAddress.includes(placeAddress)
+    ) {
+      score += 25;
+    } else {
+      const addressWords =
+        salonAddress
+          .split(/\s+/)
+          .filter(word => word.length > 3);
+
+      const matches =
+        addressWords.filter(
+          word =>
+            placeAddress.includes(word)
+        );
+
+      if (addressWords.length) {
+        score += Math.round(
+          25 *
+          (matches.length /
+            addressWords.length)
+        );
+      }
+    }
+  }
+
+  if (
+    salon.phone &&
+    place.phone
+  ) {
+    const salonPhone =
+      digitsOnly(salon.phone);
+
+    const placePhone =
+      digitsOnly(place.phone);
+
+    if (
+      salonPhone &&
+      placePhone &&
+      (
+        salonPhone === placePhone ||
+        salonPhone.endsWith(placePhone) ||
+        placePhone.endsWith(salonPhone)
+      )
+    ) {
+      score += 20;
+    }
+  }
+
+  if (
+    salon.website &&
+    place.website
+  ) {
+    const salonHost =
+      extractHost(salon.website);
+
+    const placeHost =
+      extractHost(place.website);
+
+    if (
+      salonHost &&
+      placeHost &&
+      salonHost === placeHost
+    ) {
+      score += 20;
+    }
+  }
+
+  /*
+   * Cap the score at 100.
+   */
+  return Math.min(
+    100,
+    score
+  );
 }
 
 function normalize(value) {
@@ -549,86 +567,63 @@ function normalize(value) {
     .trim();
 }
 
-function matchLocation(salon, location) {
-  let score = 0;
-
-  const salonName = normalize(salon.name);
-  const locationName = normalize(location.location_name);
-
-  if (salonName && locationName) {
-    if (salonName === locationName) {
-      score += 50;
-    } else if (
-      locationName.includes(salonName) ||
-      salonName.includes(locationName)
-    ) {
-      score += 35;
-    } else {
-      const salonWords = salonName.split(' ').filter(Boolean);
-      const matchedWords = salonWords.filter(word =>
-        locationName.includes(word)
-      );
-
-      score += Math.min(
-        30,
-        matchedWords.length * 10
-      );
-    }
-  }
-
-  const salonPhone = normalize(salon.phone);
-  const locationPhone = normalize(location.phone);
-
-  if (
-    salonPhone &&
-    locationPhone &&
-    salonPhone.slice(-10) === locationPhone.slice(-10)
-  ) {
-    score += 25;
-  }
-
-  const salonWebsite = normalize(salon.website);
-  const locationWebsite = normalize(location.website);
-
-  if (
-    salonWebsite &&
-    locationWebsite &&
-    (
-      salonWebsite.includes(locationWebsite) ||
-      locationWebsite.includes(salonWebsite)
-    )
-  ) {
-    score += 15;
-  }
-
-  const salonAddress = normalize(salon.address);
-  const locationAddress = normalize(location.address);
-
-  if (salonAddress && locationAddress) {
-    const words = salonAddress
-      .split(' ')
-      .filter(word => word.length >= 4);
-
-    const matched = words.filter(word =>
-      locationAddress.includes(word)
-    );
-
-    if (matched.length >= 2) {
-      score += 20;
-    }
-  }
-
-  return Math.min(score, 100);
+function digitsOnly(value) {
+  return String(value || '')
+    .replace(/\D/g, '');
 }
 
-function json(body, status = 200) {
+function extractHost(value) {
+  try {
+    return new URL(
+      String(value)
+    )
+      .hostname
+      .toLowerCase()
+      .replace(/^www\./, '');
+  } catch {
+    return '';
+  }
+}
+
+function clean(value) {
+  const text =
+    String(value || '')
+      .trim();
+
+  return text
+    ? text.slice(0, 120)
+    : '';
+}
+
+function numberParam(value) {
+  if (
+    value === null ||
+    value === ''
+  ) {
+    return null;
+  }
+
+  const number =
+    Number(value);
+
+  return Number.isFinite(number)
+    ? number
+    : null;
+}
+
+function json(
+  body,
+  status = 200
+) {
   return new Response(
     JSON.stringify(body),
     {
       status,
       headers: {
-        'content-type': 'application/json',
-        'cache-control': 'no-store'
+        'content-type':
+          'application/json; charset=utf-8',
+        'cache-control':
+          'no-store'
       }
     }
   );

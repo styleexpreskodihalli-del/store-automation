@@ -60,7 +60,7 @@ export default {
         `?state_hash=eq.${encodeURIComponent(stateHash)}` +
         `&used_at=is.null` +
         `&expires_at=gt.${encodeURIComponent(new Date().toISOString())}` +
-        `&select=id,salon_id` +
+        `&select=id,salon_id,business_id` +
         `&limit=1`,
         {
           headers: {
@@ -89,6 +89,7 @@ export default {
 
       const oauthState = states[0];
       const salonId = oauthState.salon_id;
+      const businessId = oauthState.business_id;
 
       /*
        * Mark state as consumed before exchanging the code.
@@ -212,63 +213,110 @@ export default {
           ).toISOString()
         : null;
 
-      /*
-       * Store the connection against the salon identified
-       * by the verified OAuth state.
-       *
-       * We intentionally do not expose these tokens to the browser.
-       */
-      const connection = {
-        salon_id: salonId,
-        google_account_id: googleAccountId,
-        google_account_email: googleAccountEmail,
-        access_token: tokenData.access_token || null,
-        refresh_token: tokenData.refresh_token,
-        token_expires_at: tokenExpiresAt,
-        scope: tokenData.scope || null,
-        connection_status: 'owner_authorized',
-        owner_authorized_at: new Date().toISOString(),
-        store_manager_invitation_status: 'not_started',
-        last_error: null,
-        updated_at: new Date().toISOString()
-      };
+      const now = new Date().toISOString();
 
       /*
-       * Upsert by salon_id.
-       * Existing Google connection for the salon is replaced/updated.
+       * NEW FLOW: Store connection in google_connections (business model).
        */
-      const connectionResponse = await fetch(
-        `${SUPABASE_URL}/rest/v1/google_business_connections?on_conflict=salon_id`,
-        {
-          method: 'POST',
-          headers: {
-            apikey: SUPABASE_SERVICE_ROLE_KEY,
-            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-            'Content-Type': 'application/json',
-            Prefer: 'resolution=merge-duplicates,return=minimal'
-          },
-          body: JSON.stringify(connection)
-        }
-      );
+      if (businessId) {
+        const googleConnection = {
+          business_id: businessId,
+          google_account_id: googleAccountId,
+          google_account_email: googleAccountEmail,
+          access_token: tokenData.access_token || null,
+          refresh_token: tokenData.refresh_token,
+          token_expires_at: tokenExpiresAt,
+          scope: tokenData.scope || null,
+          authorization_status: 'authorized',
+          connection_status: 'owner_authorized',
+          owner_authorized_at: now,
+          last_error: null,
+          updated_at: now
+        };
 
-      if (!connectionResponse.ok) {
-        const detail = await connectionResponse.text();
-
-        console.error(
-          'Google connection storage failed:',
-          detail
+        const businessConnResponse = await fetch(
+          `${SUPABASE_URL}/rest/v1/google_connections?on_conflict=business_id`,
+          {
+            method: 'POST',
+            headers: {
+              apikey: SUPABASE_SERVICE_ROLE_KEY,
+              Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+              'Content-Type': 'application/json',
+              Prefer: 'resolution=merge-duplicates,return=minimal'
+            },
+            body: JSON.stringify(googleConnection)
+          }
         );
 
-        return html(
-          500,
-          '<h2>Google was authorized, but the connection could not be saved.</h2>'
+        if (!businessConnResponse.ok) {
+          const detail = await businessConnResponse.text();
+          console.error(
+            'Google connection (business) storage failed:',
+            detail
+          );
+          return html(
+            500,
+            '<h2>Google was authorized, but the connection could not be saved.</h2>'
+          );
+        }
+
+        console.log(
+          'Google Business connection saved for business:',
+          businessId
         );
       }
 
-      console.log(
-        'Google Business connection saved for salon:',
-        salonId
-      );
+      /*
+       * LEGACY FLOW: Store connection in google_business_connections (salon model).
+       * Maintains backward compatibility.
+       */
+      if (salonId) {
+        const salonConnection = {
+          salon_id: salonId,
+          google_account_id: googleAccountId,
+          google_account_email: googleAccountEmail,
+          access_token: tokenData.access_token || null,
+          refresh_token: tokenData.refresh_token,
+          token_expires_at: tokenExpiresAt,
+          scope: tokenData.scope || null,
+          connection_status: 'owner_authorized',
+          owner_authorized_at: now,
+          store_manager_invitation_status: 'not_started',
+          last_error: null,
+          updated_at: now
+        };
+
+        const salonConnResponse = await fetch(
+          `${SUPABASE_URL}/rest/v1/google_business_connections?on_conflict=salon_id`,
+          {
+            method: 'POST',
+            headers: {
+              apikey: SUPABASE_SERVICE_ROLE_KEY,
+              Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+              'Content-Type': 'application/json',
+              Prefer: 'resolution=merge-duplicates,return=minimal'
+            },
+            body: JSON.stringify(salonConnection)
+          }
+        );
+
+        if (!salonConnResponse.ok) {
+          const detail = await salonConnResponse.text();
+          console.error(
+            'Google connection (salon) storage failed:',
+            detail
+          );
+          return html(
+            500,
+            '<h2>Google was authorized, but the connection could not be saved.</h2>'
+          );
+        }
+
+        console.log(
+          'Google Business connection saved for salon:',
+          salonId
+        );
+      }
 
       return html(
         200,

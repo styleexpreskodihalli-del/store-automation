@@ -39,28 +39,89 @@ export default {
 
       const user = await userResponse.json();
 
-      // Find the salon belonging to this logged-in user.
-      const membershipResponse = await fetch(
-        `${SUPABASE_URL}/rest/v1/salon_members?select=salon_id,role&user_id=eq.${encodeURIComponent(user.id)}&limit=1`,
-        {
-          headers: {
-            apikey: SUPABASE_SERVICE_ROLE_KEY,
-            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+      // Extract business_id from query parameters (new flow).
+      const url = new URL(request.url);
+      const businessId = url.searchParams.get('business_id');
+
+      let targetBusinessId = null;
+      let targetSalonId = null;
+
+      if (businessId) {
+        /*
+         * New universal business flow:
+         * business_id must be provided and user must be a member.
+         */
+        targetBusinessId = businessId;
+
+        const membershipResponse = await fetch(
+          `${SUPABASE_URL}/rest/v1/business_users?` +
+          `business_id=eq.${encodeURIComponent(businessId)}&` +
+          `user_id=eq.${encodeURIComponent(user.id)}&` +
+          `select=id,role&limit=1`,
+          {
+            headers: {
+              apikey: SUPABASE_SERVICE_ROLE_KEY,
+              Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+            }
           }
+        );
+
+        if (!membershipResponse.ok) {
+          return json({ error: 'Unable to verify business membership' }, 500);
         }
-      );
 
-      if (!membershipResponse.ok) {
-        return json({ error: 'Unable to find salon membership' }, 500);
+        const memberships = await membershipResponse.json();
+
+        if (!memberships.length) {
+          return json(
+            { error: 'You are not authorized to manage this business' },
+            403
+          );
+        }
+
+        console.log(
+          'OAuth flow initiated for business:',
+          {
+            business_id: businessId,
+            user_id: user.id,
+            user_role: memberships[0].role
+          }
+        );
+      } else {
+        /*
+         * Legacy salon flow: fall back to salon_members lookup.
+         */
+        const membershipResponse = await fetch(
+          `${SUPABASE_URL}/rest/v1/salon_members?select=salon_id,role&user_id=eq.${encodeURIComponent(user.id)}&limit=1`,
+          {
+            headers: {
+              apikey: SUPABASE_SERVICE_ROLE_KEY,
+              Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+            }
+          }
+        );
+
+        if (!membershipResponse.ok) {
+          return json({ error: 'Unable to find salon membership' }, 500);
+        }
+
+        const memberships = await membershipResponse.json();
+
+        if (!memberships.length) {
+          return json({ error: 'No salon membership found' }, 403);
+        }
+
+        targetSalonId = memberships[0].salon_id;
+
+        console.log(
+          'OAuth flow initiated for legacy salon:',
+          {
+            salon_id: targetSalonId,
+            user_id: user.id,
+            user_role: memberships[0].role
+          }
+        );
       }
-
-      const memberships = await membershipResponse.json();
-
-      if (!memberships.length) {
-        return json({ error: 'No salon membership found' }, 403);
-      }
-
-      const salonId = memberships[0].salon_id;
 
       // Generate a cryptographically random one-time state.
       const state = crypto.randomBytes(32).toString('hex');
@@ -75,6 +136,19 @@ export default {
       ).toISOString();
 
       // Store only the hash, never the raw state.
+      const stateBody = {
+        state_hash: stateHash,
+        expires_at: expiresAt
+      };
+
+      // Include appropriate ID based on flow.
+      if (targetBusinessId) {
+        stateBody.business_id = targetBusinessId;
+      }
+      if (targetSalonId) {
+        stateBody.salon_id = targetSalonId;
+      }
+
       const stateResponse = await fetch(
         `${SUPABASE_URL}/rest/v1/google_oauth_states`,
         {
@@ -85,11 +159,7 @@ export default {
             'Content-Type': 'application/json',
             Prefer: 'return=minimal'
           },
-          body: JSON.stringify({
-            salon_id: salonId,
-            state_hash: stateHash,
-            expires_at: expiresAt
-          })
+          body: JSON.stringify(stateBody)
         }
       );
 
