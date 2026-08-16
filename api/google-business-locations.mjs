@@ -539,6 +539,7 @@ export default {
         );
 
       let mappedPlaceId = null;
+      let normalizedPlaceId = null;
       let businessName = null;
 
       if (businessResponse.ok) {
@@ -570,7 +571,7 @@ export default {
       let matchedLocation = null;
 
       if (mappedPlaceId) {
-        const normalizedPlaceId =
+        normalizedPlaceId =
           String(mappedPlaceId).trim();
 
         for (const item of allLocations) {
