@@ -201,7 +201,7 @@ export default {
           );
 
           await updateConnection(
-            salonId,
+            businessId,
             {
               connection_status:
                 'error',
@@ -277,7 +277,7 @@ export default {
               'application/json'
           },
           body: JSON.stringify({
-            admin:
+            adminName:
               STORE_GOOGLE_MANAGER_EMAIL,
             role: 'MANAGER'
           })
@@ -326,7 +326,7 @@ export default {
         inviteData.name || null;
 
       await updateConnection(
-        salonId,
+        businessId,
         {
           store_manager_email:
             STORE_GOOGLE_MANAGER_EMAIL,
