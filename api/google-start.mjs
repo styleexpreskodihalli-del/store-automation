@@ -44,17 +44,6 @@ export default {
       );
 
       if (!userResponse.ok) {
-        const authError = await userResponse.text();
-
-        console.error(
-          'Supabase session validation failed:',
-          {
-            supabase_url: SUPABASE_URL,
-            status: userResponse.status,
-            response: authError
-          }
-        );
-
         return json({ error: 'Invalid Supabase session' }, 401);
       }
 
