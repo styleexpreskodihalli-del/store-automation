@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pricing | STore Automation</title>
 <meta name="description" content="STore Automation pricing for local businesses. Start with a ₹99 business listing and upgrade to automation plans.">
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <style>
 body{font-family:Arial,sans-serif;margin:0;background:#f7f8fa;color:#172033;line-height:1.7}
 main{max-width:900px;margin:50px auto;padding:32px;background:#fff;border-radius:16px}
@@ -46,6 +47,20 @@ h1,h2{color:#123b2a}.price{border:1px solid #ddd;border-radius:12px;padding:20px
 <li>Business photos and basic information</li>
 <li>STore business presence</li>
 </ul>
+
+<button
+  id="stall-listing-button"
+  type="button"
+  onclick="startSTallListingPayment()"
+  style="background:#123b2a;color:#fff;border:0;border-radius:8px;padding:13px 22px;font-size:15px;font-weight:700;cursor:pointer;"
+>
+  Get Listed — ₹99
+</button>
+
+<div
+  id="stall-payment-message"
+  style="margin-top:12px;font-size:14px;"
+></div>
 </div>
 
 <div class="price">
@@ -70,6 +85,151 @@ h1,h2{color:#123b2a}.price{border:1px solid #ddd;border-radius:12px;padding:20px
 <p>A 10% discount is available on eligible annual subscriptions.</p>
 
 <p>Features available under each plan may change as STore Automation continues to expand its platform. Only features shown as available for the selected plan will be provided.</p>
+
+<script>
+async function startSTallListingPayment() {
+  const button = document.getElementById('stall-listing-button');
+  const message = document.getElementById('stall-payment-message');
+
+  const customerName = prompt('Enter your business/customer name:');
+  if (!customerName || !customerName.trim()) return;
+
+  const customerEmail = prompt('Enter your email address:');
+  if (!customerEmail || !customerEmail.trim()) return;
+
+  const customerPhone = prompt('Enter your phone number (optional):');
+
+  button.disabled = true;
+  button.textContent = 'Preparing Payment...';
+  message.textContent = '';
+
+  try {
+    const response = await fetch('/api/razorpay-create-order.mjs', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        customer_name: customerName.trim(),
+        customer_email: customerEmail.trim(),
+        customer_phone: customerPhone ? customerPhone.trim() : ''
+      })
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      throw new Error(
+        result.error || 'Unable to initialise payment'
+      );
+    }
+
+    const options = {
+      key: result.key_id,
+      amount: result.amount,
+      currency: result.currency,
+      name: 'STore Automation',
+      description: 'STore Listing — One-time ₹99',
+      order_id: result.order_id,
+
+      prefill: {
+        name: customerName.trim(),
+        email: customerEmail.trim(),
+        contact: customerPhone ? customerPhone.trim() : ''
+      },
+
+      notes: {
+        product: 'STall - Store Automation',
+        plan: 'listing_99'
+      },
+
+      theme: {
+        color: '#123b2a'
+      },
+
+      handler: async function (paymentResponse) {
+        message.textContent = 'Verifying payment...';
+
+        try {
+          const verifyResponse = await fetch(
+            '/api/razorpay-verify-payment.mjs',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                razorpay_order_id:
+                  paymentResponse.razorpay_order_id,
+
+                razorpay_payment_id:
+                  paymentResponse.razorpay_payment_id,
+
+                razorpay_signature:
+                  paymentResponse.razorpay_signature
+              })
+            }
+          );
+
+          const verifyResult =
+            await verifyResponse.json();
+
+          if (!verifyResponse.ok || !verifyResult.success) {
+            throw new Error(
+              verifyResult.error ||
+              'Payment verification failed'
+            );
+          }
+
+          message.textContent =
+            '✓ Payment successful. Your STore listing payment has been recorded.';
+
+          button.textContent = 'Payment Successful';
+        } catch (error) {
+          console.error(error);
+
+          message.textContent =
+            'Payment received, but verification is still being completed. Please contact support if needed.';
+
+          button.disabled = false;
+          button.textContent = 'Try Again — ₹99';
+        }
+      },
+
+      modal: {
+        ondismiss: function () {
+          button.disabled = false;
+          button.textContent = 'Get Listed — ₹99';
+          message.textContent = '';
+        }
+      }
+    };
+
+    const razorpay =
+      new Razorpay(options);
+
+    razorpay.on('payment.failed', function () {
+      message.textContent =
+        'Payment was not completed. Please try again.';
+
+      button.disabled = false;
+      button.textContent = 'Try Again — ₹99';
+    });
+
+    razorpay.open();
+
+  } catch (error) {
+    console.error(error);
+
+    message.textContent =
+      error.message || 'Unable to start payment.';
+
+    button.disabled = false;
+    button.textContent = 'Get Listed — ₹99';
+  }
+}
+</script>
+
 </main>
 </body>
 </html>
