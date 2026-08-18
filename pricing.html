@@ -5,198 +5,977 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pricing | STore Automation</title>
 <meta name="description" content="Simple, powerful automation plans for local businesses. Basic ₹499, Growth ₹999 and Full Automate ₹2,499 per month.">
-<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
 <style>
 :root{
-  --green:#123b2a;--green2:#1c6044;--mint:#e9f6ef;--ink:#15231e;--muted:#68766f;
-  --line:#dfe8e3;--bg:#f5f8f6;--white:#fff;--shadow:0 18px 50px rgba(18,59,42,.10);
+  --green:#123b2a;
+  --green-dark:#0b2a1d;
+  --green2:#1c6044;
+  --mint:#e9f6ef;
+  --mint2:#f2faf5;
+  --ink:#15231e;
+  --muted:#68766f;
+  --line:#dce7e1;
+  --bg:#f5f8f6;
+  --white:#ffffff;
+  --gold:#b88922;
+  --shadow:0 18px 55px rgba(18,59,42,.10);
 }
+
 *{box-sizing:border-box}
+
 html{scroll-behavior:smooth}
-body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.6}
-a{color:inherit}
-.container{width:min(1120px,calc(100% - 32px));margin:auto}
-.site-header{background:rgba(255,255,255,.94);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10;backdrop-filter:blur(12px)}
-.header-inner{min-height:74px;display:flex;align-items:center;justify-content:space-between;gap:20px}
-.brand{display:flex;align-items:center;gap:11px;text-decoration:none}
-.brand img{width:46px;height:46px;object-fit:contain}
-.brand-title{font-weight:900;letter-spacing:-.3px}
-.brand-sub{font-size:11px;color:var(--muted)}
-.nav{display:flex;align-items:center;gap:8px}
-.nav a{padding:9px 12px;border-radius:9px;text-decoration:none;font-size:14px;color:#405048;font-weight:650}
-.nav a:hover,.nav a.active{background:var(--mint);color:var(--green)}
-.nav .cta{background:var(--green);color:#fff}
-.hero{text-align:center;padding:76px 0 42px}
-.eyebrow{display:inline-flex;align-items:center;gap:7px;background:var(--mint);color:var(--green2);font-size:12px;font-weight:850;padding:7px 11px;border-radius:999px;letter-spacing:.2px}
-.hero h1{font-size:clamp(38px,6vw,64px);line-height:1.04;letter-spacing:-2.4px;margin:18px auto 15px;max-width:800px}
-.hero h1 span{color:var(--green2)}
-.hero p{max-width:670px;margin:0 auto;color:var(--muted);font-size:17px}
-.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;align-items:stretch;padding:18px 0 62px}
-.plan{position:relative;background:var(--white);border:1px solid var(--line);border-radius:22px;padding:28px;box-shadow:0 7px 25px rgba(18,59,42,.05);display:flex;flex-direction:column}
-.plan.featured{border:2px solid var(--green2);box-shadow:var(--shadow);transform:translateY(-8px)}
-.popular{position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:var(--green);color:#fff;font-size:11px;font-weight:900;padding:6px 13px;border-radius:999px;white-space:nowrap;letter-spacing:.4px}
-.plan-kicker{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:850}
-.plan h2{font-size:25px;margin:7px 0 5px;letter-spacing:-.7px}
-.plan .desc{font-size:13px;color:var(--muted);min-height:64px}
-.price{font-size:40px;font-weight:950;letter-spacing:-1.8px;margin:16px 0 3px;color:var(--green)}
-.price small{font-size:14px;font-weight:650;letter-spacing:0;color:var(--muted)}
-.plan ul{list-style:none;padding:0;margin:19px 0 24px;display:grid;gap:11px}
-.plan li{font-size:13px;color:#425049;display:flex;gap:9px}
-.plan li:before{content:"✓";font-weight:950;color:var(--green2)}
-.plan .button{margin-top:auto;display:block;text-align:center;text-decoration:none;padding:12px 16px;border-radius:11px;background:var(--green);color:#fff;font-weight:850;font-size:14px}
-.plan .button.alt{background:#fff;color:var(--green);border:1px solid #cbd9d2}
-.compare{text-align:center;padding:0 0 70px}
-.compare h2{font-size:30px;letter-spacing:-1px;margin-bottom:8px}
-.compare>p{color:var(--muted);margin:0 auto 28px;max-width:650px}
-.feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;text-align:left}
-.feature{background:#fff;border:1px solid var(--line);border-radius:15px;padding:18px}
-.feature-icon{font-size:20px}.feature h3{margin:7px 0 3px;font-size:15px}.feature p{margin:0;color:var(--muted);font-size:12px}
-.listing{background:var(--green);color:#fff;border-radius:24px;padding:32px;display:grid;grid-template-columns:1fr auto;gap:25px;align-items:center;margin:0 0 70px}
-.listing h2{margin:0 0 6px;font-size:25px}.listing p{margin:0;color:#c8d9d1;font-size:13px;max-width:700px}
-.listing .price{color:#fff;margin:0}.listing button{border:0;background:#fff;color:var(--green);padding:12px 18px;border-radius:11px;font-weight:900;cursor:pointer}
-#stall-payment-message{margin-top:8px;font-size:12px}
-.faq{padding:0 0 70px}.faq h2{text-align:center;font-size:30px}.faq-list{max-width:760px;margin:25px auto 0;display:grid;gap:10px}.faq-item{background:#fff;border:1px solid var(--line);border-radius:13px;padding:17px 19px}.faq-item strong{display:block;margin-bottom:4px}.faq-item p{margin:0;color:var(--muted);font-size:13px}
-.site-footer{background:#10201c;color:#d9e5df;padding:34px 0 28px}.footer-inner{display:flex;justify-content:space-between;gap:25px;align-items:flex-start}.footer-brand{font-weight:900;color:#fff}.footer-copy{font-size:12px;color:#9eb0a8;margin-top:4px}.footer-links{display:flex;flex-wrap:wrap;gap:14px;font-size:12px}.footer-links a{text-decoration:none;color:#c5d3cd}.footer-bottom{border-top:1px solid rgba(255,255,255,.1);margin-top:24px;padding-top:17px;font-size:11px;color:#91a39b}
-.back-mobile{display:none}
-@media(max-width:850px){
-  .nav a:not(.cta){display:none}.header-inner{min-height:66px}.brand img{width:40px;height:40px}
-  .hero{padding:52px 0 28px}.hero h1{letter-spacing:-1.6px}.hero p{font-size:15px}
-  .pricing-grid{grid-template-columns:1fr;gap:20px;padding-bottom:50px}.plan.featured{transform:none}
-  .plan .desc{min-height:auto}.feature-grid{grid-template-columns:1fr 1fr}.listing{grid-template-columns:1fr}.footer-inner{flex-direction:column}
+
+body{
+  margin:0;
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+  background:var(--bg);
+  color:var(--ink);
+  line-height:1.6;
 }
-@media(max-width:520px){
-  .container{width:min(100% - 24px,1120px)}.feature-grid{grid-template-columns:1fr}.hero h1{font-size:42px}.plan{padding:23px}.listing{padding:24px}.footer-links{gap:11px}
+
+a{color:inherit}
+
+.container{
+  width:min(1160px,calc(100% - 32px));
+  margin:auto;
+}
+
+/* HEADER */
+
+.site-header{
+  background:rgba(255,255,255,.94);
+  border-bottom:1px solid var(--line);
+  position:sticky;
+  top:0;
+  z-index:20;
+  backdrop-filter:blur(14px);
+}
+
+.header-inner{
+  min-height:72px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px;
+}
+
+.brand{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  text-decoration:none;
+}
+
+.brand img{
+  width:44px;
+  height:44px;
+  object-fit:contain;
+}
+
+.brand-name{
+  font-size:15px;
+  font-weight:900;
+  letter-spacing:-.2px;
+}
+
+.brand-sub{
+  font-size:10px;
+  color:var(--muted);
+}
+
+.nav{
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+
+.nav a{
+  text-decoration:none;
+  padding:9px 12px;
+  border-radius:9px;
+  font-size:13px;
+  font-weight:750;
+  color:#425049;
+}
+
+.nav a:hover,
+.nav a.active{
+  background:var(--mint);
+  color:var(--green);
+}
+
+.nav .nav-cta{
+  background:var(--green);
+  color:#fff;
+  padding:10px 15px;
+}
+
+/* HERO */
+
+.hero{
+  text-align:center;
+  padding:70px 0 38px;
+}
+
+.eyebrow{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  background:var(--mint);
+  color:var(--green2);
+  padding:7px 13px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.35px;
+}
+
+.hero h1{
+  max-width:850px;
+  margin:19px auto 13px;
+  font-size:clamp(40px,6vw,64px);
+  line-height:1.02;
+  letter-spacing:-2.8px;
+}
+
+.hero h1 span{
+  color:var(--green2);
+}
+
+.hero p{
+  max-width:690px;
+  margin:auto;
+  color:var(--muted);
+  font-size:16px;
+}
+
+/* PLAN CARDS */
+
+.plans{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:18px;
+  align-items:stretch;
+  margin:18px auto 62px;
+}
+
+.plan{
+  position:relative;
+  background:var(--white);
+  border:1px solid var(--line);
+  border-radius:23px;
+  padding:29px;
+  box-shadow:0 8px 30px rgba(18,59,42,.055);
+  display:flex;
+  flex-direction:column;
+  transition:transform .2s ease,box-shadow .2s ease;
+}
+
+.plan:hover{
+  transform:translateY(-4px);
+  box-shadow:var(--shadow);
+}
+
+.plan.featured{
+  border:2px solid var(--green2);
+  box-shadow:0 20px 60px rgba(18,59,42,.15);
+  transform:translateY(-8px);
+}
+
+.plan.featured:hover{
+  transform:translateY(-12px);
+}
+
+.popular{
+  position:absolute;
+  top:-15px;
+  left:50%;
+  transform:translateX(-50%);
+  background:var(--green);
+  color:#fff;
+  padding:6px 15px;
+  border-radius:999px;
+  font-size:10px;
+  font-weight:950;
+  letter-spacing:.6px;
+  white-space:nowrap;
+}
+
+.plan-kicker{
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:1px;
+  color:var(--muted);
+  font-weight:900;
+}
+
+.plan h2{
+  font-size:25px;
+  margin:7px 0 5px;
+  letter-spacing:-.7px;
+}
+
+.plan-desc{
+  color:var(--muted);
+  font-size:13px;
+  min-height:60px;
+  margin:0;
+}
+
+.price{
+  font-size:40px;
+  line-height:1.1;
+  font-weight:950;
+  color:var(--green);
+  letter-spacing:-1.8px;
+  margin:16px 0 2px;
+}
+
+.price small{
+  font-size:13px;
+  font-weight:650;
+  color:var(--muted);
+  letter-spacing:0;
+}
+
+.plan-list{
+  list-style:none;
+  padding:0;
+  margin:18px 0 25px;
+  display:grid;
+  gap:10px;
+}
+
+.plan-list li{
+  font-size:13px;
+  color:#425049;
+}
+
+.plan-list li:before{
+  content:"✓";
+  color:var(--green2);
+  font-weight:950;
+  margin-right:8px;
+}
+
+.plan-button{
+  display:block;
+  margin-top:auto;
+  text-align:center;
+  text-decoration:none;
+  padding:12px 15px;
+  border-radius:11px;
+  background:var(--green);
+  border:1px solid var(--green);
+  color:#fff;
+  font-size:13px;
+  font-weight:900;
+}
+
+.plan-button.secondary{
+  background:#fff;
+  color:var(--green);
+}
+
+/* COMPARISON */
+
+.comparison-section{
+  margin:0 auto 65px;
+}
+
+.section-heading{
+  text-align:center;
+  margin-bottom:25px;
+}
+
+.section-heading h2{
+  font-size:31px;
+  letter-spacing:-1px;
+  margin:0 0 6px;
+}
+
+.section-heading p{
+  color:var(--muted);
+  font-size:14px;
+  margin:0 auto;
+  max-width:690px;
+}
+
+.table-wrap{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:21px;
+  overflow:hidden;
+  box-shadow:0 8px 30px rgba(18,59,42,.055);
+}
+
+.compare-table{
+  width:100%;
+  border-collapse:collapse;
+  min-width:760px;
+}
+
+.compare-table th,
+.compare-table td{
+  padding:14px 16px;
+  border-bottom:1px solid #edf1ef;
+  font-size:13px;
+}
+
+.compare-table thead th{
+  background:var(--green);
+  color:#fff;
+  text-align:center;
+  font-size:13px;
+}
+
+.compare-table thead th:first-child{
+  text-align:left;
+  width:40%;
+}
+
+.compare-table thead th.growth{
+  background:var(--green2);
+}
+
+.compare-table tbody td{
+  text-align:center;
+}
+
+.compare-table tbody td:first-child{
+  text-align:left;
+  font-weight:700;
+  color:#35433d;
+}
+
+.compare-table tbody tr:nth-child(even){
+  background:#fafcfb;
+}
+
+.compare-table .yes{
+  color:var(--green2);
+  font-size:17px;
+  font-weight:950;
+}
+
+.compare-table .no{
+  color:#a7b2ad;
+}
+
+.compare-table .basic-text{
+  color:#65736d;
+  font-size:11px;
+  font-weight:700;
+}
+
+.table-scroll{
+  overflow-x:auto;
+}
+
+/* LISTING */
+
+.listing{
+  background:linear-gradient(135deg,var(--green),var(--green-dark));
+  color:#fff;
+  border-radius:24px;
+  padding:34px;
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:30px;
+  align-items:center;
+  margin:0 auto 65px;
+  box-shadow:0 20px 55px rgba(18,59,42,.15);
+}
+
+.listing h2{
+  margin:0 0 6px;
+  color:#fff;
+  font-size:25px;
+  letter-spacing:-.5px;
+}
+
+.listing p{
+  margin:0;
+  color:#cbdcd4;
+  font-size:13px;
+  max-width:690px;
+}
+
+.listing-price{
+  text-align:center;
+}
+
+.listing-price .price{
+  color:#fff;
+  margin:0 0 8px;
+}
+
+.listing-price .price small{
+  color:#cbdcd4;
+}
+
+.listing button{
+  border:0;
+  background:#fff;
+  color:var(--green);
+  padding:12px 20px;
+  border-radius:11px;
+  font-size:13px;
+  font-weight:950;
+  cursor:pointer;
+}
+
+#stall-payment-message{
+  margin-top:9px;
+  font-size:12px;
+}
+
+/* BENEFITS */
+
+.benefits{
+  margin:0 auto 65px;
+}
+
+.benefit-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:15px;
+}
+
+.benefit{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:17px;
+  padding:21px;
+}
+
+.benefit-icon{
+  width:38px;
+  height:38px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:10px;
+  background:var(--mint);
+  font-size:18px;
+}
+
+.benefit h3{
+  margin:10px 0 4px;
+  font-size:15px;
+}
+
+.benefit p{
+  margin:0;
+  color:var(--muted);
+  font-size:12px;
+}
+
+/* CTA */
+
+.final-cta{
+  background:var(--mint);
+  border:1px solid #d3e8dc;
+  border-radius:22px;
+  padding:34px;
+  text-align:center;
+  margin-bottom:65px;
+}
+
+.final-cta h2{
+  margin:0 0 7px;
+  font-size:28px;
+  letter-spacing:-.8px;
+}
+
+.final-cta p{
+  margin:0 auto 18px;
+  color:var(--muted);
+  font-size:14px;
+}
+
+.final-cta a{
+  display:inline-block;
+  background:var(--green);
+  color:#fff;
+  text-decoration:none;
+  padding:12px 20px;
+  border-radius:10px;
+  font-size:13px;
+  font-weight:900;
+}
+
+/* FOOTER */
+
+.footer{
+  border-top:1px solid var(--line);
+  padding:25px 0 40px;
+  text-align:center;
+  color:var(--muted);
+  font-size:11px;
+}
+
+.footer-links{
+  display:flex;
+  justify-content:center;
+  flex-wrap:wrap;
+  gap:14px;
+  margin-bottom:9px;
+}
+
+.footer-links a{
+  text-decoration:none;
+  color:#405048;
+  font-weight:750;
+}
+
+@media(max-width:850px){
+  .nav a:not(.nav-cta){display:none}
+  .plans{grid-template-columns:1fr}
+  .plan.featured{transform:none}
+  .plan.featured:hover{transform:translateY(-4px)}
+  .benefit-grid{grid-template-columns:1fr 1fr}
+  .listing{grid-template-columns:1fr}
+}
+
+@media(max-width:600px){
+  .container{width:min(100% - 24px,1160px)}
+  .hero{padding:50px 0 30px}
+  .hero h1{letter-spacing:-1.6px}
+  .benefit-grid{grid-template-columns:1fr}
+  .listing{padding:25px}
+  .final-cta{padding:25px}
 }
 </style>
 </head>
+
 <body>
 
 <header class="site-header">
   <div class="container header-inner">
     <a class="brand" href="/">
       <img src="/assets/stall-logo.png" alt="STore Automation">
-      <div><div class="brand-title">STore Automation</div><div class="brand-sub">Powered by ST Shield</div></div>
+      <div>
+        <div class="brand-name">STore Automation</div>
+        <div class="brand-sub">Powered by ST Shield</div>
+      </div>
     </a>
+
     <nav class="nav">
       <a href="/">Home</a>
       <a href="/about.html">About Us</a>
       <a class="active" href="/pricing.html">Pricing</a>
       <a href="/contact.html">Contact</a>
-      <a class="cta" href="#plans">View Plans</a>
+      <a class="nav-cta" href="#plans">View Plans</a>
     </nav>
   </div>
 </header>
 
 <main>
-  <section class="hero container">
-    <div class="eyebrow">● Simple pricing · Powerful automation</div>
-    <h1>Choose how much of your business you want to <span>automate.</span></h1>
-    <p>Start with the essentials, grow when you're ready, and automate more as your business scales.</p>
-  </section>
 
-  <section id="plans" class="container pricing-grid">
-    <article class="plan">
-      <div class="plan-kicker">Get Started</div>
-      <h2>Basic</h2>
-      <p class="desc">For businesses getting started with digital automation.</p>
-      <div class="price">₹499 <small>/ month</small></div>
-      <ul>
-        <li>Business Profile</li>
-        <li>Social Media Content Creation</li>
-        <li>Promotional Offers</li>
-        <li>Customer Lead Capture</li>
-        <li>Basic Campaign Management</li>
-        <li>Business Dashboard</li>
-        <li>Essential Automation</li>
-      </ul>
-      <a class="button alt" href="/contact.html">Start with Basic</a>
-    </article>
+<section class="container hero">
+  <div class="eyebrow">● SIMPLE PRICING · POWERFUL AUTOMATION</div>
 
-    <article class="plan featured">
-      <div class="popular">MOST POPULAR</div>
-      <div class="plan-kicker">Grow Faster</div>
-      <h2>Growth</h2>
-      <p class="desc">For businesses ready to grow consistently and engage customers better.</p>
-      <div class="price">₹999 <small>/ month</small></div>
-      <ul>
-        <li>Everything in Basic</li>
-        <li>Social Media Scheduling</li>
-        <li>Advanced Campaigns</li>
-        <li>Google Review Management</li>
-        <li>Customer Engagement Tools</li>
-        <li>Automated Promotions</li>
-        <li>Enhanced Lead Management</li>
-        <li>Growth Analytics</li>
-      </ul>
-      <a class="button" href="/contact.html">Start Growing</a>
-    </article>
+  <h1>
+    Choose how much of your business you want to
+    <span>automate.</span>
+  </h1>
 
-    <article class="plan">
-      <div class="plan-kicker">Automate More</div>
-      <h2>Full Automate</h2>
-      <p class="desc">For businesses that want their marketing and customer operations working smarter.</p>
-      <div class="price">₹2,499 <small>/ month</small></div>
-      <ul>
-        <li>Everything in Growth</li>
-        <li>Advanced Business Automation</li>
-        <li>Automated Customer Follow-ups</li>
-        <li>Advanced Lead Management</li>
-        <li>Multi-location Support</li>
-        <li>Team Access</li>
-        <li>Advanced Analytics</li>
-        <li>Automated Campaign Workflows</li>
-        <li>Priority Support</li>
-      </ul>
-      <a class="button alt" href="/contact.html">Automate More</a>
-    </article>
-  </section>
+  <p>
+    Start with the essentials. Grow when you're ready.
+    Automate more as your business scales.
+  </p>
+</section>
 
-  <section class="container listing">
-    <div>
-      <h2>Want to get your business listed first?</h2>
-      <p>The STore Listing is a simple one-time onboarding option for businesses that want to establish their presence before moving into automation.</p>
-      <div id="stall-payment-message"></div>
+<section id="plans" class="container plans">
+
+  <article class="plan">
+
+    <div class="plan-kicker">Get Started</div>
+
+    <h2>Basic</h2>
+
+    <p class="plan-desc">
+      For businesses getting started with digital automation.
+    </p>
+
+    <div class="price">
+      ₹499 <small>/ month</small>
     </div>
-    <div>
-      <div class="price">₹99 <small style="color:#c8d9d1">one-time</small></div>
-      <button id="stall-listing-button" type="button" onclick="startSTallListingPayment()">Get Listed — ₹99</button>
-    </div>
-  </section>
 
-  <section class="container compare">
-    <h2>Built around your business</h2>
-    <p>Store Automation brings the repetitive digital work into one simple platform so you can spend more time serving customers.</p>
-    <div class="feature-grid">
-      <div class="feature"><div class="feature-icon">📱</div><h3>Social Media</h3><p>Create, manage and schedule content for your business.</p></div>
-      <div class="feature"><div class="feature-icon">🎯</div><h3>Offers & Promotions</h3><p>Keep your offers visible and your campaigns organised.</p></div>
-      <div class="feature"><div class="feature-icon">⭐</div><h3>Reviews</h3><p>Stay on top of customer feedback and online reputation.</p></div>
-      <div class="feature"><div class="feature-icon">👥</div><h3>Customer Engagement</h3><p>Turn genuine enquiries into meaningful conversations.</p></div>
-      <div class="feature"><div class="feature-icon">📊</div><h3>Business Insights</h3><p>Understand what is working and where to improve.</p></div>
-      <div class="feature"><div class="feature-icon">⚙️</div><h3>Automation</h3><p>Reduce repetitive digital tasks and stay consistent.</p></div>
-    </div>
-  </section>
+    <ul class="plan-list">
+      <li>Business Profile</li>
+      <li>Social Media Content Creation</li>
+      <li>Promotional Offers</li>
+      <li>Customer Lead Capture</li>
+      <li>Basic Campaign Management</li>
+      <li>Business Dashboard</li>
+      <li>Essential Automation</li>
+    </ul>
 
-  <section class="container faq">
-    <h2>Frequently asked questions</h2>
-    <div class="faq-list">
-      <div class="faq-item"><strong>Can I start with Basic and upgrade later?</strong><p>Yes. Start with the plan that fits your current needs and move to a higher plan as your business grows.</p></div>
-      <div class="faq-item"><strong>Is the ₹99 listing a subscription?</strong><p>No. The ₹99 STore Listing is a one-time listing and onboarding payment.</p></div>
-      <div class="faq-item"><strong>Is annual billing available?</strong><p>Eligible annual subscriptions may be offered with a 10% discount. Applicable terms are shown before purchase.</p></div>
-    </div>
-  </section>
-</main>
+    <a class="plan-button secondary" href="/contact.html">
+      Start with Basic
+    </a>
 
-<footer class="site-footer">
-  <div class="container footer-inner">
-    <div><div class="footer-brand">STore Automation</div><div class="footer-copy">Your business. Your customers. Your automation.</div></div>
-    <div class="footer-links">
-      <a href="/about.html">About Us</a><a href="/pricing.html">Pricing</a><a href="/contact.html">Contact</a>
-      <a href="/privacy.html">Privacy Policy</a><a href="/terms.html">Terms</a><a href="/refund-policy.html">Refund Policy</a>
+  </article>
+
+
+  <article class="plan featured">
+
+    <div class="popular">MOST POPULAR</div>
+
+    <div class="plan-kicker">Grow Faster</div>
+
+    <h2>Growth</h2>
+
+    <p class="plan-desc">
+      For businesses ready to grow consistently and engage customers better.
+    </p>
+
+    <div class="price">
+      ₹999 <small>/ month</small>
+    </div>
+
+    <ul class="plan-list">
+      <li>Everything in Basic</li>
+      <li>Social Media Scheduling</li>
+      <li>Advanced Campaigns</li>
+      <li>Google Review Management</li>
+      <li>Customer Engagement Tools</li>
+      <li>Automated Promotions</li>
+      <li>Enhanced Lead Management</li>
+      <li>Growth Analytics</li>
+    </ul>
+
+    <a class="plan-button" href="/contact.html">
+      Start Growing
+    </a>
+
+  </article>
+
+
+  <article class="plan">
+
+    <div class="plan-kicker">Automate More</div>
+
+    <h2>Full Automate</h2>
+
+    <p class="plan-desc">
+      For businesses that want their marketing and customer operations working smarter.
+    </p>
+
+    <div class="price">
+      ₹2,499 <small>/ month</small>
+    </div>
+
+    <ul class="plan-list">
+      <li>Everything in Growth</li>
+      <li>Advanced Business Automation</li>
+      <li>Automated Customer Follow-ups</li>
+      <li>Advanced Lead Management</li>
+      <li>Multi-location Support</li>
+      <li>Team Access</li>
+      <li>Advanced Analytics</li>
+      <li>Automated Campaign Workflows</li>
+      <li>Priority Support</li>
+    </ul>
+
+    <a class="plan-button secondary" href="/contact.html">
+      Automate More
+    </a>
+
+  </article>
+
+</section>
+
+
+<section class="container comparison">
+
+  <div class="section-heading">
+    <h2>Compare plans</h2>
+    <p>
+      See exactly what is included at each level before you choose the plan
+      that's right for your business.
+    </p>
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-scroll">
+
+      <table class="compare-table">
+
+        <thead>
+          <tr>
+            <th>Features</th>
+            <th>Basic<br>₹499</th>
+            <th class="growth">Growth<br>₹999</th>
+            <th>Full Automate<br>₹2,499</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          <tr>
+            <td>Business Profile</td>
+            <td class="yes">✓</td>
+            <td class="yes">✓</td>
+            <td class="yes">✓</td>
+          </tr>
+
+          <tr>
+            <td>Social Media Content</td>
+            <td class="yes">✓</td>
+            <td class="yes">✓</td>
+            <td class="yes">✓</td>
+          </tr>
+
+          <tr>
+            <td>Promotional Offers</td>
+            <td class="yes">✓</td>
+            <td class="yes">✓</td>
+            <td class="yes">✓</td>
+          </tr>
+
+          <tr>
+            <td>Customer Lead Capture</td>
+            <td class="yes">✓</td>
+            <td class="yes">✓</td>
+            <td class="yes">✓</td>
+          </tr>
+
+          <tr>
+            <td>Campaign Management</td>
+            <td class="basic-text">Basic</td>
+            <td class="yes">Advanced</td>
+            <td class="yes">Automated</td>
+          </tr>
+
+          <tr>
+            <td>Social Media Scheduling</td>
+            <td class="no">—</td>
+            <td class="yes">✓</td>
+            <td class="yes">✓</td>
+          </tr>
+
+          <tr>
+            <td>Google Review Management</td>
+            <td class="no">—</td>
+            <td class="yes">✓</td>
+            <td class="yes">✓</td>
+          </tr>
+
+          <tr>
+            <td>Customer Engagement</td>
+            <td class="no">—</td>
+            <td class="yes">✓</td>
+            <td class="yes">Advanced</td>
+          </tr>
+
+          <tr>
+            <td>Automated Promotions</td>
+            <td class="no">—</td>
+            <td class="yes">✓</td>
+            <td class="yes">✓</td>
+          </tr>
+
+          <tr>
+            <td>Enhanced Lead Management</td>
+            <td class="no">—</td>
+            <td class="yes">✓</td>
+            <td class="yes">✓</td>
+          </tr>
+
+          <tr>
+            <td>Automated Customer Follow-ups</td>
+            <td class="no">—</td>
+            <td class="no">—</td>
+            <td class="yes">✓</td>
+          </tr>
+
+          <tr>
+            <td>Advanced Analytics</td>
+            <td class="basic-text">Basic</td>
+            <td class="yes">Growth</td>
+            <td class="yes">Advanced</td>
+          </tr>
+
+          <tr>
+            <td>Multi-location Support</td>
+            <td class="no">—</td>
+            <td class="no">—</td>
+            <td class="yes">✓</td>
+          </tr>
+
+          <tr>
+            <td>Team Access</td>
+            <td class="no">—</td>
+            <td class="no">—</td>
+            <td class="yes">✓</td>
+          </tr>
+
+          <tr>
+            <td>Automated Campaign Workflows</td>
+            <td class="no">—</td>
+            <td class="no">—</td>
+            <td class="yes">✓</td>
+          </tr>
+
+          <tr>
+            <td>Priority Support</td>
+            <td class="no">—</td>
+            <td class="no">—</td>
+            <td class="yes">✓</td>
+          </tr>
+
+        </tbody>
+
+      </table>
+
     </div>
   </div>
-  <div class="container footer-bottom">© 2026 STore Automation · Operated by Style Expres · Bengaluru, Karnataka, India</div>
+
+</section>
+
+
+<section class="container listing">
+
+  <div>
+
+    <h2>Not ready for automation yet?</h2>
+
+    <p>
+      Start by getting your business listed on STore Automation.
+      It's a simple one-time onboarding option before you move into
+      full business automation.
+    </p>
+
+    <div id="stall-payment-message"></div>
+
+  </div>
+
+  <div class="listing-price">
+
+    <div class="price">
+      ₹99 <small>one-time</small>
+    </div>
+
+    <button
+      id="stall-listing-button"
+      type="button"
+      onclick="startSTallListingPayment()"
+    >
+      Get Listed — ₹99
+    </button>
+
+  </div>
+
+</section>
+
+
+<section class="container benefits">
+
+  <div class="section-heading">
+
+    <h2>Why Store Automation?</h2>
+
+    <p>
+      Everything you need to stay visible, engage customers and
+      automate everyday digital work.
+    </p>
+
+  </div>
+
+  <div class="benefit-grid">
+
+    <div class="benefit">
+      <div class="benefit-icon">📱</div>
+      <h3>Social Media</h3>
+      <p>
+        Create, manage and schedule consistent content for your business.
+      </p>
+    </div>
+
+    <div class="benefit">
+      <div class="benefit-icon">🎯</div>
+      <h3>Offers & Promotions</h3>
+      <p>
+        Keep your offers visible and your promotional campaigns organised.
+      </p>
+    </div>
+
+    <div class="benefit">
+      <div class="benefit-icon">⭐</div>
+      <h3>Reviews</h3>
+      <p>
+        Stay on top of customer feedback and build a stronger online reputation.
+      </p>
+    </div>
+
+    <div class="benefit">
+      <div class="benefit-icon">👥</div>
+      <h3>Customer Engagement</h3>
+      <p>
+        Capture genuine enquiries and turn interest into conversations.
+      </p>
+    </div>
+
+    <div class="benefit">
+      <div class="benefit-icon">📊</div>
+      <h3>Business Insights</h3>
+      <p>
+        Understand what's working and make better business decisions.
+      </p>
+    </div>
+
+    <div class="benefit">
+      <div class="benefit-icon">⚙️</div>
+      <h3>Automation</h3>
+      <p>
+        Reduce repetitive digital work and stay consistent without a large team.
+      </p>
+    </div>
+
+  </div>
+
+</section>
+
+
+<section class="container final-cta">
+
+  <h2>
+    Start small. Grow when you're ready.
+  </h2>
+
+  <p>
+    Choose the plan that fits your business today and upgrade as your needs grow.
+  </p>
+
+  <a href="#plans">
+    Choose Your Plan →
+  </a>
+
+</section>
+
+</main>
+
+
+<footer class="footer">
+
+  <div class="footer-links">
+    <a href="/about.html">About Us</a>
+    <a href="/pricing.html">Pricing</a>
+    <a href="/contact.html">Contact</a>
+    <a href="/privacy.html">Privacy Policy</a>
+    <a href="/terms.html">Terms</a>
+    <a href="/refund-policy.html">Refund Policy</a>
+  </div>
+
+  Your business. Your customers. Your automation.
+
 </footer>
 
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
 async function startSTallListingPayment() {
   const button = document.getElementById('stall-listing-button');
@@ -241,5 +1020,6 @@ async function startSTallListingPayment() {
   }catch(error){console.error(error);message.textContent=error.message || 'Unable to start payment.';button.disabled=false;button.textContent='Get Listed — ₹99';}
 }
 </script>
+
 </body>
 </html>
