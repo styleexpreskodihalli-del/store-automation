@@ -72,6 +72,13 @@ export default {
       const businessId =
         url.searchParams.get('business_id');
 
+      console.log(
+        'GBP LOCATIONS STEP 01',
+        JSON.stringify({
+          business_id: businessId
+        })
+      );
+
       if (!businessId) {
         return json(
           { error: 'business_id is required' },
@@ -109,6 +116,15 @@ export default {
 
       const members =
         await memberResponse.json();
+
+      console.log(
+        'GBP LOCATIONS STEP 02 MEMBERS',
+        JSON.stringify({
+          count: Array.isArray(members)
+            ? members.length
+            : 0
+        })
+      );
 
       if (!members.length) {
         return json(
@@ -148,6 +164,15 @@ export default {
 
       const connections =
         await connectionResponse.json();
+
+      console.log(
+        'GBP LOCATIONS STEP 03 CONNECTION',
+        JSON.stringify({
+          count: Array.isArray(connections)
+            ? connections.length
+            : 0
+        })
+      );
 
       if (!connections.length) {
         return json(
@@ -368,6 +393,21 @@ export default {
             .json()
             .catch(() => ({}));
 
+        console.log(
+          'GBP LOCATIONS STEP 04 GOOGLE ACCOUNTS',
+          JSON.stringify({
+            status: accountsResponse.status,
+            ok: accountsResponse.ok,
+            account_count:
+              Array.isArray(accountsData.accounts)
+                ? accountsData.accounts.length
+                : 0,
+            error:
+              accountsData.error?.message ||
+              null
+          })
+        );
+
         if (!accountsResponse.ok) {
           console.error(
             'Google accounts lookup failed:',
@@ -474,6 +514,22 @@ export default {
             await locationsResponse
               .json()
               .catch(() => ({}));
+
+          console.log(
+            'GBP LOCATIONS STEP 05 GOOGLE LOCATIONS',
+            JSON.stringify({
+              account: accountName,
+              status: locationsResponse.status,
+              ok: locationsResponse.ok,
+              location_count:
+                Array.isArray(locationsData.locations)
+                  ? locationsData.locations.length
+                  : 0,
+              error:
+                locationsData.error?.message ||
+                null
+            })
+          );
 
           if (!locationsResponse.ok) {
             /*
