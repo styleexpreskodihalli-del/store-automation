@@ -154,6 +154,47 @@ export default {
       }
 
       /*
+       * Validate that Google actually granted the Business Profile scope.
+       *
+       * The OAuth start request asks for business.manage, but Google may
+       * return a token without that scope. Never mark the GBP connection
+       * as authorized unless the required scope is actually present.
+       */
+      const requiredGoogleScope =
+        'https://www.googleapis.com/auth/business.manage';
+
+      const grantedScopes =
+        String(tokenData.scope || '')
+          .split(/\s+/)
+          .filter(Boolean);
+
+      console.log(
+        'Google OAuth granted scopes:',
+        JSON.stringify({
+          scopes: grantedScopes,
+          hasBusinessManage:
+            grantedScopes.includes(requiredGoogleScope)
+        })
+      );
+
+      if (!grantedScopes.includes(requiredGoogleScope)) {
+        console.error(
+          'Google OAuth missing required Business Profile scope:',
+          JSON.stringify({
+            grantedScopes,
+            requiredScope: requiredGoogleScope
+          })
+        );
+
+        return html(
+          403,
+          `<h2>Google Business Profile permission required.</h2>
+           <p>This Google account was connected, but Business Profile access was not granted.</p>
+           <p>Please reconnect Google and approve Business Profile access.</p>`
+        );
+      }
+
+      /*
        * Identify the Google account that authorized STore Automation.
        * This is the OAuth identity only; it is NOT used to select
        * a Business Profile.
