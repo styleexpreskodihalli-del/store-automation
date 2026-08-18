@@ -167,8 +167,8 @@ export default {
         );
 
         return json({
-          error:
-            'Unable to create payment order'
+          error: 'Razorpay order creation failed',
+          razorpay_error: order
         }, 502);
       }
 
