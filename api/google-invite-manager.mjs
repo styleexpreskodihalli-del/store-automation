@@ -264,8 +264,147 @@ export default {
         }, 400);
       }
 
+      /*
+       * STore EXISTING INVITATION CHECK
+       *
+       * Google may already contain a pending Manager invitation.
+       * Never create another invitation when one already exists.
+       */
+      const adminsCheckUrl =
+        `https://mybusinessaccountmanagement.googleapis.com/v1/${locationId}/admins`;
+
+      const adminsCheckResponse =
+        await fetch(adminsCheckUrl, {
+          method: 'GET',
+          headers: {
+            Authorization:
+              `Bearer ${accessToken}`
+          }
+        });
+
+      const adminsCheckData =
+        await adminsCheckResponse
+          .json()
+          .catch(() => ({}));
+
+      if (adminsCheckResponse.ok) {
+
+        const existingPendingInvitation =
+          Array.isArray(adminsCheckData.admins)
+            ? adminsCheckData.admins.find(
+                admin =>
+                  admin?.admin ===
+                    STORE_GOOGLE_MANAGER_EMAIL &&
+                  admin?.pendingInvitation === true
+              )
+            : null;
+
+        if (existingPendingInvitation) {
+
+          console.log(
+            'STore EXISTING INVITATION CHECK',
+            JSON.stringify({
+              email:
+                STORE_GOOGLE_MANAGER_EMAIL,
+              admin:
+                existingPendingInvitation.admin ||
+                null,
+              role:
+                existingPendingInvitation.role ||
+                null,
+              pendingInvitation:
+                existingPendingInvitation.pendingInvitation ||
+                false,
+              invitationId:
+                existingPendingInvitation.name ||
+                null
+            })
+          );
+
+          await updateConnection(
+            businessId,
+            {
+              store_manager_email:
+                STORE_GOOGLE_MANAGER_EMAIL,
+
+              store_manager_invitation_status:
+                'awaiting_acceptance',
+
+              store_manager_invitation_id:
+                existingPendingInvitation.name ||
+                null,
+
+              connection_status:
+                'awaiting_acceptance',
+
+              last_error:
+                null,
+
+              updated_at:
+                new Date().toISOString()
+            }
+          );
+
+          return json({
+            success:
+              true,
+
+            status:
+              'awaiting_acceptance',
+
+            store_manager_email:
+              STORE_GOOGLE_MANAGER_EMAIL,
+
+            invitation_id:
+              existingPendingInvitation.name ||
+              null,
+
+            business_id:
+              businessId,
+
+            business_profile_location_id:
+              locationId,
+
+            message:
+              'STore Manager invitation is already pending acceptance.'
+          });
+        }
+
+      } else {
+
+        console.error(
+          'STore EXISTING INVITATION CHECK failed:',
+          JSON.stringify({
+            status:
+              adminsCheckResponse.status,
+            error:
+              adminsCheckData.error ||
+              null
+          })
+        );
+
+        return json({
+          error:
+            'Unable to verify existing Google Manager invitation.',
+          google_status:
+            adminsCheckResponse.status,
+          details:
+            adminsCheckData.error ||
+            null
+        }, 502);
+
+      }
+
       const inviteUrl =
         `https://mybusinessaccountmanagement.googleapis.com/v1/${locationId}/admins`;
+
+      console.log(
+        'STore INVITE PAYLOAD VERSION 20260818-A',
+        JSON.stringify({
+          admin: STORE_GOOGLE_MANAGER_EMAIL,
+          role: 'MANAGER'
+        })
+      );
 
       const inviteResponse =
         await fetch(inviteUrl, {
@@ -277,7 +416,7 @@ export default {
               'application/json'
           },
           body: JSON.stringify({
-            adminName:
+            admin:
               STORE_GOOGLE_MANAGER_EMAIL,
             role: 'MANAGER'
           })
@@ -288,8 +427,12 @@ export default {
 
       if (!inviteResponse.ok) {
         console.error(
-          'Google manager invitation failed:',
-          inviteData
+          'STore GOOGLE INVITE FAILURE',
+          JSON.stringify({
+            status: inviteResponse.status,
+            statusText: inviteResponse.statusText,
+            response: inviteData
+          })
         );
 
         await updateConnection(
@@ -311,10 +454,14 @@ export default {
             'Unable to send STore Google manager invitation',
           google_status:
             inviteResponse.status,
+          google_status_text:
+            inviteResponse.statusText || null,
+          google_error:
+            inviteData.error || null,
           details:
             inviteData.error?.message ||
-            inviteData.error ||
-            null
+            inviteData.error?.status ||
+            JSON.stringify(inviteData)
         }, 502);
       }
 
