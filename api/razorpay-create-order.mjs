@@ -1,273 +1,611 @@
-const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID;
-const RAZORPAY_KEY_SECRET =
-  process.env.RAZORPAY_KEY_SECRET;
+import crypto from "node:crypto";
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
+
+const SUPABASE_URL =
+  process.env.SUPABASE_URL;
+
 const SUPABASE_SERVICE_ROLE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-function json(body, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      'Content-Type': 'application/json',
-      'Cache-Control': 'no-store'
-    }
-  });
-}
+const RAZORPAY_KEY_ID =
+  process.env.RAZORPAY_KEY_ID;
 
-function basicAuth() {
-  return `Basic ${Buffer.from(
-    `${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`
-  ).toString('base64')}`;
-}
+const RAZORPAY_KEY_SECRET =
+  process.env.RAZORPAY_KEY_SECRET;
 
-async function supabaseRequest(path, options = {}) {
-  return fetch(
-    `${SUPABASE_URL}${path}`,
+
+function json(
+  body,
+  status = 200
+) {
+
+  return new Response(
+    JSON.stringify(body),
     {
-      ...options,
+      status,
+
       headers: {
-        apikey: SUPABASE_SERVICE_ROLE_KEY,
-        Authorization:
-          `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        ...(options.headers || {})
+        "content-type":
+          "application/json; charset=utf-8",
+
+        "cache-control":
+          "no-store"
       }
     }
   );
+
 }
 
-export default {
-  async fetch(request) {
-    try {
-      if (request.method !== 'POST') {
-        return json({
-          error: 'Method not allowed'
-        }, 405);
+
+/* ---------------------------------
+   SUPABASE
+--------------------------------- */
+
+async function supabaseFetch(
+  path,
+  options = {}
+) {
+
+  if (
+    !SUPABASE_URL ||
+    !SUPABASE_SERVICE_ROLE_KEY
+  ) {
+
+    throw new Error(
+      "Supabase configuration is missing."
+    );
+
+  }
+
+
+  return fetch(
+    `${SUPABASE_URL}${path}`,
+    {
+
+      ...options,
+
+      headers: {
+
+        apikey:
+          SUPABASE_SERVICE_ROLE_KEY,
+
+        Authorization:
+          `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+
+        ...(options.headers || {})
+
       }
+
+    }
+  );
+
+}
+
+
+/* ---------------------------------
+   MAIN
+--------------------------------- */
+
+export default {
+
+  async fetch(request) {
+
+    try {
+
+      /* -----------------------------
+         METHOD
+      ----------------------------- */
+
+      if (
+        request.method !== "POST"
+      ) {
+
+        return json(
+          {
+            success: false,
+            error:
+              "Method not allowed"
+          },
+          405
+        );
+
+      }
+
+
+      /* -----------------------------
+         CONFIGURATION
+      ----------------------------- */
 
       if (
         !RAZORPAY_KEY_ID ||
         !RAZORPAY_KEY_SECRET
       ) {
+
         console.error(
-          'Razorpay credentials are not configured'
+          "Razorpay configuration missing"
         );
 
-        return json({
-          error: 'Payment service is not configured'
-        }, 500);
+        return json(
+          {
+            success: false,
+            error:
+              "Razorpay is not configured"
+          },
+          500
+        );
+
       }
+
 
       if (
         !SUPABASE_URL ||
         !SUPABASE_SERVICE_ROLE_KEY
       ) {
+
         console.error(
-          'Supabase server credentials are not configured'
+          "Supabase configuration missing"
         );
 
-        return json({
-          error: 'Payment database is not configured'
-        }, 500);
+        return json(
+          {
+            success: false,
+            error:
+              "Supabase is not configured"
+          },
+          500
+        );
+
       }
+
+
+      /* -----------------------------
+         REQUEST BODY
+      ----------------------------- */
 
       const body =
-        await request.json().catch(() => null);
+        await request
+          .json()
+          .catch(
+            () => null
+          );
+
 
       if (!body) {
-        return json({
-          error: 'Invalid request body'
-        }, 400);
+
+        return json(
+          {
+            success: false,
+            error:
+              "Invalid request body"
+          },
+          400
+        );
+
       }
+
 
       const {
+
         customer_name,
-        customer_email,
-        customer_phone
+        customer_phone,
+        business,
+        onboarding_id
+
       } = body;
 
-      if (!customer_name?.trim()) {
-        return json({
-          error: 'Customer name is required'
-        }, 400);
+
+      /* -----------------------------
+         ONBOARDING ID
+      ----------------------------- */
+
+      if (
+        !onboarding_id
+      ) {
+
+        return json(
+          {
+            success: false,
+            error:
+              "onboarding_id is required"
+          },
+          400
+        );
+
       }
 
-      if (!customer_email?.trim()) {
-        return json({
-          error: 'Customer email is required'
-        }, 400);
+
+      /* -----------------------------
+         BUSINESS NAME
+      ----------------------------- */
+
+      let businessName =
+        customer_name ||
+        "STore Listing";
+
+
+      if (
+        business &&
+        typeof business ===
+          "object"
+      ) {
+
+        const location =
+          business.location ||
+          {};
+
+
+        businessName =
+          location.title ||
+          business.title ||
+          location.name ||
+          business.name ||
+          customer_name ||
+          "STore Listing";
+
       }
 
-      const name =
-        customer_name.trim();
 
-      const email =
-        customer_email.trim().toLowerCase();
+      /* -----------------------------
+         LOAD GOOGLE CUSTOMER
+      ----------------------------- */
 
-      const phone =
-        customer_phone?.trim() || null;
+      const stateResponse =
+        await supabaseFetch(
+
+          `/rest/v1/google_oauth_states` +
+
+          `?onboarding_id=eq.${encodeURIComponent(
+            onboarding_id
+          )}` +
+
+          `&select=` +
+
+          [
+            "id",
+            "onboarding_id",
+            "customer_name",
+            "customer_email",
+            "customer_phone",
+            "google_account_id",
+            "google_account_email"
+          ].join(",") +
+
+          `&limit=1`
+
+        );
+
+
+      if (
+        !stateResponse.ok
+      ) {
+
+        const detail =
+          await stateResponse.text();
+
+
+        console.error(
+          "Unable to load onboarding state",
+          detail
+        );
+
+
+        return json(
+          {
+            success: false,
+            error:
+              "Unable to load your Google connection"
+          },
+          500
+        );
+
+      }
+
+
+      const states =
+        await stateResponse
+          .json();
+
+
+      if (
+        !Array.isArray(states) ||
+        states.length === 0
+      ) {
+
+        return json(
+          {
+            success: false,
+            error:
+              "Onboarding session not found. Please start the ₹99 listing process again."
+          },
+          404
+        );
+
+      }
+
+
+      const state =
+        states[0];
+
+
+      /* -----------------------------
+         CUSTOMER EMAIL
+      ----------------------------- */
 
       /*
-       * STall Listing:
-       * ₹99 one-time payment.
+       * IMPORTANT:
        *
-       * Razorpay amount is expressed in paise.
+       * We no longer require the customer
+       * to manually enter an email.
+       *
+       * First use the Google account email.
+       * If unavailable, fall back to the
+       * onboarding customer email.
        */
-      const amount = 9900;
 
-      const receipt =
-        `STL_${Date.now()}`;
+      const customerEmail =
+        state.google_account_email ||
+        state.customer_email ||
+        "";
 
-      /*
-       * Step 1:
-       * Create the Razorpay order.
-       */
-      const razorpayResponse =
-        await fetch(
-          'https://api.razorpay.com/v1/orders',
-          {
-            method: 'POST',
-            headers: {
-              Authorization: basicAuth(),
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              amount,
-              currency: 'INR',
-              receipt,
-              notes: {
-                product:
-                  'STall - Store Automation',
-                plan:
-                  'listing_99',
-                customer_name:
-                  name,
-                customer_email:
-                  email,
-                customer_phone:
-                  phone || ''
-              }
-            })
-          }
-        );
 
-      const order =
-        await razorpayResponse
-          .json()
-          .catch(() => null);
+      const finalPhone =
+        customer_phone ||
+        state.customer_phone ||
+        "";
 
-      if (
-        !razorpayResponse.ok ||
-        !order?.id
-      ) {
-        console.error(
-          'Razorpay order creation failed:',
-          order
-        );
 
-        return json({
-          error: 'Razorpay order creation failed',
-          razorpay_error: order
-        }, 502);
-      }
+      console.log(
+        "RAZORPAY CUSTOMER",
+        JSON.stringify({
 
-      /*
-       * Step 2:
-       * Record the newly-created order.
-       */
-      const paymentRecord = {
-        product:
-          'STall - Store Automation',
-        plan:
-          'listing_99',
-        amount,
-        currency:
-          'INR',
-        customer_name:
-          name,
-        customer_email:
-          email,
-        customer_phone:
-          phone,
-        razorpay_order_id:
-          order.id,
-        payment_status:
-          'created'
-      };
+          onboarding_id:
+            onboarding_id,
 
-      const paymentResponse =
-        await supabaseRequest(
-          '/rest/v1/stall_payments',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type':
-                'application/json',
-              Prefer:
-                'return=representation'
-            },
-            body:
-              JSON.stringify(
-                paymentRecord
-              )
-          }
-        );
+          business_name:
+            businessName,
 
-      const paymentRows =
-        await paymentResponse
-          .json()
-          .catch(() => []);
+          google_account_email:
+            state.google_account_email ||
+            null,
 
-      if (
-        !paymentResponse.ok ||
-        !Array.isArray(paymentRows) ||
-        !paymentRows.length
-      ) {
-        console.error(
-          'STall payment record creation failed:',
-          paymentRows
-        );
+          customer_email_available:
+            !!customerEmail,
 
-        /*
-         * We deliberately do not expose the
-         * database error to the customer.
-         *
-         * The Razorpay order exists, but our
-         * internal ledger does not. The order
-         * should not be presented for checkout
-         * until this is resolved.
-         */
-        return json({
-          error:
-            'Unable to initialise payment'
-        }, 500);
-      }
+          customer_phone_available:
+            !!finalPhone
 
-      return json({
-        success: true,
-        key_id:
-          RAZORPAY_KEY_ID,
-        order_id:
-          order.id,
-        amount:
-          order.amount,
-        currency:
-          order.currency,
-        payment_record_id:
-          paymentRows[0].id
-      });
-
-    } catch (error) {
-      console.error(
-        'Razorpay create-order error:',
-        error
+        })
       );
 
+
+      /* -----------------------------
+         RAZORPAY ORDER
+      ----------------------------- */
+
+      /*
+       * ₹99 = 9900 paise
+       */
+
+      const amount =
+        9900;
+
+
+      const receipt =
+        `stall_${Date.now()}_${crypto
+          .randomBytes(4)
+          .toString("hex")}`;
+
+
+      const razorpayAuth =
+        Buffer
+          .from(
+            `${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`
+          )
+          .toString(
+            "base64"
+          );
+
+
+      const razorpayResponse =
+        await fetch(
+          "https://api.razorpay.com/v1/orders",
+          {
+
+            method:
+              "POST",
+
+            headers: {
+
+              "Content-Type":
+                "application/json",
+
+              Authorization:
+                `Basic ${razorpayAuth}`
+
+            },
+
+            body:
+              JSON.stringify({
+
+                amount:
+                  amount,
+
+                currency:
+                  "INR",
+
+                receipt:
+                  receipt,
+
+                notes: {
+
+                  product:
+                    "STore Automation",
+
+                  plan:
+                    "listing_99",
+
+                  onboarding_id:
+                    onboarding_id,
+
+                  business_name:
+                    businessName,
+
+                  customer_email:
+                    customerEmail,
+
+                  customer_phone:
+                    finalPhone
+
+                }
+
+              })
+
+          }
+        );
+
+
+      const razorpayResult =
+        await razorpayResponse
+          .json()
+          .catch(
+            () => ({})
+          );
+
+
+      if (
+        !razorpayResponse.ok
+      ) {
+
+        console.error(
+          "Razorpay order creation failed",
+          {
+
+            status:
+              razorpayResponse.status,
+
+            response:
+              razorpayResult
+
+          }
+        );
+
+
+        return json(
+          {
+            success: false,
+
+            error:
+              razorpayResult?.error?.description ||
+              razorpayResult?.error?.reason ||
+              "Unable to create Razorpay order"
+          },
+          500
+        );
+
+      }
+
+
+      /* -----------------------------
+         SUCCESS
+      ----------------------------- */
+
+      console.log(
+        "RAZORPAY ORDER CREATED",
+        JSON.stringify({
+
+          order_id:
+            razorpayResult.id,
+
+          amount:
+            razorpayResult.amount,
+
+          currency:
+            razorpayResult.currency,
+
+          onboarding_id:
+            onboarding_id,
+
+          business_name:
+            businessName
+
+        })
+      );
+
+
       return json({
-        error:
-          'Unable to create payment order'
-      }, 500);
+
+        success:
+          true,
+
+        key_id:
+          RAZORPAY_KEY_ID,
+
+        order_id:
+          razorpayResult.id,
+
+        amount:
+          razorpayResult.amount,
+
+        currency:
+          razorpayResult.currency,
+
+        receipt:
+          razorpayResult.receipt,
+
+        customer: {
+
+          name:
+            businessName,
+
+          email:
+            customerEmail,
+
+          phone:
+            finalPhone
+
+        },
+
+        onboarding_id:
+          onboarding_id
+
+      });
+
+
+    } catch (error) {
+
+      console.error(
+        "RAZORPAY CREATE ORDER ERROR",
+        {
+
+          name:
+            error?.name ||
+            null,
+
+          message:
+            error?.message ||
+            String(error),
+
+          stack:
+            error?.stack ||
+            null
+
+        }
+      );
+
+
+      return json(
+        {
+          success: false,
+
+          error:
+            error?.message ||
+            "Unable to initialise payment"
+        },
+        500
+      );
+
     }
+
   }
+
 };
