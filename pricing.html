@@ -22,9 +22,13 @@
   --shadow:0 18px 55px rgba(18,59,42,.10);
 }
 
-*{box-sizing:border-box}
+*{
+  box-sizing:border-box;
+}
 
-html{scroll-behavior:smooth}
+html{
+  scroll-behavior:smooth;
+}
 
 body{
   margin:0;
@@ -34,7 +38,9 @@ body{
   line-height:1.6;
 }
 
-a{color:inherit}
+a{
+  color:inherit;
+}
 
 .container{
   width:min(1160px,calc(100% - 32px));
@@ -426,6 +432,10 @@ a{color:inherit}
   cursor:pointer;
 }
 
+.listing button:hover{
+  opacity:.94;
+}
+
 #stall-payment-message{
   margin-top:9px;
   font-size:12px;
@@ -531,21 +541,57 @@ a{color:inherit}
 }
 
 @media(max-width:850px){
-  .nav a:not(.nav-cta){display:none}
-  .plans{grid-template-columns:1fr}
-  .plan.featured{transform:none}
-  .plan.featured:hover{transform:translateY(-4px)}
-  .benefit-grid{grid-template-columns:1fr 1fr}
-  .listing{grid-template-columns:1fr}
+
+  .nav a:not(.nav-cta){
+    display:none;
+  }
+
+  .plans{
+    grid-template-columns:1fr;
+  }
+
+  .plan.featured{
+    transform:none;
+  }
+
+  .plan.featured:hover{
+    transform:translateY(-4px);
+  }
+
+  .benefit-grid{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .listing{
+    grid-template-columns:1fr;
+  }
 }
 
 @media(max-width:600px){
-  .container{width:min(100% - 24px,1160px)}
-  .hero{padding:50px 0 30px}
-  .hero h1{letter-spacing:-1.6px}
-  .benefit-grid{grid-template-columns:1fr}
-  .listing{padding:25px}
-  .final-cta{padding:25px}
+
+  .container{
+    width:min(100% - 24px,1160px);
+  }
+
+  .hero{
+    padding:50px 0 30px;
+  }
+
+  .hero h1{
+    letter-spacing:-1.6px;
+  }
+
+  .benefit-grid{
+    grid-template-columns:1fr;
+  }
+
+  .listing{
+    padding:25px;
+  }
+
+  .final-cta{
+    padding:25px;
+  }
 }
 </style>
 </head>
@@ -554,8 +600,10 @@ a{color:inherit}
 
 <header class="site-header">
   <div class="container header-inner">
+
     <a class="brand" href="/">
       <img src="/assets/stall-logo.png" alt="STore Automation">
+
       <div>
         <div class="brand-name">STore Automation</div>
         <div class="brand-sub">Powered by ST Shield</div>
@@ -569,13 +617,17 @@ a{color:inherit}
       <a href="/contact.html">Contact</a>
       <a class="nav-cta" href="#plans">View Plans</a>
     </nav>
+
   </div>
 </header>
 
 <main>
 
 <section class="container hero">
-  <div class="eyebrow">● SIMPLE PRICING · POWERFUL AUTOMATION</div>
+
+  <div class="eyebrow">
+    ● SIMPLE PRICING · POWERFUL AUTOMATION
+  </div>
 
   <h1>
     Choose how much of your business you want to
@@ -586,7 +638,9 @@ a{color:inherit}
     Start with the essentials. Grow when you're ready.
     Automate more as your business scales.
   </p>
+
 </section>
+
 
 <section id="plans" class="container plans">
 
@@ -690,28 +744,34 @@ a{color:inherit}
 </section>
 
 
-<section class="container comparison">
+<section class="container comparison-section">
 
   <div class="section-heading">
+
     <h2>Compare plans</h2>
+
     <p>
       See exactly what is included at each level before you choose the plan
       that's right for your business.
     </p>
+
   </div>
 
   <div class="table-wrap">
+
     <div class="table-scroll">
 
       <table class="compare-table">
 
         <thead>
+
           <tr>
             <th>Features</th>
             <th>Basic<br>₹499</th>
             <th class="growth">Growth<br>₹999</th>
             <th>Full Automate<br>₹2,499</th>
           </tr>
+
         </thead>
 
         <tbody>
@@ -833,6 +893,7 @@ a{color:inherit}
       </table>
 
     </div>
+
   </div>
 
 </section>
@@ -863,7 +924,7 @@ a{color:inherit}
     <button
       id="stall-listing-button"
       type="button"
-      onclick="startSTallListingPayment()"
+      onclick="startSTallListing()"
     >
       Get Listed — ₹99
     </button>
@@ -975,49 +1036,10 @@ a{color:inherit}
 
 </footer>
 
-<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
 <script>
-async function startSTallListingPayment() {
-  const button = document.getElementById('stall-listing-button');
-  const message = document.getElementById('stall-payment-message');
-  const customerName = prompt('Enter your business/customer name:');
-  if (!customerName || !customerName.trim()) return;
-  const customerEmail = prompt('Enter your email address:');
-  if (!customerEmail || !customerEmail.trim()) return;
-  const customerPhone = prompt('Enter your phone number (optional):');
-  button.disabled = true; button.textContent = 'Preparing Payment...'; message.textContent = '';
-  try {
-    const response = await fetch('/api/razorpay-create-order.mjs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-      customer_name:customerName.trim(),customer_email:customerEmail.trim(),customer_phone:customerPhone?customerPhone.trim():''
-    })});
-    const result = await response.json();
-    if(!response.ok || !result.success) throw new Error(result.error || 'Unable to initialise payment');
-    const options = {
-      key:result.key_id,amount:result.amount,currency:result.currency,name:'STore Automation',
-      description:'STore Listing — One-time ₹99',order_id:result.order_id,
-      prefill:{name:customerName.trim(),email:customerEmail.trim(),contact:customerPhone?customerPhone.trim():''},
-      notes:{product:'STall - Store Automation',plan:'listing_99'},theme:{color:'#123b2a'},
-      handler:async function(paymentResponse){
-        message.textContent='Verifying payment...';
-        try{
-          const verifyResponse=await fetch('/api/razorpay-verify-payment.mjs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-            razorpay_order_id:paymentResponse.razorpay_order_id,razorpay_payment_id:paymentResponse.razorpay_payment_id,razorpay_signature:paymentResponse.razorpay_signature
-          })});
-          const verifyResult=await verifyResponse.json();
-          if(!verifyResponse.ok || !verifyResult.success) throw new Error(verifyResult.error || 'Payment verification failed');
-          message.textContent='✓ Payment successful. Your STore listing payment has been recorded.';
-          button.textContent='Payment Successful';
-        }catch(error){
-          console.error(error); message.textContent='Payment received, but verification is still being completed. Please contact support if needed.';
-          button.disabled=false; button.textContent='Try Again — ₹99';
-        }
-      },
-      modal:{ondismiss:function(){button.disabled=false;button.textContent='Get Listed — ₹99';message.textContent='';}}
-    };
-    const razorpay=new Razorpay(options);
-    razorpay.on('payment.failed',function(){message.textContent='Payment was not completed. Please try again.';button.disabled=false;button.textContent='Try Again — ₹99';});
-    razorpay.open();
-  }catch(error){console.error(error);message.textContent=error.message || 'Unable to start payment.';button.disabled=false;button.textContent='Get Listed — ₹99';}
+function startSTallListing() {
+  window.location.href = '/onboarding.html';
 }
 </script>
 
