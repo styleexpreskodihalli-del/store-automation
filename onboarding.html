@@ -1,13 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Connect Your Business | STore Automation</title>
-<meta name="description" content="Connect your Google Business Profile and list your business on STore Automation.">
+
+<meta
+  name="viewport"
+  content="width=device-width,initial-scale=1"
+>
+
+<title>
+  Connect Your Business | STore Automation
+</title>
+
+<meta
+  name="description"
+  content="Connect your Google Business Profile and list your business on STore Automation."
+>
+
 
 <style>
+
 :root{
+
   --green:#123b2a;
   --green2:#0b5a3a;
   --light:#f4f8f5;
@@ -15,296 +31,610 @@
   --text:#172033;
   --muted:#68756f;
   --white:#fff;
+
 }
 
-*{box-sizing:border-box}
+*{
+  box-sizing:border-box;
+}
+
 
 body{
+
   margin:0;
-  font-family:Arial,Helvetica,sans-serif;
+
+  font-family:
+    Arial,
+    Helvetica,
+    sans-serif;
+
   color:var(--text);
+
   background:
-    radial-gradient(circle at top right,#dcefe5 0,transparent 34%),
-    linear-gradient(180deg,#f8fbf9 0,#eef5f1 100%);
+    radial-gradient(
+      circle at top right,
+      #dcefe5 0,
+      transparent 34%
+    ),
+    linear-gradient(
+      180deg,
+      #f8fbf9 0,
+      #eef5f1 100%
+    );
+
   min-height:100vh;
+
 }
+
 
 .container{
-  width:min(1080px,92%);
+
+  width:min(
+    1080px,
+    92%
+  );
+
   margin:0 auto;
+
 }
+
 
 header{
+
   padding:28px 0;
+
 }
+
 
 .logo{
+
   display:flex;
+
   align-items:center;
+
   gap:12px;
+
   text-decoration:none;
+
   color:var(--green);
+
   font-weight:800;
+
   font-size:20px;
+
 }
+
 
 .logo img{
+
   width:58px;
+
   height:auto;
+
 }
+
 
 .hero{
+
   text-align:center;
+
   padding:38px 0 28px;
+
 }
+
 
 .badge{
+
   display:inline-block;
+
   background:#e2f2e9;
+
   color:var(--green);
+
   padding:7px 14px;
+
   border-radius:30px;
+
   font-size:13px;
+
   font-weight:700;
+
   margin-bottom:16px;
+
 }
+
 
 h1{
+
   margin:0;
-  font-size:clamp(32px,5vw,52px);
+
+  font-size:
+    clamp(
+      32px,
+      5vw,
+      52px
+    );
+
   line-height:1.1;
+
   color:var(--green);
+
 }
+
 
 .hero p{
+
   max-width:650px;
+
   margin:18px auto 0;
+
   color:var(--muted);
+
   font-size:17px;
+
 }
+
 
 .card{
+
   max-width:760px;
+
   margin:25px auto 60px;
-  background:rgba(255,255,255,.96);
-  border:1px solid var(--border);
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      .96
+    );
+
+  border:
+    1px solid
+    var(--border);
+
   border-radius:24px;
+
   padding:34px;
-  box-shadow:0 18px 55px rgba(18,59,42,.10);
+
+  box-shadow:
+    0 18px 55px
+    rgba(
+      18,
+      59,
+      42,
+      .10
+    );
+
 }
+
 
 .step{
+
   display:none;
+
 }
+
 
 .step.active{
+
   display:block;
+
 }
+
 
 .step-title{
+
   font-size:24px;
+
   font-weight:800;
+
   color:var(--green);
+
   margin-bottom:8px;
+
 }
+
 
 .step-text{
+
   color:var(--muted);
+
   margin-bottom:25px;
+
 }
+
 
 .google-btn{
+
   width:100%;
-  border:1px solid #d7dce0;
+
+  border:
+    1px solid
+    #d7dce0;
+
   background:#fff;
+
   color:#202124;
+
   border-radius:12px;
+
   padding:15px 18px;
+
   font-size:16px;
+
   font-weight:700;
+
   cursor:pointer;
+
   display:flex;
+
   justify-content:center;
+
   align-items:center;
+
   gap:12px;
+
   transition:.2s;
+
 }
+
 
 .google-btn:hover{
-  box-shadow:0 4px 14px rgba(0,0,0,.10);
-  transform:translateY(-1px);
+
+  box-shadow:
+    0 4px 14px
+    rgba(
+      0,
+      0,
+      0,
+      .10
+    );
+
+  transform:
+    translateY(-1px);
+
 }
+
 
 .google-btn:disabled{
+
   opacity:.65;
+
   cursor:not-allowed;
+
   transform:none;
+
 }
+
 
 .google-icon{
+
   width:20px;
+
   height:20px;
+
   border-radius:50%;
+
   display:grid;
+
   place-items:center;
+
   font-weight:900;
+
   color:#4285f4;
+
 }
+
 
 .loading{
+
   text-align:center;
+
   padding:25px;
+
   color:var(--muted);
+
 }
+
 
 .error{
+
   display:none;
+
   background:#fff1f1;
+
   color:#a52d2d;
-  border:1px solid #f0caca;
+
+  border:
+    1px solid
+    #f0caca;
+
   border-radius:12px;
+
   padding:14px;
+
   margin-top:18px;
+
+  word-break:break-word;
+
 }
+
 
 .business-list{
+
   display:grid;
+
   gap:14px;
+
 }
+
 
 .business{
-  border:2px solid var(--border);
+
+  border:
+    2px solid
+    var(--border);
+
   border-radius:16px;
+
   padding:20px;
+
   cursor:pointer;
+
   transition:.2s;
+
   background:#fff;
+
 }
+
 
 .business:hover{
+
   border-color:#86ae99;
-  transform:translateY(-1px);
+
+  transform:
+    translateY(-1px);
+
 }
+
 
 .business.selected{
-  border-color:var(--green);
+
+  border-color:
+    var(--green);
+
   background:#f1f8f4;
+
 }
+
 
 .business-name{
+
   font-size:19px;
+
   font-weight:800;
+
   color:var(--green);
+
 }
+
 
 .business-meta{
+
   margin-top:6px;
+
   color:var(--muted);
+
   font-size:14px;
+
 }
+
 
 .radio{
+
   float:right;
+
   width:20px;
+
   height:20px;
-  border:2px solid #b7c7bf;
+
+  border:
+    2px solid
+    #b7c7bf;
+
   border-radius:50%;
+
 }
+
 
 .business.selected .radio{
-  border:6px solid var(--green);
+
+  border:
+    6px solid
+    var(--green);
+
 }
+
 
 .primary{
+
   width:100%;
+
   margin-top:22px;
+
   border:0;
+
   border-radius:12px;
+
   padding:15px 20px;
+
   background:var(--green);
+
   color:#fff;
+
   font-size:16px;
+
   font-weight:800;
+
   cursor:pointer;
+
 }
+
 
 .primary:hover{
+
   background:var(--green2);
+
 }
+
 
 .primary:disabled{
+
   opacity:.5;
+
   cursor:not-allowed;
+
 }
+
 
 .summary{
+
   background:var(--light);
-  border:1px solid var(--border);
+
+  border:
+    1px solid
+    var(--border);
+
   border-radius:16px;
+
   padding:22px;
+
   margin-top:20px;
+
 }
+
 
 .summary strong{
+
   color:var(--green);
+
 }
+
 
 .price{
+
   margin-top:20px;
+
   display:flex;
+
   justify-content:space-between;
+
   align-items:center;
-  border-top:1px solid var(--border);
+
+  border-top:
+    1px solid
+    var(--border);
+
   padding-top:20px;
+
 }
+
 
 .price strong{
+
   font-size:28px;
+
   color:var(--green);
+
 }
+
 
 .back{
+
   display:block;
+
   text-align:center;
+
   margin-top:18px;
+
   color:var(--green);
+
   text-decoration:none;
+
   font-size:14px;
+
   font-weight:700;
+
 }
+
 
 footer{
+
   text-align:center;
+
   color:#7a8580;
+
   font-size:13px;
+
   padding:0 0 35px;
+
 }
 
+
 @media(max-width:600px){
+
   .card{
+
     padding:22px;
+
     border-radius:18px;
+
   }
 
   .hero{
+
     padding-top:20px;
+
   }
+
 }
+
 </style>
+
 </head>
+
 
 <body>
 
+
 <header>
+
   <div class="container">
-    <a class="logo" href="/">
-      <img src="/assets/stall-logo.png" alt="STore Automation">
-      <span>STore Automation</span>
+
+    <a
+      class="logo"
+      href="/"
+    >
+
+      <img
+        src="/assets/stall-logo.png"
+        alt="STore Automation"
+      >
+
+      <span>
+        STore Automation
+      </span>
+
     </a>
+
   </div>
+
 </header>
 
+
 <main class="container">
+
 
 <section class="hero">
 
@@ -323,119 +653,180 @@ footer{
 
 </section>
 
+
 <div class="card">
 
-  <!-- STEP 1 : GOOGLE -->
 
-  <section id="step-google" class="step active">
+<!-- STEP 1 -->
 
-    <div class="step-title">
-      Connect your Google Business Profile
-    </div>
+<section
+  id="step-google"
+  class="step active"
+>
 
-    <div class="step-text">
-      Sign in with the Google account that manages your business.
-      We'll show you the businesses and stores available to that account.
-    </div>
+  <div class="step-title">
+    Connect your Google Business Profile
+  </div>
 
-    <button
-      id="google-button"
-      class="google-btn"
-      type="button"
-      onclick="connectGoogle()"
-    >
-      <span class="google-icon">G</span>
-      Continue with Google
-    </button>
+  <div class="step-text">
+    Sign in with the Google account that manages your business.
+    We'll show you the businesses and stores available to that account.
+  </div>
 
-    <div id="google-error" class="error"></div>
+  <button
+    id="google-button"
+    class="google-btn"
+    type="button"
+    onclick="connectGoogle()"
+  >
 
-  </section>
+    <span class="google-icon">
+      G
+    </span>
 
+    Continue with Google
 
-  <!-- STEP 2 : BUSINESS SELECTION -->
+  </button>
 
-  <section id="step-businesses" class="step">
+  <div
+    id="google-error"
+    class="error"
+  ></div>
 
-    <div class="step-title">
-      Select your business
-    </div>
-
-    <div class="step-text">
-      We found the following businesses associated with your Google Business Profile.
-      Select the business you want to list.
-    </div>
-
-    <div id="business-loading" class="loading">
-      Loading your businesses...
-    </div>
-
-    <div id="business-list" class="business-list"></div>
-
-    <button
-      id="continue-business"
-      class="primary"
-      type="button"
-      disabled
-      onclick="confirmBusiness()"
-    >
-      Continue
-    </button>
-
-    <div id="business-error" class="error"></div>
-
-  </section>
+</section>
 
 
-  <!-- STEP 3 : CONFIRM BUSINESS -->
+<!-- STEP 2 -->
 
-  <section id="step-confirm" class="step">
+<section
+  id="step-businesses"
+  class="step"
+>
 
-    <div class="step-title">
-      Confirm your business
-    </div>
+  <div class="step-title">
+    Select your business
+  </div>
 
-    <div class="step-text">
-      Please confirm the business you want to list on STore Automation.
-    </div>
+  <div class="step-text">
+    We found the following businesses associated with your Google Business Profile.
+    Select the business you want to list.
+  </div>
 
-    <div id="business-summary" class="summary"></div>
 
-    <div class="price">
-      <span>STore Listing</span>
-      <strong>₹99</strong>
-    </div>
+  <div
+    id="business-loading"
+    class="loading"
+  >
+    Loading your businesses...
+  </div>
 
-    <button
-      id="payment-button"
-      class="primary"
-      type="button"
-      onclick="startPayment()"
-    >
-      Continue to Payment — ₹99
-    </button>
 
-    <div id="payment-message" class="error"></div>
+  <div
+    id="business-list"
+    class="business-list"
+  ></div>
 
-    <a class="back" href="/pricing.html">
-      ← Back to Pricing
-    </a>
 
-  </section>
+  <button
+    id="continue-business"
+    class="primary"
+    type="button"
+    disabled
+    onclick="confirmBusiness()"
+  >
+    Continue
+  </button>
+
+
+  <div
+    id="business-error"
+    class="error"
+  ></div>
+
+</section>
+
+
+<!-- STEP 3 -->
+
+<section
+  id="step-confirm"
+  class="step"
+>
+
+  <div class="step-title">
+    Confirm your business
+  </div>
+
+  <div class="step-text">
+    Please confirm the business you want to list on STore Automation.
+  </div>
+
+
+  <div
+    id="business-summary"
+    class="summary"
+  ></div>
+
+
+  <div class="price">
+
+    <span>
+      STore Listing
+    </span>
+
+    <strong>
+      ₹99
+    </strong>
+
+  </div>
+
+
+  <button
+    id="payment-button"
+    class="primary"
+    type="button"
+    onclick="startPayment()"
+  >
+    Continue to Payment — ₹99
+  </button>
+
+
+  <div
+    id="payment-message"
+    class="error"
+  ></div>
+
+
+  <a
+    class="back"
+    href="/pricing.html"
+  >
+    ← Back to Pricing
+  </a>
+
+</section>
+
 
 </div>
 
 </main>
 
+
 <footer>
+
   © STore Automation · Powered by ST Shield
+
 </footer>
+
 
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
+
 <script>
 
+
 let selectedBusiness = null;
+
 let onboardingId = null;
 
 
@@ -446,27 +837,29 @@ let onboardingId = null;
 async function connectGoogle(){
 
   const button =
-    document.getElementById('google-button');
+    document.getElementById(
+      'google-button'
+    );
 
   const errorElement =
-    document.getElementById('google-error');
+    document.getElementById(
+      'google-error'
+    );
 
-  errorElement.style.display = 'none';
 
-  button.disabled = true;
+  errorElement.style.display =
+    'none';
+
+
+  button.disabled =
+    true;
+
 
   button.innerHTML =
     '<span class="google-icon">G</span> Connecting to Google...';
 
-  try{
 
-    /*
-     * IMPORTANT:
-     *
-     * No customer name, email or phone is collected here.
-     *
-     * The Google account will identify the customer/business.
-     */
+  try{
 
     const response =
       await fetch(
@@ -475,15 +868,23 @@ async function connectGoogle(){
           method:'POST',
 
           headers:{
-            'Content-Type':'application/json'
+            'Content-Type':
+              'application/json'
           },
 
-          body:JSON.stringify({})
+          body:
+            JSON.stringify({})
         }
       );
 
+
     const result =
-      await response.json();
+      await response
+        .json()
+        .catch(
+          () => ({})
+        );
+
 
     if(
       !response.ok ||
@@ -494,16 +895,14 @@ async function connectGoogle(){
         result.error ||
         'Unable to start Google connection'
       );
+
     }
 
-    /*
-     * Save onboarding ID before leaving
-     * for Google.
-     */
 
     onboardingId =
       result.onboarding_id ||
       null;
+
 
     if(onboardingId){
 
@@ -514,15 +913,21 @@ async function connectGoogle(){
 
     }
 
-    if(!result.authorizationUrl){
+
+    if(
+      !result.authorizationUrl
+    ){
 
       throw new Error(
         'Google authorization URL was not returned.'
       );
+
     }
+
 
     window.location.href =
       result.authorizationUrl;
+
 
   }catch(error){
 
@@ -531,17 +936,23 @@ async function connectGoogle(){
       error
     );
 
+
     errorBox(
       errorElement,
       error.message ||
       'Unable to connect Google Business Profile.'
     );
 
-    button.disabled = false;
+
+    button.disabled =
+      false;
+
 
     button.innerHTML =
       '<span class="google-icon">G</span> Continue with Google';
+
   }
+
 }
 
 
@@ -556,37 +967,32 @@ async function loadBusinesses(){
       window.location.search
     );
 
-  const googleConnected =
-    params.get('google_connected');
 
-  /*
-   * IMPORTANT:
-   *
-   * Callback returns:
-   *
-   * /onboarding.html
-   * ?google_connected=1
-   * &onboarding_id=XXXX
-   */
+  const googleConnected =
+    params.get(
+      'google_connected'
+    );
+
 
   const returnedOnboardingId =
-    params.get('onboarding_id');
+    params.get(
+      'onboarding_id'
+    );
+
 
   if(returnedOnboardingId){
 
     onboardingId =
       returnedOnboardingId;
 
+
     sessionStorage.setItem(
       'stall_onboarding_id',
       onboardingId
     );
+
   }
 
-  /*
-   * Recover onboarding ID if the URL does
-   * not contain it.
-   */
 
   if(!onboardingId){
 
@@ -594,33 +1000,31 @@ async function loadBusinesses(){
       sessionStorage.getItem(
         'stall_onboarding_id'
       );
+
   }
 
-  /*
-   * Do not automatically enter business
-   * selection unless Google callback has
-   * actually completed.
-   */
 
-  if(googleConnected !== '1'){
+  if(
+    googleConnected !== '1'
+  ){
 
     return;
+
   }
 
-  /*
-   * Google is connected.
-   */
 
   showStep(
     'step-businesses'
   );
 
+
   await fetchBusinesses();
+
 }
 
 
 /* ---------------------------------
-   FETCH GOOGLE BUSINESSES
+   FETCH BUSINESSES
 --------------------------------- */
 
 async function fetchBusinesses(){
@@ -630,46 +1034,50 @@ async function fetchBusinesses(){
       'business-loading'
     );
 
+
   const list =
     document.getElementById(
       'business-list'
     );
+
 
   const errorElement =
     document.getElementById(
       'business-error'
     );
 
+
   loading.style.display =
     'block';
+
 
   list.innerHTML =
     '';
 
+
   errorElement.style.display =
     'none';
+
 
   if(!onboardingId){
 
     loading.style.display =
       'none';
 
+
     errorBox(
       errorElement,
+
       'Your Google connection was completed, but the onboarding session could not be identified. Please start the ₹99 listing process again.'
     );
 
+
     return;
+
   }
 
-  try{
 
-    /*
-     * IMPORTANT FIX:
-     *
-     * customer-google-locations requires
-     * onboarding_id.
-     */
+  try{
 
     const locationsUrl =
       '/api/customer-google-locations' +
@@ -678,39 +1086,107 @@ async function fetchBusinesses(){
         onboardingId
       );
 
+
+    console.log(
+      'Loading Google businesses:',
+      locationsUrl
+    );
+
+
     const response =
       await fetch(
         locationsUrl,
         {
           method:'GET',
+
           cache:'no-store'
         }
       );
 
+
     const result =
       await response
         .json()
-        .catch(() => ({}));
+        .catch(
+          () => ({})
+        );
+
+
+    console.log(
+      'Google business API response:',
+      result
+    );
+
 
     if(
       !response.ok ||
       !result.success
     ){
 
+      const errorParts = [];
+
+
+      if(result.error){
+
+        errorParts.push(
+          result.error
+        );
+
+      }
+
+
+      if(result.google_status){
+
+        errorParts.push(
+          `Google status: ${result.google_status}`
+        );
+
+      }
+
+
+      if(result.google_error){
+
+        errorParts.push(
+          `Google error: ${result.google_error}`
+        );
+
+      }
+
+
+      if(result.google_reason){
+
+        errorParts.push(
+          `Reason: ${result.google_reason}`
+        );
+
+      }
+
+
+      if(
+        !errorParts.length
+      ){
+
+        errorParts.push(
+          'Unable to load businesses'
+        );
+
+      }
+
+
       throw new Error(
-        result.error ||
-        'Unable to load businesses'
+        errorParts.join(
+          ' — '
+        )
       );
+
     }
 
-    /*
-     * Your API returns locations.
-     */
 
     renderBusinesses(
       result.locations ||
       []
     );
+
 
   }catch(error){
 
@@ -719,15 +1195,20 @@ async function fetchBusinesses(){
       error
     );
 
+
     loading.style.display =
       'none';
 
+
     errorBox(
       errorElement,
+
       error.message ||
       'Unable to load your businesses.'
     );
+
   }
+
 }
 
 
@@ -744,24 +1225,30 @@ function renderBusinesses(
       'business-loading'
     );
 
+
   const list =
     document.getElementById(
       'business-list'
     );
+
 
   const errorElement =
     document.getElementById(
       'business-error'
     );
 
+
   loading.style.display =
     'none';
+
 
   list.innerHTML =
     '';
 
+
   errorElement.style.display =
     'none';
+
 
   if(
     !Array.isArray(locations) ||
@@ -770,25 +1257,31 @@ function renderBusinesses(
 
     errorBox(
       errorElement,
+
       'No salons or stores were found for this Google Business Profile account.'
     );
 
+
     return;
+
   }
+
 
   locations.forEach(
     (
-      business,
-      index
+      business
     ) => {
+
 
       const item =
         document.createElement(
           'div'
         );
 
+
       item.className =
         'business';
+
 
       item.onclick =
         () =>
@@ -797,23 +1290,11 @@ function renderBusinesses(
             item
           );
 
-      /*
-       * Your API returns:
-       *
-       * {
-       *   account:{...},
-       *   location:{
-       *      title,
-       *      storefront_address,
-       *      phone_numbers,
-       *      website_uri
-       *   }
-       * }
-       */
 
       const location =
         business.location ||
         {};
+
 
       const name =
         location.title ||
@@ -822,11 +1303,13 @@ function renderBusinesses(
         business.name ||
         'Business';
 
+
       const address =
         location.storefront_address ||
         location.address ||
         business.address ||
         '';
+
 
       const phone =
         location.phone_numbers?.primaryPhone ||
@@ -835,32 +1318,36 @@ function renderBusinesses(
         business.phone ||
         '';
 
+
       const website =
         location.website_uri ||
         business.website_uri ||
         '';
+
 
       item.innerHTML = `
 
         <span class="radio"></span>
 
         <div class="business-name">
+
           ${escapeHtml(name)}
+
         </div>
 
         <div class="business-meta">
+
           ${escapeHtml(
             formatAddress(address)
           )}
+
         </div>
 
         ${
           phone
             ? `
               <div class="business-meta">
-                ${escapeHtml(
-                  phone
-                )}
+                ${escapeHtml(phone)}
               </div>
             `
             : ''
@@ -870,9 +1357,7 @@ function renderBusinesses(
           website
             ? `
               <div class="business-meta">
-                ${escapeHtml(
-                  website
-                )}
+                ${escapeHtml(website)}
               </div>
             `
             : ''
@@ -880,11 +1365,14 @@ function renderBusinesses(
 
       `;
 
+
       list.appendChild(
         item
       );
+
     }
   );
+
 }
 
 
@@ -908,17 +1396,21 @@ function selectBusiness(
         )
     );
 
+
   element.classList.add(
     'selected'
   );
 
+
   selectedBusiness =
     business;
+
 
   document.getElementById(
     'continue-business'
   ).disabled =
     false;
+
 }
 
 
@@ -931,9 +1423,11 @@ function confirmBusiness(){
   if(!selectedBusiness)
     return;
 
+
   const location =
     selectedBusiness.location ||
     {};
+
 
   const name =
     location.title ||
@@ -942,11 +1436,13 @@ function confirmBusiness(){
     selectedBusiness.name ||
     'Selected Business';
 
+
   const address =
     location.storefront_address ||
     location.address ||
     selectedBusiness.address ||
     '';
+
 
   const phone =
     location.phone_numbers?.primaryPhone ||
@@ -955,10 +1451,12 @@ function confirmBusiness(){
     selectedBusiness.phone ||
     '';
 
+
   const website =
     location.website_uri ||
     selectedBusiness.website_uri ||
     '';
+
 
   document.getElementById(
     'business-summary'
@@ -1002,9 +1500,11 @@ function confirmBusiness(){
 
   `;
 
+
   showStep(
     'step-confirm'
   );
+
 }
 
 
@@ -1017,30 +1517,37 @@ async function startPayment(){
   if(!selectedBusiness)
     return;
 
+
   const button =
     document.getElementById(
       'payment-button'
     );
+
 
   const message =
     document.getElementById(
       'payment-message'
     );
 
+
   message.style.display =
     'none';
+
 
   button.disabled =
     true;
 
+
   button.textContent =
     'Preparing Payment...';
+
 
   try{
 
     const location =
       selectedBusiness.location ||
       {};
+
 
     const businessName =
       location.title ||
@@ -1049,12 +1556,14 @@ async function startPayment(){
       selectedBusiness.name ||
       '';
 
+
     const phone =
       location.phone_numbers?.primaryPhone ||
       location.phone_numbers?.primary_phone ||
       location.phone ||
       selectedBusiness.phone ||
       '';
+
 
     const response =
       await fetch(
@@ -1067,30 +1576,36 @@ async function startPayment(){
               'application/json'
           },
 
-          body:JSON.stringify({
+          body:
+            JSON.stringify({
 
-            customer_name:
-              businessName,
+              customer_name:
+                businessName,
 
-            customer_email:
-              '',
+              customer_email:
+                '',
 
-            customer_phone:
-              phone,
+              customer_phone:
+                phone,
 
-            business:
-              selectedBusiness,
+              business:
+                selectedBusiness,
 
-            onboarding_id:
-              onboardingId
-          })
+              onboarding_id:
+                onboardingId
+
+            })
         }
       );
+
 
     const result =
       await response
         .json()
-        .catch(() => ({}));
+        .catch(
+          () => ({})
+        );
+
 
     if(
       !response.ok ||
@@ -1101,7 +1616,9 @@ async function startPayment(){
         result.error ||
         'Unable to initialise payment'
       );
+
     }
+
 
     const options = {
 
@@ -1124,11 +1641,13 @@ async function startPayment(){
         result.order_id,
 
       prefill:{
+
         name:
           businessName,
 
         contact:
           phone || ''
+
       },
 
       notes:{
@@ -1144,12 +1663,16 @@ async function startPayment(){
 
         onboarding_id:
           onboardingId || ''
+
       },
 
       theme:{
+
         color:
           '#123b2a'
+
       },
+
 
       handler:
         async function(
@@ -1168,8 +1691,10 @@ async function startPayment(){
           message.style.borderColor =
             '#b9ddc8';
 
+
           message.textContent =
             'Verifying payment...';
+
 
           try{
 
@@ -1184,27 +1709,33 @@ async function startPayment(){
                       'application/json'
                   },
 
-                  body:JSON.stringify({
+                  body:
+                    JSON.stringify({
 
-                    razorpay_order_id:
-                      paymentResponse
-                        .razorpay_order_id,
+                      razorpay_order_id:
+                        paymentResponse
+                          .razorpay_order_id,
 
-                    razorpay_payment_id:
-                      paymentResponse
-                        .razorpay_payment_id,
+                      razorpay_payment_id:
+                        paymentResponse
+                          .razorpay_payment_id,
 
-                    razorpay_signature:
-                      paymentResponse
-                        .razorpay_signature
-                  })
+                      razorpay_signature:
+                        paymentResponse
+                          .razorpay_signature
+
+                    })
                 }
               );
+
 
             const verifyResult =
               await verifyResponse
                 .json()
-                .catch(() => ({}));
+                .catch(
+                  () => ({})
+                );
+
 
             if(
               !verifyResponse.ok ||
@@ -1215,19 +1746,24 @@ async function startPayment(){
                 verifyResult.error ||
                 'Payment verification failed'
               );
+
             }
+
 
             message.textContent =
               '✓ Payment successful. Your STore listing has been recorded.';
 
+
             button.textContent =
               'Listing Payment Successful';
+
 
           }catch(error){
 
             console.error(
               error
             );
+
 
             message.style.background =
               '#fff1f1';
@@ -1238,33 +1774,46 @@ async function startPayment(){
             message.style.borderColor =
               '#f0caca';
 
+
             message.textContent =
               'Payment received, but verification is still being completed. Please contact support if needed.';
+
+
+            button.disabled =
+              false;
+
+
+            button.textContent =
+              'Try Again — ₹99';
+
+          }
+
+        },
+
+
+      modal:{
+
+        ondismiss:
+          function(){
 
             button.disabled =
               false;
 
             button.textContent =
-              'Try Again — ₹99';
+              'Continue to Payment — ₹99';
+
           }
-        },
 
-      modal:{
-        ondismiss:function(){
-
-          button.disabled =
-            false;
-
-          button.textContent =
-            'Continue to Payment — ₹99';
-        }
       }
+
     };
+
 
     const razorpay =
       new Razorpay(
         options
       );
+
 
     razorpay.on(
       'payment.failed',
@@ -1272,18 +1821,24 @@ async function startPayment(){
 
         errorBox(
           message,
+
           'Payment was not completed. Please try again.'
         );
+
 
         button.disabled =
           false;
 
+
         button.textContent =
           'Try Again — ₹99';
+
       }
     );
 
+
     razorpay.open();
+
 
   }catch(error){
 
@@ -1291,18 +1846,24 @@ async function startPayment(){
       error
     );
 
+
     errorBox(
       message,
+
       error.message ||
       'Unable to start payment.'
     );
 
+
     button.disabled =
       false;
 
+
     button.textContent =
       'Continue to Payment — ₹99';
+
   }
+
 }
 
 
@@ -1325,22 +1886,30 @@ function showStep(
         )
     );
 
+
   const target =
     document.getElementById(
       id
     );
+
 
   if(target){
 
     target.classList.add(
       'active'
     );
+
   }
 
+
   window.scrollTo({
+
     top:0,
+
     behavior:'smooth'
+
   });
+
 }
 
 
@@ -1356,17 +1925,22 @@ function errorBox(
   element.style.display =
     'block';
 
+
   element.style.background =
     '#fff1f1';
+
 
   element.style.color =
     '#a52d2d';
 
+
   element.style.borderColor =
     '#f0caca';
 
+
   element.textContent =
     message;
+
 }
 
 
@@ -1381,7 +1955,9 @@ function formatAddress(
   if(!address){
 
     return 'Address available in Google Business Profile';
+
   }
+
 
   if(
     typeof address ===
@@ -1389,7 +1965,9 @@ function formatAddress(
   ){
 
     return address;
+
   }
+
 
   if(
     Array.isArray(
@@ -1400,7 +1978,9 @@ function formatAddress(
     return address.addressLines
       .filter(Boolean)
       .join(', ');
+
   }
+
 
   return [
 
@@ -1421,6 +2001,7 @@ function formatAddress(
   ]
   .filter(Boolean)
   .join(', ');
+
 }
 
 
@@ -1435,26 +2016,32 @@ function escapeHtml(
   return String(
     value || ''
   )
+
   .replace(
     /&/g,
     '&amp;'
   )
+
   .replace(
     /</g,
     '&lt;'
   )
+
   .replace(
     />/g,
     '&gt;'
   )
+
   .replace(
     /"/g,
     '&quot;'
   )
+
   .replace(
     /'/g,
     '&#039;'
   );
+
 }
 
 
@@ -1466,5 +2053,7 @@ loadBusinesses();
 
 </script>
 
+
 </body>
+
 </html>
