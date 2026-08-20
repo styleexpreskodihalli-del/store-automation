@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_URL =
+  process.env.SUPABASE_URL;
 
 const SUPABASE_SERVICE_ROLE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -13,8 +14,11 @@ const GOOGLE_REDIRECT_URI =
   process.env.GOOGLE_REDIRECT_URI;
 
 
-function json(body, status = 200) {
+/* ---------------------------------
+   JSON RESPONSE
+--------------------------------- */
 
+function json(body, status = 200) {
   return new Response(
     JSON.stringify(body),
     {
@@ -25,9 +29,12 @@ function json(body, status = 200) {
       }
     }
   );
-
 }
 
+
+/* ---------------------------------
+   MAIN
+--------------------------------- */
 
 export default {
 
@@ -35,15 +42,16 @@ export default {
 
     try {
 
-      /*
-       * Only POST is allowed.
-       */
+      /* ---------------------------------
+         METHOD CHECK
+      --------------------------------- */
 
       if (request.method !== 'POST') {
 
         return json(
           {
-            error: 'Method not allowed'
+            error:
+              'Method not allowed'
           },
           405
         );
@@ -51,9 +59,9 @@ export default {
       }
 
 
-      /*
-       * Validate server configuration.
-       */
+      /* ---------------------------------
+         CONFIGURATION CHECK
+      --------------------------------- */
 
       if (
         !SUPABASE_URL ||
@@ -77,63 +85,49 @@ export default {
       }
 
 
-      /*
-       * Read request body.
-       *
-       * For the new ₹99 flow the body can be empty.
-       *
-       * Google comes FIRST.
-       * Customer/business information is collected
-       * from Google Business Profile after authorization.
-       */
+      /* ---------------------------------
+         READ REQUEST BODY
+         
+         The new ₹99 flow does NOT require
+         customer name/email/phone here.
 
-      const body =
-        await request
-          .json()
-          .catch(() => ({}));
+         Google will identify the account
+         after authorization.
+      --------------------------------- */
 
-
-      /*
-       * These fields are now OPTIONAL.
-       *
-       * We keep support for them so the endpoint remains
-       * compatible with any older frontend flow.
-       */
-
-      const customerName =
-        body?.customer_name?.trim() || null;
-
-      const customerEmail =
-        body?.customer_email?.trim()
-          ? body.customer_email.trim().toLowerCase()
-          : null;
-
-      const customerPhone =
-        body?.customer_phone?.trim() || null;
+      await request
+        .json()
+        .catch(() => ({}));
 
 
-      /*
-       * Create a temporary onboarding identifier.
-       *
-       * This is NOT a Supabase user ID.
-       * It does not authenticate the customer.
-       */
+      /* ---------------------------------
+         CREATE ONBOARDING ID
+
+         This is a temporary identifier
+         for the ₹99 listing onboarding flow.
+
+         It is NOT a Supabase user ID.
+         It does NOT authenticate the user.
+      --------------------------------- */
 
       const onboardingId =
         crypto.randomUUID();
 
 
-      /*
-       * Generate a cryptographically secure OAuth state.
-       */
+      /* ---------------------------------
+         CREATE SECURE OAUTH STATE
+      --------------------------------- */
 
       const state =
         crypto.randomBytes(32).toString('hex');
 
 
-      /*
-       * Store only the SHA-256 hash of the OAuth state.
-       */
+      /* ---------------------------------
+         HASH STATE BEFORE STORAGE
+
+         We store only the SHA-256 hash
+         in Supabase.
+      --------------------------------- */
 
       const stateHash =
         crypto
@@ -142,9 +136,11 @@ export default {
           .digest('hex');
 
 
-      /*
-       * OAuth state expires after 15 minutes.
-       */
+      /* ---------------------------------
+         STATE EXPIRY
+
+         OAuth state is valid for 15 minutes.
+      --------------------------------- */
 
       const expiresAt =
         new Date(
@@ -153,12 +149,15 @@ export default {
         ).toISOString();
 
 
-      /*
-       * Create temporary onboarding state.
-       *
-       * Customer details are allowed to be NULL because
-       * the new flow starts with Google.
-       */
+      /* ---------------------------------
+         CREATE OAUTH STATE RECORD
+
+         Customer details are intentionally
+         NULL at this stage.
+
+         They will be identified from the
+         Google account after authorization.
+      --------------------------------- */
 
       const stateBody = {
 
@@ -169,13 +168,13 @@ export default {
           expiresAt,
 
         customer_name:
-          customerName,
+          null,
 
         customer_email:
-          customerEmail,
+          null,
 
         customer_phone:
-          customerPhone,
+          null,
 
         onboarding_id:
           onboardingId
@@ -183,9 +182,9 @@ export default {
       };
 
 
-      /*
-       * Save OAuth state in Supabase.
-       */
+      /* ---------------------------------
+         SAVE OAUTH STATE TO SUPABASE
+      --------------------------------- */
 
       const stateResponse =
         await fetch(
@@ -213,13 +212,14 @@ export default {
               JSON.stringify(
                 stateBody
               )
+
           }
         );
 
 
-      /*
-       * Handle Supabase failure.
-       */
+      /* ---------------------------------
+         HANDLE SUPABASE ERROR
+      --------------------------------- */
 
       if (!stateResponse.ok) {
 
@@ -242,12 +242,9 @@ export default {
       }
 
 
-      /*
-       * Build Google OAuth authorization URL.
-       *
-       * business.manage is required to access
-       * Google Business Profile data.
-       */
+      /* ---------------------------------
+         GOOGLE OAUTH PARAMETERS
+      --------------------------------- */
 
       const params =
         new URLSearchParams({
@@ -264,6 +261,10 @@ export default {
           access_type:
             'offline',
 
+          /*
+           * Ask Google to show the account
+           * selector and consent screen.
+           */
           prompt:
             'select_account consent',
 
@@ -272,36 +273,75 @@ export default {
 
           state,
 
+          /*
+           * Required Google Business Profile
+           * permissions plus basic Google
+           * identity.
+           */
           scope:
-            'openid email https://www.googleapis.com/auth/business.manage'
+            [
+              'openid',
+              'email',
+              'https://www.googleapis.com/auth/business.manage'
+            ].join(' ')
 
         });
 
+
+      /* ---------------------------------
+         CREATE GOOGLE AUTHORIZATION URL
+      --------------------------------- */
 
       const authorizationUrl =
         `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
 
 
-      /*
-       * Return onboarding ID + authorization URL.
-       *
-       * onboarding_id is saved by onboarding.html
-       * before redirecting to Google.
-       */
+      /* ---------------------------------
+         LOG NON-SENSITIVE FLOW INFORMATION
+      --------------------------------- */
+
+      console.log(
+        'CUSTOMER GOOGLE START',
+        JSON.stringify({
+
+          onboarding_id:
+            onboardingId,
+
+          expires_at:
+            expiresAt,
+
+          redirect_uri:
+            GOOGLE_REDIRECT_URI
+
+        })
+      );
+
+
+      /* ---------------------------------
+         RETURN TO ONBOARDING PAGE
+      --------------------------------- */
 
       return json(
         {
-          success: true,
+
+          success:
+            true,
 
           onboarding_id:
             onboardingId,
 
           authorizationUrl
-        }
+
+        },
+        200
       );
 
 
     } catch (error) {
+
+      /* ---------------------------------
+         UNEXPECTED ERROR
+      --------------------------------- */
 
       console.error(
         'Customer Google start error:',
@@ -317,7 +357,6 @@ export default {
             error?.stack || null
         }
       );
-
 
       return json(
         {
