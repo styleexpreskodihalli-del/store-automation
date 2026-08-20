@@ -1,1534 +1,1047 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Connect Your Business | STore Automation</title>
-<meta name="description" content="Connect your Google Business Profile and list your business on STore Automation.">
-
-<style>
-:root{
-  --green:#123b2a;
-  --green2:#0b5a3a;
-  --light:#f4f8f5;
-  --border:#dce7e0;
-  --text:#172033;
-  --muted:#68756f;
-  --white:#fff;
-}
-
-*{
-  box-sizing:border-box;
-}
-
-body{
-  margin:0;
-  font-family:Arial,Helvetica,sans-serif;
-  color:var(--text);
-  background:
-    radial-gradient(circle at top right,#dcefe5 0,transparent 34%),
-    linear-gradient(180deg,#f8fbf9 0,#eef5f1 100%);
-  min-height:100vh;
-}
-
-.container{
-  width:min(1080px,92%);
-  margin:0 auto;
-}
-
-header{
-  padding:28px 0;
-}
-
-.logo{
-  display:flex;
-  align-items:center;
-  gap:12px;
-  text-decoration:none;
-  color:var(--green);
-  font-weight:800;
-  font-size:20px;
-}
-
-.logo img{
-  width:58px;
-  height:auto;
-}
-
-.hero{
-  text-align:center;
-  padding:38px 0 28px;
-}
-
-.badge{
-  display:inline-block;
-  background:#e2f2e9;
-  color:var(--green);
-  padding:7px 14px;
-  border-radius:30px;
-  font-size:13px;
-  font-weight:700;
-  margin-bottom:16px;
-}
-
-h1{
-  margin:0;
-  font-size:clamp(32px,5vw,52px);
-  line-height:1.1;
-  color:var(--green);
-}
-
-.hero p{
-  max-width:650px;
-  margin:18px auto 0;
-  color:var(--muted);
-  font-size:17px;
-}
-
-.card{
-  max-width:760px;
-  margin:25px auto 60px;
-  background:rgba(255,255,255,.96);
-  border:1px solid var(--border);
-  border-radius:24px;
-  padding:34px;
-  box-shadow:0 18px 55px rgba(18,59,42,.10);
-}
-
-.step{
-  display:none;
-}
-
-.step.active{
-  display:block;
-}
-
-.step-title{
-  font-size:24px;
-  font-weight:800;
-  color:var(--green);
-  margin-bottom:8px;
-}
-
-.step-text{
-  color:var(--muted);
-  margin-bottom:25px;
-}
-
-.google-btn{
-  width:100%;
-  border:1px solid #d7dce0;
-  background:#fff;
-  color:#202124;
-  border-radius:12px;
-  padding:15px 18px;
-  font-size:16px;
-  font-weight:700;
-  cursor:pointer;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  gap:12px;
-  transition:.2s;
-}
-
-.google-btn:hover{
-  box-shadow:0 4px 14px rgba(0,0,0,.10);
-  transform:translateY(-1px);
-}
-
-.google-btn:disabled{
-  opacity:.6;
-  cursor:not-allowed;
-}
-
-.google-icon{
-  width:20px;
-  height:20px;
-  display:grid;
-  place-items:center;
-  font-weight:900;
-  color:#4285f4;
-}
-
-.loading{
-  text-align:center;
-  padding:25px;
-  color:var(--muted);
-}
-
-.error{
-  display:none;
-  background:#fff1f1;
-  color:#a52d2d;
-  border:1px solid #f0caca;
-  border-radius:12px;
-  padding:14px;
-  margin-top:18px;
-}
-
-.success{
-  display:none;
-  background:#eef8f2;
-  color:#17633f;
-  border:1px solid #b9ddc8;
-  border-radius:12px;
-  padding:14px;
-  margin-top:18px;
-}
-
-.business-list{
-  display:grid;
-  gap:14px;
-}
-
-.business{
-  border:2px solid var(--border);
-  border-radius:16px;
-  padding:20px;
-  cursor:pointer;
-  transition:.2s;
-  background:#fff;
-}
-
-.business:hover{
-  border-color:#86ae99;
-  transform:translateY(-1px);
-}
-
-.business.selected{
-  border-color:var(--green);
-  background:#f1f8f4;
-}
-
-.business-name{
-  font-size:19px;
-  font-weight:800;
-  color:var(--green);
-  padding-right:30px;
-}
-
-.business-meta{
-  margin-top:6px;
-  color:var(--muted);
-  font-size:14px;
-}
-
-.radio{
-  float:right;
-  width:20px;
-  height:20px;
-  border:2px solid #b7c7bf;
-  border-radius:50%;
-}
-
-.business.selected .radio{
-  border:6px solid var(--green);
-}
-
-.primary{
-  width:100%;
-  margin-top:22px;
-  border:0;
-  border-radius:12px;
-  padding:15px 20px;
-  background:var(--green);
-  color:#fff;
-  font-size:16px;
-  font-weight:800;
-  cursor:pointer;
-}
-
-.primary:hover{
-  background:var(--green2);
-}
-
-.primary:disabled{
-  opacity:.5;
-  cursor:not-allowed;
-}
-
-.summary{
-  background:var(--light);
-  border:1px solid var(--border);
-  border-radius:16px;
-  padding:22px;
-  margin-top:20px;
-}
-
-.summary strong{
-  color:var(--green);
-}
-
-.price{
-  margin-top:20px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  border-top:1px solid var(--border);
-  padding-top:20px;
-}
-
-.price strong{
-  font-size:28px;
-  color:var(--green);
-}
-
-.back{
-  display:block;
-  text-align:center;
-  margin-top:18px;
-  color:var(--green);
-  text-decoration:none;
-  font-size:14px;
-  font-weight:700;
-}
-
-footer{
-  text-align:center;
-  color:#7a8580;
-  font-size:13px;
-  padding:0 0 35px;
-}
-
-@media(max-width:600px){
-
-  .card{
-    padding:22px;
-    border-radius:18px;
-  }
-
-  .hero{
-    padding-top:20px;
-  }
-
-  .business{
-    padding:17px;
-  }
-}
-</style>
-</head>
-
-<body>
-
-<header>
-  <div class="container">
-
-    <a class="logo" href="/">
-      <img
-        src="/assets/stall-logo.png"
-        alt="STore Automation"
-      >
-      <span>STore Automation</span>
-    </a>
-
-  </div>
-</header>
-
-
-<main class="container">
-
-<section class="hero">
-
-  <div class="badge">
-    STore Listing · ₹99 One-Time
-  </div>
-
-  <h1>
-    Connect your business
-  </h1>
-
-  <p>
-    Connect your Google Business Profile and choose the salon
-    or store you want to list on STore Automation.
-  </p>
-
-</section>
-
-
-<div class="card">
-
-
-  <!-- =========================================
-       STEP 1 — GOOGLE CONNECTION
-  ========================================== -->
-
-  <section
-    id="step-google"
-    class="step active"
-  >
-
-    <div class="step-title">
-      Connect your Google Business Profile
-    </div>
-
-    <div class="step-text">
-      Sign in with the Google account that manages your business.
-      We'll show you the businesses and stores available to that account.
-    </div>
-
-    <button
-      id="google-button"
-      class="google-btn"
-      type="button"
-      onclick="connectGoogle()"
-    >
-
-      <span class="google-icon">
-        G
-      </span>
-
-      Continue with Google
-
-    </button>
-
-    <div
-      id="google-error"
-      class="error"
-    ></div>
-
-  </section>
-
-
-  <!-- =========================================
-       STEP 2 — BUSINESS SELECTION
-  ========================================== -->
-
-  <section
-    id="step-businesses"
-    class="step"
-  >
-
-    <div class="step-title">
-      Select your business
-    </div>
-
-    <div class="step-text">
-      We found the following businesses associated with
-      your Google Business Profile. Select the business
-      you want to list.
-    </div>
-
-    <div
-      id="business-loading"
-      class="loading"
-    >
-      Loading your businesses...
-    </div>
-
-    <div
-      id="business-list"
-      class="business-list"
-    ></div>
-
-    <button
-      id="continue-business"
-      class="primary"
-      type="button"
-      disabled
-      onclick="confirmBusiness()"
-    >
-      Continue
-    </button>
-
-    <div
-      id="business-error"
-      class="error"
-    ></div>
-
-  </section>
-
-
-  <!-- =========================================
-       STEP 3 — CONFIRM BUSINESS
-  ========================================== -->
-
-  <section
-    id="step-confirm"
-    class="step"
-  >
-
-    <div class="step-title">
-      Confirm your business
-    </div>
-
-    <div class="step-text">
-      Please confirm the business you want to list
-      on STore Automation.
-    </div>
-
-    <div
-      id="business-summary"
-      class="summary"
-    ></div>
-
-    <div class="price">
-
-      <span>
-        STore Listing
-      </span>
-
-      <strong>
-        ₹99
-      </strong>
-
-    </div>
-
-    <button
-      id="payment-button"
-      class="primary"
-      type="button"
-      onclick="startPayment()"
-    >
-      Continue to Payment — ₹99
-    </button>
-
-    <div
-      id="payment-message"
-      class="error"
-    ></div>
-
-    <div
-      id="payment-success"
-      class="success"
-    ></div>
-
-    <a
-      class="back"
-      href="/pricing.html"
-    >
-      ← Back to Pricing
-    </a>
-
-  </section>
-
-</div>
-
-</main>
-
-
-<footer>
-  © STore Automation · Powered by ST Shield
-</footer>
-
-
-<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-
-<script>
-
-/* =========================================
-   GLOBAL STATE
-========================================= */
-
-let selectedBusiness = null;
-let onboardingId = null;
-
-
-/* =========================================
-   GOOGLE LOGIN
-========================================= */
-
-async function connectGoogle(){
-
-  const button =
-    document.getElementById(
-      'google-button'
-    );
-
-  const error =
-    document.getElementById(
-      'google-error'
-    );
-
-  error.style.display = 'none';
-
-  button.disabled = true;
-
-  button.innerHTML =
-    '<span class="google-icon">G</span> Connecting to Google...';
-
-  try {
-
-    const response =
-      await fetch(
-        '/api/customer-google-start',
-        {
-          method:'POST',
-
-          headers:{
-            'Content-Type':
-              'application/json'
-          },
-
-          body:JSON.stringify({})
-        }
-      );
-
-    const result =
-      await response.json();
-
-    if(
-      !response.ok ||
-      !result.success
-    ){
-
-      throw new Error(
-        result.error ||
-        'Unable to start Google connection'
-      );
-    }
-
-    onboardingId =
-      result.onboarding_id ||
-      null;
-
-    if(
-      !result.authorizationUrl
-    ){
-
-      throw new Error(
-        'Google authorization URL was not returned.'
-      );
-    }
-
-    window.location.href =
-      result.authorizationUrl;
-
-  } catch(error) {
-
-    console.error(
-      'Google connection error:',
-      error
-    );
-
-    showError(
-      error,
-      error.message ||
-      'Unable to connect to Google.'
-    );
-
-    button.disabled = false;
-
-    button.innerHTML =
-      '<span class="google-icon">G</span> Continue with Google';
-  }
-}
-
-
-/* =========================================
-   LOAD GOOGLE BUSINESSES
-========================================= */
-
-async function loadBusinesses(){
-
-  const params =
-    new URLSearchParams(
-      window.location.search
-    );
-
-  const googleConnected =
-    params.get(
-      'google_connected'
-    );
-
-  const returnedOnboardingId =
-    params.get(
-      'onboarding_id'
-    );
-
-
-  /*
-   * The callback gives us the onboarding ID.
-   */
-  if(returnedOnboardingId){
-
-    onboardingId =
-      returnedOnboardingId;
-  }
-
-
-  /*
-   * We only load businesses after
-   * successful Google authorization.
-   */
-  if(
-    googleConnected !== '1'
-  ){
-
-    return;
-  }
-
-
-  if(!onboardingId){
-
-    showError(
-      document.getElementById(
-        'business-error'
-      ),
-      'Onboarding session could not be identified. Please start again.'
-    );
-
-    showStep(
-      'step-businesses'
-    );
-
-    return;
-  }
-
-
-  showStep(
-    'step-businesses'
-  );
-
-
-  try {
-
-    /*
-     * IMPORTANT:
-     *
-     * customer-google-locations.mjs
-     * requires onboarding_id.
-     */
-    const response =
-      await fetch(
-        `/api/customer-google-locations?onboarding_id=${encodeURIComponent(
-          onboardingId
-        )}`
-      );
-
-
-    const result =
-      await response.json();
-
-
-    if(
-      !response.ok
-    ){
-
-      throw new Error(
-        result.error ||
-        'Unable to load businesses'
-      );
-    }
-
-
-    if(
-      !result.success
-    ){
-
-      throw new Error(
-        result.error ||
-        'Unable to load businesses'
-      );
-    }
-
-
-    renderBusinesses(
-      result.locations ||
-      []
-    );
-
-
-  } catch(error) {
-
-    console.error(
-      'Business loading error:',
-      error
-    );
-
-    document.getElementById(
-      'business-loading'
-    ).style.display =
-      'none';
-
-    showError(
-      document.getElementById(
-        'business-error'
-      ),
-      error.message ||
-      'Unable to load your businesses.'
-    );
-  }
-}
-
-
-/* =========================================
-   RENDER BUSINESSES
-========================================= */
-
-function renderBusinesses(
-  locations
-){
-
-  const loading =
-    document.getElementById(
-      'business-loading'
-    );
-
-  const list =
-    document.getElementById(
-      'business-list'
-    );
-
-  const error =
-    document.getElementById(
-      'business-error'
-    );
-
-
-  loading.style.display =
-    'none';
-
-  list.innerHTML =
-    '';
-
-  error.style.display =
-    'none';
-
-
-  if(
-    !Array.isArray(locations) ||
-    !locations.length
-  ){
-
-    showError(
-      error,
-      'No businesses were found for this Google account. Make sure the Google account you selected manages at least one Business Profile.'
-    );
-
-    return;
-  }
-
-
-  locations.forEach(
-    (item) => {
-
-      const business =
-        item.location ||
-        item;
-
-      const account =
-        item.account ||
-        {};
-
-
-      const element =
-        document.createElement(
-          'div'
-        );
-
-
-      element.className =
-        'business';
-
-
-      element.onclick =
-        () => selectBusiness(
-          item,
-          element
-        );
-
-
-      const name =
-        business.title ||
-        business.name ||
-        'Business';
-
-
-      const address =
-        formatAddress(
-          business.storefront_address ||
-          business.storefrontAddress ||
-          ''
-        );
-
-
-      const phone =
-        business.phone_numbers?.primaryPhone ||
-        business.phone_numbers?.primaryPhoneNumber ||
-        '';
-
-
-      const website =
-        business.website_uri ||
-        '';
-
-
-      element.innerHTML = `
-
-        <span class="radio"></span>
-
-        <div class="business-name">
-          ${escapeHtml(name)}
-        </div>
-
-        ${
-          address
-          ? `
-            <div class="business-meta">
-              ${escapeHtml(address)}
-            </div>
-          `
-          : ''
-        }
-
-        ${
-          phone
-          ? `
-            <div class="business-meta">
-              ${escapeHtml(phone)}
-            </div>
-          `
-          : ''
-        }
-
-        ${
-          website
-          ? `
-            <div class="business-meta">
-              ${escapeHtml(website)}
-            </div>
-          `
-          : ''
-        }
-
-        ${
-          account.account_name
-          ? `
-            <div
-              class="business-meta"
-              style="margin-top:10px;font-size:12px;"
-            >
-              Google Business Account:
-              ${escapeHtml(account.account_name)}
-            </div>
-          `
-          : ''
-        }
-
-      `;
-
-
-      list.appendChild(
-        element
-      );
-
+const SUPABASE_URL =
+  process.env.SUPABASE_URL;
+
+const SUPABASE_SERVICE_ROLE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+const GOOGLE_CLIENT_ID =
+  process.env.GOOGLE_CLIENT_ID;
+
+const GOOGLE_CLIENT_SECRET =
+  process.env.GOOGLE_CLIENT_SECRET;
+
+
+/* ---------------------------------
+   JSON RESPONSE
+--------------------------------- */
+
+function json(
+  body,
+  status = 200
+) {
+  return new Response(
+    JSON.stringify(body),
+    {
+      status,
+      headers: {
+        "content-type":
+          "application/json; charset=utf-8",
+
+        "cache-control":
+          "no-store"
+      }
     }
   );
 }
 
 
-/* =========================================
-   SELECT BUSINESS
-========================================= */
+/* ---------------------------------
+   SUPABASE REQUEST
+--------------------------------- */
 
-function selectBusiness(
-  business,
-  element
-){
+async function supabaseFetch(
+  path,
+  options = {}
+) {
 
-  document
-    .querySelectorAll(
-      '.business'
-    )
-    .forEach(
-      item =>
-        item.classList.remove(
-          'selected'
-        )
+  if (
+    !SUPABASE_URL ||
+    !SUPABASE_SERVICE_ROLE_KEY
+  ) {
+    throw new Error(
+      "Supabase configuration is missing."
     );
-
-
-  element.classList.add(
-    'selected'
-  );
-
-
-  selectedBusiness =
-    business;
-
-
-  document.getElementById(
-    'continue-business'
-  ).disabled =
-    false;
-}
-
-
-/* =========================================
-   CONFIRM BUSINESS
-========================================= */
-
-function confirmBusiness(){
-
-  if(
-    !selectedBusiness
-  ){
-
-    return;
   }
 
+  return fetch(
+    `${SUPABASE_URL}${path}`,
+    {
+      ...options,
 
-  const business =
-    selectedBusiness.location ||
-    selectedBusiness;
+      headers: {
+        apikey:
+          SUPABASE_SERVICE_ROLE_KEY,
 
+        Authorization:
+          `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
 
-  const name =
-    business.title ||
-    business.name ||
-    'Selected Business';
-
-
-  const address =
-    formatAddress(
-      business.storefront_address ||
-      business.storefrontAddress ||
-      ''
-    );
-
-
-  const phone =
-    business.phone_numbers?.primaryPhone ||
-    business.phone_numbers?.primaryPhoneNumber ||
-    '';
-
-
-  document.getElementById(
-    'business-summary'
-  ).innerHTML = `
-
-    <strong>
-      ${escapeHtml(name)}
-    </strong>
-
-    ${
-      address
-      ? `
-        <div
-          style="margin-top:7px;color:#68756f;"
-        >
-          ${escapeHtml(address)}
-        </div>
-      `
-      : ''
+        ...(options.headers || {})
+      }
     }
-
-    ${
-      phone
-      ? `
-        <div
-          style="margin-top:5px;color:#68756f;"
-        >
-          ${escapeHtml(phone)}
-        </div>
-      `
-      : ''
-    }
-
-  `;
-
-
-  showStep(
-    'step-confirm'
   );
 }
 
 
-/* =========================================
-   RAZORPAY PAYMENT
-========================================= */
+/* ---------------------------------
+   UPDATE GOOGLE TOKEN
+--------------------------------- */
 
-async function startPayment(){
+async function updateState(
+  id,
+  values
+) {
 
-  if(
-    !selectedBusiness
-  ){
+  return supabaseFetch(
+    `/rest/v1/google_oauth_states?id=eq.${encodeURIComponent(id)}`,
+    {
+      method:
+        "PATCH",
 
-    return;
+      headers: {
+        "Content-Type":
+          "application/json",
+
+        Prefer:
+          "return=minimal"
+      },
+
+      body:
+        JSON.stringify(values)
+    }
+  );
+
+}
+
+
+/* ---------------------------------
+   REFRESH GOOGLE ACCESS TOKEN
+--------------------------------- */
+
+async function refreshGoogleToken(
+  refreshToken
+) {
+
+  if (
+    !GOOGLE_CLIENT_ID ||
+    !GOOGLE_CLIENT_SECRET
+  ) {
+    throw new Error(
+      "Google client configuration is missing."
+    );
   }
 
+  const response =
+    await fetch(
+      "https://oauth2.googleapis.com/token",
+      {
+        method:
+          "POST",
 
-  const button =
-    document.getElementById(
-      'payment-button'
-    );
+        headers: {
+          "content-type":
+            "application/x-www-form-urlencoded"
+        },
 
-  const message =
-    document.getElementById(
-      'payment-message'
-    );
+        body:
+          new URLSearchParams({
 
+            client_id:
+              GOOGLE_CLIENT_ID,
 
-  message.style.display =
-    'none';
+            client_secret:
+              GOOGLE_CLIENT_SECRET,
 
+            refresh_token:
+              refreshToken,
 
-  button.disabled =
-    true;
-
-  button.textContent =
-    'Preparing Payment...';
-
-
-  try {
-
-    const business =
-      selectedBusiness.location ||
-      selectedBusiness;
-
-
-    const businessName =
-      business.title ||
-      business.name ||
-      '';
-
-
-    /*
-     * We pass the selected Google
-     * Business information to the
-     * Razorpay order endpoint.
-     */
-    const response =
-      await fetch(
-        '/api/razorpay-create-order.mjs',
-        {
-          method:'POST',
-
-          headers:{
-            'Content-Type':
-              'application/json'
-          },
-
-          body:JSON.stringify({
-
-            customer_name:
-              businessName,
-
-            customer_email:
-              '',
-
-            customer_phone:
-              '',
-
-            business:
-              business,
-
-            onboarding_id:
-              onboardingId
+            grant_type:
+              "refresh_token"
 
           })
+      }
+    );
+
+
+  const data =
+    await response
+      .json()
+      .catch(() => ({}));
+
+
+  if (
+    !response.ok ||
+    !data.access_token
+  ) {
+
+    console.error(
+      "Google token refresh failed",
+      {
+        status:
+          response.status,
+
+        error:
+          data?.error || null,
+
+        description:
+          data?.error_description || null
+      }
+    );
+
+    throw new Error(
+      "Google authorization has expired. Please reconnect Google Business."
+    );
+
+  }
+
+
+  return {
+
+    accessToken:
+      data.access_token,
+
+    expiresAt:
+      data.expires_in
+        ? new Date(
+            Date.now() +
+            Number(data.expires_in) *
+              1000
+          ).toISOString()
+        : null
+
+  };
+
+}
+
+
+/* ---------------------------------
+   GOOGLE BUSINESS ACCOUNTS
+--------------------------------- */
+
+async function getGoogleAccounts(
+  accessToken
+) {
+
+  const accounts = [];
+
+  let pageToken = null;
+
+
+  do {
+
+    const url =
+      new URL(
+        "https://mybusinessaccountmanagement.googleapis.com/v1/accounts"
+      );
+
+
+    url.searchParams.set(
+      "pageSize",
+      "20"
+    );
+
+
+    if (pageToken) {
+
+      url.searchParams.set(
+        "pageToken",
+        pageToken
+      );
+
+    }
+
+
+    const response =
+      await fetch(
+        url.toString(),
+        {
+          headers: {
+            Authorization:
+              `Bearer ${accessToken}`
+          }
         }
       );
 
 
-    const result =
-      await response.json();
+    const data =
+      await response
+        .json()
+        .catch(() => ({}));
 
 
-    if(
-      !response.ok ||
-      !result.success
-    ){
+    console.log(
+      "CUSTOMER GBP ACCOUNTS",
+      JSON.stringify({
+
+        status:
+          response.status,
+
+        ok:
+          response.ok,
+
+        count:
+          Array.isArray(
+            data.accounts
+          )
+            ? data.accounts.length
+            : 0,
+
+        error:
+          data?.error?.message ||
+          null
+
+      })
+    );
+
+
+    if (!response.ok) {
 
       throw new Error(
-        result.error ||
-        'Unable to initialise payment'
+        data?.error?.message ||
+        "Unable to load Google Business accounts."
       );
+
     }
 
 
-    const options = {
+    if (
+      Array.isArray(
+        data.accounts
+      )
+    ) {
 
-      key:
-        result.key_id,
+      accounts.push(
+        ...data.accounts
+      );
 
-      amount:
-        result.amount,
-
-      currency:
-        result.currency,
-
-      name:
-        'STore Automation',
-
-      description:
-        'STore Listing — One-time ₹99',
-
-      order_id:
-        result.order_id,
+    }
 
 
-      prefill:{
-        name:
-          businessName
-      },
+    pageToken =
+      data.nextPageToken ||
+      null;
 
 
-      notes:{
-
-        product:
-          'STore Automation',
-
-        plan:
-          'listing_99',
-
-        business_name:
-          businessName,
-
-        onboarding_id:
-          onboardingId || ''
-
-      },
+  } while (pageToken);
 
 
-      theme:{
-        color:
-          '#123b2a'
-      },
+  return accounts;
+
+}
 
 
-      handler:
-        async function(
-          paymentResponse
-        ){
+/* ---------------------------------
+   GOOGLE BUSINESS LOCATIONS
+--------------------------------- */
 
-          message.style.display =
-            'block';
+async function getGoogleLocations(
+  accessToken,
+  account
+) {
 
-          message.className =
-            'success';
+  const locations = [];
 
-          message.textContent =
-            'Verifying payment...';
+  if (
+    !account ||
+    !account.name
+  ) {
 
+    return locations;
 
-          try {
-
-            const verifyResponse =
-              await fetch(
-                '/api/razorpay-verify-payment.mjs',
-                {
-                  method:'POST',
-
-                  headers:{
-                    'Content-Type':
-                      'application/json'
-                  },
-
-                  body:JSON.stringify({
-
-                    razorpay_order_id:
-                      paymentResponse
-                        .razorpay_order_id,
-
-                    razorpay_payment_id:
-                      paymentResponse
-                        .razorpay_payment_id,
-
-                    razorpay_signature:
-                      paymentResponse
-                        .razorpay_signature
-
-                  })
-                }
-              );
+  }
 
 
-            const verifyResult =
-              await verifyResponse.json();
+  let pageToken = null;
 
 
-            if(
-              !verifyResponse.ok ||
-              !verifyResult.success
-            ){
+  do {
 
-              throw new Error(
-                verifyResult.error ||
-                'Payment verification failed'
-              );
+    const url =
+      new URL(
+        `https://mybusinessbusinessinformation.googleapis.com/v1/${account.name}/locations`
+      );
+
+
+    url.searchParams.set(
+      "readMask",
+      [
+        "name",
+        "title",
+        "storeCode",
+        "websiteUri",
+        "phoneNumbers",
+        "storefrontAddress",
+        "metadata"
+      ].join(",")
+    );
+
+
+    url.searchParams.set(
+      "pageSize",
+      "100"
+    );
+
+
+    if (pageToken) {
+
+      url.searchParams.set(
+        "pageToken",
+        pageToken
+      );
+
+    }
+
+
+    const response =
+      await fetch(
+        url.toString(),
+        {
+          headers: {
+            Authorization:
+              `Bearer ${accessToken}`
+          }
+        }
+      );
+
+
+    const data =
+      await response
+        .json()
+        .catch(() => ({}));
+
+
+    console.log(
+      "CUSTOMER GBP LOCATIONS",
+      JSON.stringify({
+
+        account:
+          account.name,
+
+        status:
+          response.status,
+
+        ok:
+          response.ok,
+
+        count:
+          Array.isArray(
+            data.locations
+          )
+            ? data.locations.length
+            : 0,
+
+        error:
+          data?.error?.message ||
+          null
+
+      })
+    );
+
+
+    if (!response.ok) {
+
+      /*
+       * Do NOT crash the entire onboarding
+       * if one Google account cannot return
+       * locations.
+       */
+
+      console.warn(
+        "Google locations request failed",
+        {
+          account:
+            account.name,
+
+          status:
+            response.status,
+
+          error:
+            data?.error?.message ||
+            null
+        }
+      );
+
+      break;
+
+    }
+
+
+    if (
+      Array.isArray(
+        data.locations
+      )
+    ) {
+
+      locations.push(
+        ...data.locations
+      );
+
+    }
+
+
+    pageToken =
+      data.nextPageToken ||
+      null;
+
+
+  } while (pageToken);
+
+
+  return locations;
+
+}
+
+
+/* ---------------------------------
+   MAIN FUNCTION
+--------------------------------- */
+
+export default {
+
+  async fetch(request) {
+
+    try {
+
+      /* -----------------------------
+         METHOD
+      ----------------------------- */
+
+      if (
+        request.method !== "GET"
+      ) {
+
+        return json(
+          {
+            success:
+              false,
+
+            error:
+              "Method not allowed"
+          },
+          405
+        );
+
+      }
+
+
+      /* -----------------------------
+         CONFIGURATION
+      ----------------------------- */
+
+      if (
+        !SUPABASE_URL ||
+        !SUPABASE_SERVICE_ROLE_KEY ||
+        !GOOGLE_CLIENT_ID ||
+        !GOOGLE_CLIENT_SECRET
+      ) {
+
+        console.error(
+          "Customer GBP configuration missing",
+          {
+            supabase:
+              !!SUPABASE_URL,
+
+            serviceRole:
+              !!SUPABASE_SERVICE_ROLE_KEY,
+
+            googleClientId:
+              !!GOOGLE_CLIENT_ID,
+
+            googleClientSecret:
+              !!GOOGLE_CLIENT_SECRET
+          }
+        );
+
+
+        return json(
+          {
+            success:
+              false,
+
+            error:
+              "Customer Google Business configuration missing"
+          },
+          500
+        );
+
+      }
+
+
+      /* -----------------------------
+         ONBOARDING ID
+      ----------------------------- */
+
+      const requestUrl =
+        new URL(
+          request.url
+        );
+
+
+      const onboardingId =
+        requestUrl.searchParams.get(
+          "onboarding_id"
+        );
+
+
+      if (!onboardingId) {
+
+        return json(
+          {
+            success:
+              false,
+
+            error:
+              "onboarding_id is required"
+          },
+          400
+        );
+
+      }
+
+
+      console.log(
+        "CUSTOMER GBP START",
+        JSON.stringify({
+          onboarding_id:
+            onboardingId
+        })
+      );
+
+
+      /* -----------------------------
+         LOAD OAUTH STATE
+      ----------------------------- */
+
+      const stateResponse =
+        await supabaseFetch(
+
+          `/rest/v1/google_oauth_states` +
+
+          `?onboarding_id=eq.${encodeURIComponent(
+            onboardingId
+          )}` +
+
+          `&select=` +
+
+          [
+            "id",
+            "onboarding_id",
+            "customer_name",
+            "customer_email",
+            "customer_phone",
+            "google_account_id",
+            "google_account_email",
+            "google_access_token",
+            "google_refresh_token",
+            "google_token_expires_at",
+            "google_scope"
+          ].join(",") +
+
+          `&limit=1`
+
+        );
+
+
+      if (
+        !stateResponse.ok
+      ) {
+
+        const detail =
+          await stateResponse.text();
+
+
+        console.error(
+          "OAuth state lookup failed",
+          {
+            status:
+              stateResponse.status,
+
+            detail
+          }
+        );
+
+
+        return json(
+          {
+            success:
+              false,
+
+            error:
+              "Unable to load onboarding connection"
+          },
+          500
+        );
+
+      }
+
+
+      const states =
+        await stateResponse
+          .json();
+
+
+      if (
+        !Array.isArray(states) ||
+        states.length === 0
+      ) {
+
+        return json(
+          {
+            success:
+              false,
+
+            error:
+              "Onboarding connection not found"
+          },
+          404
+        );
+
+      }
+
+
+      const state =
+        states[0];
+
+
+      /* -----------------------------
+         CHECK REFRESH TOKEN
+      ----------------------------- */
+
+      if (
+        !state.google_refresh_token
+      ) {
+
+        return json(
+          {
+            success:
+              false,
+
+            error:
+              "Google connection is not authorized yet"
+          },
+          400
+        );
+
+      }
+
+
+      console.log(
+        "CUSTOMER GBP STATE FOUND",
+        JSON.stringify({
+
+          onboarding_id:
+            onboardingId,
+
+          google_account_id:
+            state.google_account_id ||
+            null,
+
+          google_account_email:
+            state.google_account_email ||
+            null,
+
+          has_access_token:
+            !!state.google_access_token,
+
+          has_refresh_token:
+            !!state.google_refresh_token
+
+        })
+      );
+
+
+      /* -----------------------------
+         ACCESS TOKEN
+      ----------------------------- */
+
+      let accessToken =
+        state.google_access_token ||
+        null;
+
+
+      const expiresAt =
+        state.google_token_expires_at
+          ? new Date(
+              state.google_token_expires_at
+            ).getTime()
+          : 0;
+
+
+      const needsRefresh =
+        !accessToken ||
+        !expiresAt ||
+        expiresAt <=
+          Date.now() +
+          60 * 1000;
+
+
+      if (needsRefresh) {
+
+        console.log(
+          "CUSTOMER GBP REFRESHING TOKEN"
+        );
+
+
+        const refreshed =
+          await refreshGoogleToken(
+            state.google_refresh_token
+          );
+
+
+        accessToken =
+          refreshed.accessToken;
+
+
+        await updateState(
+          state.id,
+          {
+            google_access_token:
+              refreshed.accessToken,
+
+            google_token_expires_at:
+              refreshed.expiresAt
+          }
+        );
+
+      }
+
+
+      /* -----------------------------
+         GET GOOGLE ACCOUNTS
+      ----------------------------- */
+
+      const accounts =
+        await getGoogleAccounts(
+          accessToken
+        );
+
+
+      /* -----------------------------
+         GET LOCATIONS
+      ----------------------------- */
+
+      const locations = [];
+
+
+      for (
+        const account
+        of accounts
+      ) {
+
+        const accountLocations =
+          await getGoogleLocations(
+            accessToken,
+            account
+          );
+
+
+        for (
+          const location
+          of accountLocations
+        ) {
+
+          locations.push({
+
+            account: {
+
+              name:
+                account.name ||
+                null,
+
+              account_name:
+                account.accountName ||
+                null,
+
+              type:
+                account.type ||
+                null,
+
+              role:
+                account.role ||
+                null,
+
+              permission_level:
+                account.permissionLevel ||
+                null,
+
+              verification_state:
+                account.verificationState ||
+                null
+
+            },
+
+
+            location: {
+
+              name:
+                location.name ||
+                null,
+
+              title:
+                location.title ||
+                null,
+
+              store_code:
+                location.storeCode ||
+                null,
+
+              website_uri:
+                location.websiteUri ||
+                null,
+
+              phone_numbers:
+                location.phoneNumbers ||
+                null,
+
+              storefront_address:
+                location.storefrontAddress ||
+                null,
+
+              metadata:
+                location.metadata ||
+                null
+
             }
 
+          });
 
-            message.textContent =
-              '✓ Payment successful. Your STore listing payment has been recorded.';
+        }
 
-
-            button.textContent =
-              'Listing Payment Successful';
+      }
 
 
-          } catch(error) {
+      /* -----------------------------
+         COMPLETE
+      ----------------------------- */
 
-            console.error(
-              'Payment verification error:',
-              error
-            );
+      console.log(
+        "CUSTOMER GBP COMPLETE",
+        JSON.stringify({
+
+          onboarding_id:
+            onboardingId,
+
+          accounts_found:
+            accounts.length,
+
+          locations_found:
+            locations.length
+
+        })
+      );
 
 
-            message.className =
-              'error';
+      /* -----------------------------
+         RESPONSE
+      ----------------------------- */
 
-            message.style.display =
-              'block';
+      return json({
 
-            message.textContent =
-              'Payment received, but verification is still being completed. Please contact support if needed.';
+        success:
+          true,
+
+        onboarding_id:
+          onboardingId,
 
 
-            button.disabled =
-              false;
+        customer: {
 
-            button.textContent =
-              'Try Again — ₹99';
-          }
+          name:
+            state.customer_name ||
+            null,
+
+          email:
+            state.customer_email ||
+            null,
+
+          phone:
+            state.customer_phone ||
+            null
 
         },
 
 
-      modal:{
-        ondismiss:
-          function(){
+        google_account: {
 
-            button.disabled =
-              false;
+          id:
+            state.google_account_id ||
+            null,
 
-            button.textContent =
-              'Continue to Payment — ₹99';
+          email:
+            state.google_account_email ||
+            null
 
-          }
-      }
-
-    };
+        },
 
 
-    const razorpay =
-      new Razorpay(
-        options
+        accounts:
+          accounts.map(
+            account => ({
+
+              name:
+                account.name ||
+                null,
+
+              account_name:
+                account.accountName ||
+                null,
+
+              type:
+                account.type ||
+                null,
+
+              role:
+                account.role ||
+                null,
+
+              permission_level:
+                account.permissionLevel ||
+                null,
+
+              verification_state:
+                account.verificationState ||
+                null
+
+            })
+          ),
+
+
+        locations,
+
+
+        locations_found:
+          locations.length
+
+      });
+
+
+    } catch (error) {
+
+      /* -----------------------------
+         NEVER CRASH SILENTLY
+      ----------------------------- */
+
+      console.error(
+        "CUSTOMER GOOGLE BUSINESS LOCATIONS ERROR",
+        {
+          name:
+            error?.name ||
+            null,
+
+          message:
+            error?.message ||
+            String(error),
+
+          stack:
+            error?.stack ||
+            null
+        }
       );
 
 
-    razorpay.on(
-      'payment.failed',
-      function(){
+      return json(
+        {
+          success:
+            false,
 
-        showError(
-          message,
-          'Payment was not completed. Please try again.'
-        );
+          error:
+            error?.message ||
+            "Unable to load Google Business locations"
+        },
+        500
+      );
 
+    }
 
-        button.disabled =
-          false;
-
-        button.textContent =
-          'Try Again — ₹99';
-
-      }
-    );
-
-
-    razorpay.open();
-
-
-  } catch(error) {
-
-    console.error(
-      'Payment error:',
-      error
-    );
-
-
-    showError(
-      message,
-      error.message ||
-      'Unable to start payment.'
-    );
-
-
-    button.disabled =
-      false;
-
-    button.textContent =
-      'Continue to Payment — ₹99';
-  }
-}
-
-
-/* =========================================
-   STEP NAVIGATION
-========================================= */
-
-function showStep(
-  id
-){
-
-  document
-    .querySelectorAll(
-      '.step'
-    )
-    .forEach(
-      step =>
-        step.classList.remove(
-          'active'
-        )
-    );
-
-
-  const target =
-    document.getElementById(
-      id
-    );
-
-
-  if(target){
-
-    target.classList.add(
-      'active'
-    );
   }
 
-
-  window.scrollTo({
-    top:0,
-    behavior:'smooth'
-  });
-}
-
-
-/* =========================================
-   ERROR DISPLAY
-========================================= */
-
-function showError(
-  element,
-  message
-){
-
-  if(
-    element instanceof Error
-  ){
-
-    return;
-  }
-
-
-  if(!element){
-
-    return;
-  }
-
-
-  element.className =
-    'error';
-
-  element.style.display =
-    'block';
-
-  element.textContent =
-    message ||
-    'Something went wrong.';
-}
-
-
-/* =========================================
-   ADDRESS FORMATTER
-========================================= */
-
-function formatAddress(
-  address
-){
-
-  if(!address){
-
-    return '';
-  }
-
-
-  if(
-    typeof address === 'string'
-  ){
-
-    return address;
-  }
-
-
-  if(
-    Array.isArray(
-      address.addressLines
-    )
-  ){
-
-    return address.addressLines.join(
-      ', '
-    );
-  }
-
-
-  return [
-
-    ...(Array.isArray(
-      address.addressLines
-    )
-      ? address.addressLines
-      : []),
-
-    address.locality,
-
-    address.administrativeArea,
-
-    address.postalCode,
-
-    address.regionCode
-
-  ]
-    .filter(Boolean)
-    .join(', ');
-}
-
-
-/* =========================================
-   HTML ESCAPING
-========================================= */
-
-function escapeHtml(
-  value
-){
-
-  return String(
-    value || ''
-  )
-    .replace(
-      /&/g,
-      '&amp;'
-    )
-    .replace(
-      /</g,
-      '&lt;'
-    )
-    .replace(
-      />/g,
-      '&gt;'
-    )
-    .replace(
-      /"/g,
-      '&quot;'
-    )
-    .replace(
-      /'/g,
-      '&#039;'
-    );
-}
-
-
-/* =========================================
-   STARTUP
-========================================= */
-
-loadBusinesses();
-
-</script>
-
-</body>
-</html>
+};
