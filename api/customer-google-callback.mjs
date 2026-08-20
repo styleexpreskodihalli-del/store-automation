@@ -419,7 +419,7 @@ export default {
       }
 
       /*
-       * Return to the customer onboarding page.
+       * Return to the new customer onboarding page.
        *
        * Only the non-sensitive onboarding ID is placed
        * in the URL.
@@ -447,7 +447,10 @@ export default {
         500,
         `
         <h2>Google connection failed</h2>
-        <p>An unexpected error occurred. Please return to STall and try again.</p>
+        <p>
+          An unexpected error occurred.
+          Please return to STall and try again.
+        </p>
         `
       );
     }
