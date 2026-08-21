@@ -2553,22 +2553,7 @@ function clean(value) {
     : '';
 }
 
-function numberParam(value) {
 
-  if (
-    value === null ||
-    value === ''
-  ) {
-    return null;
-  }
-
-  const number =
-    Number(value);
-
-  return Number.isFinite(number)
-    ? number
-    : null;
-}
 function numberParam(value) {
 
   if (
