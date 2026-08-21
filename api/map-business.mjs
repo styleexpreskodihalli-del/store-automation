@@ -25,11 +25,10 @@ export default {
       const accessToken =
         authHeader.slice(7);
 
-      /*
-       * ------------------------------------------------------------
-       * 1. VALIDATE CURRENT STore USER
-       * ------------------------------------------------------------
-       */
+      // ------------------------------------------------------------
+      // 1. VALIDATE CURRENT STore USER
+      // ------------------------------------------------------------
+
       const userResponse = await fetch(
         `${SUPABASE_URL}/auth/v1/user`,
         {
@@ -52,16 +51,10 @@ export default {
       const user =
         await userResponse.json();
 
-      const currentEmail =
-        String(user.email || '')
-          .trim()
-          .toLowerCase();
+      // ------------------------------------------------------------
+      // 2. CHECK ADMIN STATUS
+      // ------------------------------------------------------------
 
-      /*
-       * ------------------------------------------------------------
-       * 2. CHECK ADMIN STATUS
-       * ------------------------------------------------------------
-       */
       let isStallAdmin = false;
 
       const profileResponse =
@@ -81,11 +74,10 @@ export default {
           profiles[0].role === 'admin';
       }
 
-      /*
-       * ------------------------------------------------------------
-       * 3. READ REQUEST
-       * ------------------------------------------------------------
-       */
+      // ------------------------------------------------------------
+      // 3. READ REQUEST
+      // ------------------------------------------------------------
+
       const body =
         await request.json()
           .catch(() => null);
@@ -122,11 +114,10 @@ export default {
         }, 400);
       }
 
-      /*
-       * ------------------------------------------------------------
-       * 4. FIND EXISTING STore BUSINESS BY GOOGLE PLACE ID
-       * ------------------------------------------------------------
-       */
+      // ------------------------------------------------------------
+      // 4. FIND EXISTING STore BUSINESS
+      // ------------------------------------------------------------
+
       const existingResponse =
         await supabaseFetch(
           `/rest/v1/businesses` +
@@ -152,11 +143,10 @@ export default {
 
       let business;
 
-      /*
-       * ------------------------------------------------------------
-       * 5. REUSE EXISTING BUSINESS
-       * ------------------------------------------------------------
-       */
+      // ------------------------------------------------------------
+      // 5. REUSE EXISTING BUSINESS
+      // ------------------------------------------------------------
+
       if (existing.length) {
 
         business = existing[0];
@@ -164,100 +154,19 @@ export default {
         /*
          * IMPORTANT:
          *
-         * This is an EXISTING Google Business.
+         * The business already exists in STore.
          *
-         * We must NOT create another STore business.
+         * We deliberately do NOT automatically transfer ownership.
          *
-         * We also refresh the Google-derived business information.
+         * We also do not use Google email matching as proof that
+         * the current user should replace the existing STore owner.
          */
-        const updateResponse =
-          await supabaseFetch(
-            `/rest/v1/businesses` +
-            `?id=eq.${encodeURIComponent(business.id)}`,
-            {
-              method: 'PATCH',
 
-              headers: {
-                'Content-Type':
-                  'application/json',
+      } else {
 
-                Prefer:
-                  'return=representation'
-              },
-
-              body:
-                JSON.stringify({
-                  business_name,
-                  business_type:
-                    business_type || business.business_type || null,
-
-                  phone:
-                    phone || business.phone || null,
-
-                  website:
-                    website || business.website || null,
-
-                  address:
-                    address || business.address || null,
-
-                  city:
-                    city || business.city || null,
-
-                  state:
-                    state || business.state || null,
-
-                  country:
-                    country || business.country || null,
-
-                  postal_code:
-                    postal_code ||
-                    business.postal_code ||
-                    null,
-
-                  latitude:
-                    latitude ??
-                    business.latitude ??
-                    null,
-
-                  longitude:
-                    longitude ??
-                    business.longitude ??
-                    null,
-
-                  google_maps_url:
-                    google_maps_url ||
-                    business.google_maps_url ||
-                    null,
-
-                  google_rating:
-                    google_rating ??
-                    business.google_rating ??
-                    null,
-
-                  google_review_count:
-                    google_review_count ??
-                    business.google_review_count ??
-                    null
-                })
-            }
-          );
-
-        if(updateResponse.ok){
-          const updated =
-            await updateResponse.json();
-
-          if(Array.isArray(updated) && updated[0]){
-            business = updated[0];
-          }
-        }
-      }
-
-      /*
-       * ------------------------------------------------------------
-       * 6. CREATE BUSINESS ONLY IF IT DOES NOT EXIST
-       * ------------------------------------------------------------
-       */
-      else {
+        // ----------------------------------------------------------
+        // 6. CREATE NEW BUSINESS
+        // ----------------------------------------------------------
 
         const businessResponse =
           await supabaseFetch(
@@ -363,12 +272,24 @@ export default {
         }, 500);
       }
 
-      /*
-       * ------------------------------------------------------------
-       * 7. ADMIN FLOW
-       * ------------------------------------------------------------
-       */
+      // ------------------------------------------------------------
+      // 7. ADMIN FLOW
+      // ------------------------------------------------------------
+
       if (isStallAdmin) {
+
+        console.log(
+          'Business mapped for STall admin onboarding:',
+          {
+            business_id:
+              business.id,
+
+            place_id,
+
+            admin_user_id:
+              user.id
+          }
+        );
 
         return json({
           success: true,
@@ -401,11 +322,10 @@ export default {
         });
       }
 
-      /*
-       * ------------------------------------------------------------
-       * 8. FIND EXISTING STore OWNER
-       * ------------------------------------------------------------
-       */
+      // ------------------------------------------------------------
+      // 8. FIND EXISTING STore OWNER
+      // ------------------------------------------------------------
+
       const ownerResponse =
         await supabaseFetch(
           `/rest/v1/business_users` +
@@ -430,21 +350,21 @@ export default {
       const owners =
         await ownerResponse.json();
 
-      /*
-       * ------------------------------------------------------------
-       * 9. EXISTING OWNER
-       * ------------------------------------------------------------
-       */
+      // ------------------------------------------------------------
+      // 9. BUSINESS ALREADY HAS AN OWNER
+      // ------------------------------------------------------------
+
       if (owners.length) {
 
         const existingOwner =
           owners[0];
 
         /*
-         * If the current Supabase user is already the owner,
-         * everything is fine.
+         * Current user is already the owner.
+         *
+         * This is allowed.
          */
-        if(existingOwner.user_id === user.id){
+        if (existingOwner.user_id === user.id) {
 
           console.log(
             'Existing STore owner confirmed:',
@@ -464,189 +384,20 @@ export default {
         }
 
         /*
-         * --------------------------------------------------------
-         * 10. GOOGLE IDENTITY CHECK
-         * --------------------------------------------------------
+         * DIFFERENT USER
          *
-         * THIS IS THE IMPORTANT FIX.
+         * This is the critical security rule.
          *
-         * A Google Business can already be connected to an older
-         * STore user ID while the same Gmail is now logging in
-         * through a new Supabase user.
+         * NEVER:
+         * - compare Google email and transfer ownership
+         * - delete the existing owner
+         * - automatically replace the owner
          *
-         * We therefore check the Google connection before declaring
-         * "another account".
-         * --------------------------------------------------------
+         * A separate ownership-transfer/access workflow must be used.
          */
 
-        if(currentEmail){
-
-          const googleConnectionResponse =
-            await supabaseFetch(
-              `/rest/v1/google_connections` +
-              `?business_id=eq.${encodeURIComponent(business.id)}` +
-              `&select=*` +
-              `&limit=10`
-            );
-
-          if(googleConnectionResponse.ok){
-
-            const connections =
-              await googleConnectionResponse.json();
-
-            const matchingConnection =
-              connections.find(connection => {
-
-                const googleEmail =
-                  String(
-                    connection.google_account_email ||
-                    connection.account_email ||
-                    connection.email ||
-                    ''
-                  )
-                  .trim()
-                  .toLowerCase();
-
-                return (
-                  googleEmail &&
-                  googleEmail === currentEmail
-                );
-              });
-
-            /*
-             * SAME GOOGLE ACCOUNT
-             *
-             * The STore user ID changed, but the Google identity
-             * is the same. Reassign the STore owner relationship.
-             */
-            if(matchingConnection){
-
-              console.log(
-                'Same Google identity detected. Reassigning STore ownership:',
-                {
-                  business_id:
-                    business.id,
-
-                  old_user_id:
-                    existingOwner.user_id,
-
-                  new_user_id:
-                    user.id,
-
-                  google_email:
-                    currentEmail
-                }
-              );
-
-              /*
-               * Remove the stale owner relationship.
-               */
-              const deleteOwnerResponse =
-                await supabaseFetch(
-                  `/rest/v1/business_users` +
-                  `?id=eq.${encodeURIComponent(existingOwner.id)}`,
-                  {
-                    method:
-                      'DELETE'
-                  }
-                );
-
-              if(!deleteOwnerResponse.ok){
-
-                console.error(
-                  'Unable to remove stale owner:',
-                  await deleteOwnerResponse.text()
-                );
-
-                return json({
-                  success: false,
-
-                  business_id:
-                    business.id,
-
-                  next_step:
-                    'owner_reassignment_required',
-
-                  error:
-                    'The Google account matches this business, but the existing STore ownership record could not be updated.'
-                }, 500);
-              }
-
-              /*
-               * Create the new owner relationship.
-               */
-              const createOwnerResponse =
-                await supabaseFetch(
-                  `/rest/v1/business_users`,
-                  {
-                    method:
-                      'POST',
-
-                    headers: {
-                      'Content-Type':
-                        'application/json',
-
-                      Prefer:
-                        'resolution=ignore-duplicates,return=minimal'
-                    },
-
-                    body:
-                      JSON.stringify({
-                        business_id:
-                          business.id,
-
-                        user_id:
-                          user.id,
-
-                        role:
-                          'owner'
-                      })
-                  }
-                );
-
-              if(!createOwnerResponse.ok){
-
-                const detail =
-                  await createOwnerResponse.text();
-
-                console.error(
-                  'New owner creation failed:',
-                  detail
-                );
-
-                return json({
-                  success: false,
-
-                  business_id:
-                    business.id,
-
-                  next_step:
-                    'owner_reassignment_required',
-
-                  error:
-                    'Google identity matched, but STore owner access could not be reassigned.',
-
-                  detail
-                }, 500);
-              }
-
-              return successResponse(
-                business,
-                'google_identity_owner_reconnected'
-              );
-            }
-          }
-        }
-
-        /*
-         * --------------------------------------------------------
-         * 11. DIFFERENT GOOGLE ACCOUNT
-         * --------------------------------------------------------
-         *
-         * Only NOW do we return access_required.
-         */
         console.warn(
-          'Business access denied - different owner/account:',
+          'Business access denied - different STore owner:',
           {
             business_id:
               business.id,
@@ -657,10 +408,7 @@ export default {
               user.id,
 
             owner_user_id:
-              existingOwner.user_id,
-
-            requesting_google_email:
-              currentEmail
+              existingOwner.user_id
           }
         );
 
@@ -674,21 +422,28 @@ export default {
             'access_required',
 
           error:
-            'This business profile is already connected to another Google account. The account owner must grant you access.'
+            'This business profile is already connected to another STore account. The account owner must grant access or transfer ownership.'
         });
       }
 
+      // ------------------------------------------------------------
+      // 10. NO OWNER EXISTS
+      // ------------------------------------------------------------
+
       /*
-       * ------------------------------------------------------------
-       * 12. NO OWNER EXISTS
-       * ------------------------------------------------------------
+       * The business exists but currently has no STore owner.
+       *
+       * The authenticated user can become the first STore owner.
+       *
+       * This is what allows a new owner to connect multiple
+       * previously-unclaimed businesses.
        */
+
       const createOwnerResponse =
         await supabaseFetch(
           `/rest/v1/business_users`,
           {
-            method:
-              'POST',
+            method: 'POST',
 
             headers: {
               'Content-Type':
@@ -724,11 +479,22 @@ export default {
 
         return json({
           error:
-            'Business created but owner access could not be assigned',
+            'Business created/found but owner access could not be assigned',
 
           detail
         }, 500);
       }
+
+      console.log(
+        'New STore owner created:',
+        {
+          business_id:
+            business.id,
+
+          user_id:
+            user.id
+        }
+      );
 
       return successResponse(
         business,
@@ -755,16 +521,41 @@ export default {
 };
 
 
-/*
- * ================================================================
- * SUCCESS RESPONSE
- * ================================================================
- */
+// ================================================================
+// SUPABASE SERVICE-ROLE REQUEST
+// ================================================================
+
+async function supabaseFetch(
+  path,
+  options = {}
+) {
+  return fetch(
+    `${SUPABASE_URL}${path}`,
+    {
+      ...options,
+
+      headers: {
+        apikey:
+          SUPABASE_SERVICE_ROLE_KEY,
+
+        Authorization:
+          `Bearer ${SUPABASE_SERVICE_ROLE_KEY`,
+
+        ...(options.headers || {})
+      }
+    }
+  );
+}
+
+
+// ================================================================
+// SUCCESS RESPONSE
+// ================================================================
+
 function successResponse(
   business,
   connectionType
 ) {
-
   return json({
 
     success: true,
@@ -829,47 +620,14 @@ function successResponse(
 }
 
 
-/*
- * ================================================================
- * SUPABASE SERVICE-ROLE REQUEST
- * ================================================================
- */
-async function supabaseFetch(
-  path,
-  options = {}
-) {
+// ================================================================
+// JSON RESPONSE
+// ================================================================
 
-  return fetch(
-    `${SUPABASE_URL}${path}`,
-    {
-
-      ...options,
-
-      headers: {
-
-        apikey:
-          SUPABASE_SERVICE_ROLE_KEY,
-
-        Authorization:
-          `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-
-        ...(options.headers || {})
-      }
-    }
-  );
-}
-
-
-/*
- * ================================================================
- * JSON RESPONSE
- * ================================================================
- */
 function json(
   body,
   status = 200
 ) {
-
   return new Response(
     JSON.stringify(body),
 
@@ -877,7 +635,6 @@ function json(
       status,
 
       headers: {
-
         'content-type':
           'application/json',
 
