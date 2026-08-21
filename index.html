@@ -3378,6 +3378,24 @@ async function loadRealUser(user){
     await loadUniversalBusinessWorkspace(user);
 
   if(!loaded){
+    const googleAuthMode =
+      localStorage.getItem('stallGoogleAuthMode') || '';
+
+    /*
+     * NEW OWNER FLOW:
+     * A brand-new Google account has no business_users row yet.
+     * That is not an error. It means the owner must now select
+     * the Google Business they want to connect to STore.
+     *
+     * Existing-owner business isolation remains untouched: if an
+     * account has memberships, loadUniversalBusinessWorkspace()
+     * handles them normally.
+     */
+    if(googleAuthMode === 'signup'){
+      showNewOwnerBusinessOnboarding(user);
+      return;
+    }
+
     console.warn(
       'No universal business could be loaded for:',
       user.email
@@ -4340,54 +4358,178 @@ function showGoogleDiscover(){
   }
 }
 
+function showNewOwnerBusinessOnboarding(user){
+
+  let overlay =
+    document.getElementById('newOwnerBusinessOverlay');
+
+  if(!overlay){
+
+    overlay = document.createElement('div');
+    overlay.id = 'newOwnerBusinessOverlay';
+
+    overlay.style.cssText = [
+      'position:fixed',
+      'inset:0',
+      'z-index:10050',
+      'display:flex',
+      'align-items:center',
+      'justify-content:center',
+      'padding:24px',
+      'background:rgba(8,23,19,.96)',
+      'color:#fff',
+      'overflow:auto'
+    ].join(';');
+
+    overlay.innerHTML = `
+      <div style="width:min(760px,100%);background:#fff;color:#17231f;border-radius:18px;padding:28px;box-shadow:0 24px 80px rgba(0,0,0,.35)">
+        <div style="font-size:13px;font-weight:700;letter-spacing:.08em;color:#129447">WELCOME TO STall</div>
+        <h2 style="margin:8px 0 6px">Connect your business</h2>
+        <div style="color:#66736d;margin-bottom:20px">
+          Search for your business on Google and select the correct listing.
+          STall will create the business connection for this Google account automatically.
+        </div>
+
+        <div style="background:#f5f8f6;border-radius:12px;padding:12px;margin-bottom:18px;font-size:13px">
+          <b>Signed in as:</b> <span id="newOwnerBusinessEmail"></span>
+        </div>
+
+        <label style="display:block;margin-bottom:10px;font-weight:600">City
+          <input id="newOwnerBusinessCity" placeholder="Bengaluru" style="width:100%;box-sizing:border-box;margin-top:6px;padding:12px;border:1px solid #ccd5d0;border-radius:9px">
+        </label>
+
+        <label style="display:block;margin-bottom:10px;font-weight:600">Area / Locality
+          <input id="newOwnerBusinessArea" placeholder="Whitefield" style="width:100%;box-sizing:border-box;margin-top:6px;padding:12px;border:1px solid #ccd5d0;border-radius:9px">
+        </label>
+
+        <label style="display:block;margin-bottom:12px;font-weight:600">Business Name
+          <input id="newOwnerBusinessQuery" placeholder="Cut N Cute Studio" style="width:100%;box-sizing:border-box;margin-top:6px;padding:12px;border:1px solid #ccd5d0;border-radius:9px">
+        </label>
+
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <button type="button" id="newOwnerBusinessSearchButton" style="padding:11px 18px;border:0;border-radius:9px;cursor:pointer">Search Google</button>
+          <span id="newOwnerBusinessMessage" style="color:#66736d"></span>
+        </div>
+
+        <div id="newOwnerBusinessLocations" style="margin-top:18px"></div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+  }
+
+  const email =
+    document.getElementById('newOwnerBusinessEmail');
+
+  if(email){
+    email.innerText =
+      user?.email || '';
+  }
+
+  const city =
+    document.getElementById('newOwnerBusinessCity');
+
+  const area =
+    document.getElementById('newOwnerBusinessArea');
+
+  const query =
+    document.getElementById('newOwnerBusinessQuery');
+
+  const message =
+    document.getElementById('newOwnerBusinessMessage');
+
+  const locations =
+    document.getElementById('newOwnerBusinessLocations');
+
+  if(city) city.value = '';
+  if(area) area.value = '';
+  if(query) query.value = '';
+  if(message) message.innerText = '';
+  if(locations) locations.innerHTML = '';
+
+  const button =
+    document.getElementById('newOwnerBusinessSearchButton');
+
+  if(button){
+    button.onclick = () =>
+      discoverGoogleBusiness('new-owner');
+  }
+
+  overlay.style.display = 'flex';
+}
+
+function closeNewOwnerBusinessOnboarding(){
+  const overlay =
+    document.getElementById('newOwnerBusinessOverlay');
+
+  if(overlay){
+    overlay.remove();
+  }
+}
+
 async function discoverGoogleBusiness(mode = 'workspace'){
 
   const isAddStore =
     mode === 'add-store';
+
+  const isNewOwner =
+    mode === 'new-owner';
 
   const status =
     document.getElementById('googleConnectionStatus');
 
   const message =
     document.getElementById(
-      isAddStore
-        ? 'addStoreMessage'
-        : 'googleDiscoverMessage'
+      isNewOwner
+        ? 'newOwnerBusinessMessage'
+        : (isAddStore
+          ? 'addStoreMessage'
+          : 'googleDiscoverMessage')
     );
 
   const panel =
     document.getElementById(
-      isAddStore
-        ? 'addStoreLocationsPanel'
-        : 'googleLocationsPanel'
+      isNewOwner
+        ? 'newOwnerBusinessLocations'
+        : (isAddStore
+          ? 'addStoreLocationsPanel'
+          : 'googleLocationsPanel')
     );
 
   const country =
     document.getElementById(
-      isAddStore
-        ? 'addStoreCountry'
-        : 'googleSearchCountry'
+      isNewOwner
+        ? 'newOwnerBusinessCountry'
+        : (isAddStore
+          ? 'addStoreCountry'
+          : 'googleSearchCountry')
     )?.value.trim();
 
   const city =
     document.getElementById(
-      isAddStore
-        ? 'addStoreCity'
-        : 'googleSearchCity'
+      isNewOwner
+        ? 'newOwnerBusinessCity'
+        : (isAddStore
+          ? 'addStoreCity'
+          : 'googleSearchCity')
     )?.value.trim();
 
   const area =
     document.getElementById(
-      isAddStore
-        ? 'addStoreArea'
-        : 'googleSearchArea'
+      isNewOwner
+        ? 'newOwnerBusinessArea'
+        : (isAddStore
+          ? 'addStoreArea'
+          : 'googleSearchArea')
     )?.value.trim();
 
   const query =
     document.getElementById(
-      isAddStore
-        ? 'addStoreQuery'
-        : 'googleSearchQuery'
+      isNewOwner
+        ? 'newOwnerBusinessQuery'
+        : (isAddStore
+          ? 'addStoreQuery'
+          : 'googleSearchQuery')
     )?.value.trim();
 
   if(!city && !query){
@@ -4748,6 +4890,40 @@ async function selectGoogleBusinessLocation(
       },
       data.session.user
     );
+
+    /*
+     * NEW OWNER FLOW
+     *
+     * The new owner selected a Google Business. The membership has
+     * already been created above, so now load the normal universal
+     * workspace and finish onboarding without exposing the legacy
+     * admin/add-store UI.
+     */
+    if(isNewOwner){
+
+      closeNewOwnerBusinessOnboarding();
+
+      localStorage.setItem(
+        'stallGoogleAuthMode',
+        'signin'
+      );
+
+      await loadUniversalBusinessWorkspace(
+        data.session.user
+      );
+
+      show('home');
+
+      console.log(
+        '✓ New STore owner onboarding completed:',
+        data.session.user.email,
+        '→',
+        business.business_name,
+        business.id
+      );
+
+      return;
+    }
 
     /*
      * ADD STORE FLOW
