@@ -3388,48 +3388,15 @@ async function loadRealUser(user){
 }
 
 
-function getActiveBusinessForUser(user){
-  if(!user?.id) return null;
-
-  let active = null;
+function getStoredActiveBusiness(){
   try{
-    active = JSON.parse(
+    return JSON.parse(
       localStorage.getItem('activeBusiness') || 'null'
     );
   }catch(error){
-    console.warn('Invalid activeBusiness:', error);
     localStorage.removeItem('activeBusiness');
     return null;
   }
-
-  /*
-   * CRITICAL MULTI-ACCOUNT SAFETY:
-   * activeBusiness belongs to a specific authenticated STore user.
-   * Never allow one Gmail account to inherit another Gmail account's
-   * selected business from browser localStorage.
-   */
-  if(!active?.id || !active?.owner_user_id){
-    if(active?.id){
-      console.warn(
-        'Ignoring unscoped activeBusiness from an older STore session.'
-      );
-    }
-    localStorage.removeItem('activeBusiness');
-    return null;
-  }
-
-  if(active.owner_user_id !== user.id){
-    console.warn(
-      'Ignoring activeBusiness belonging to another STore user:',
-      active.owner_user_id,
-      'current user:',
-      user.id
-    );
-    localStorage.removeItem('activeBusiness');
-    return null;
-  }
-
-  return active;
 }
 
 function setActiveBusinessForUser(business, user){
@@ -3444,55 +3411,55 @@ function setActiveBusinessForUser(business, user){
   );
 }
 
-async function loadUniversalBusinessWorkspace(user){
-
-  const activeBusiness =
-    getActiveBusinessForUser(user);
-
-  let businessId = activeBusiness?.id || null;
-
-  /*
-   * If the browser does not have an active business, resolve the
-   * latest business membership for the authenticated user.
-   */
-  if(!businessId){
-    const { data: membership, error: membershipError } =
-      await supabaseClient
-        .from('business_users')
-        .select('business_id, created_at')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending:false })
-        .limit(1);
-
-    if(membershipError){
-      console.error(
-        'Business membership lookup error:',
-        membershipError
-      );
-      return false;
-    }
-
-    businessId =
-      membership?.[0]?.business_id ||
-      null;
-  }
-
-  if(!businessId){
-    console.warn('No business_id available for authenticated user.');
-    return false;
+async function getBusinessesForCurrentUser(user){
+  if(!user?.id){
+    return {
+      businesses: [],
+      error: 'No authenticated user.'
+    };
   }
 
   /*
-   * ALWAYS prefer the authoritative businesses table.
-   * BUT never throw away a valid selected Google business if the
-   * browser is allowed to see the business only through the selected
-   * business context (for example while RLS is being refreshed).
-   *
-   * This prevents the exact problem where the Home page knows
-   * "Cut N Cute Studio" but Business Profile falls back to the old
-   * salon/demo data.
+   * SOURCE OF TRUTH:
+   * business_users is always queried for the CURRENT authenticated
+   * Supabase user. Browser localStorage is never used to establish
+   * ownership.
    */
-  const { data: businessRows, error: businessError } =
+  const { data: memberships, error: membershipError } =
+    await supabaseClient
+      .from('business_users')
+      .select('business_id, role, created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending:false });
+
+  if(membershipError){
+    console.error(
+      'Current-user business membership lookup failed:',
+      membershipError
+    );
+
+    return {
+      businesses: [],
+      error: membershipError
+    };
+  }
+
+  const ids = [
+    ...new Set(
+      (memberships || [])
+        .map(row => row.business_id)
+        .filter(Boolean)
+    )
+  ];
+
+  if(!ids.length){
+    return {
+      businesses: [],
+      error: null
+    };
+  }
+
+  const { data: businesses, error: businessError } =
     await supabaseClient
       .from('businesses')
       .select(`
@@ -3516,49 +3483,100 @@ async function loadUniversalBusinessWorkspace(user){
         automation_enabled,
         approval_required
       `)
-      .eq('id', businessId)
-      .limit(1);
+      .in('id', ids);
 
   if(businessError){
-    console.warn(
-      'Business table lookup warning; using selected business context:',
+    console.error(
+      'Current-user business records lookup failed:',
       businessError
     );
+
+    return {
+      businesses: [],
+      error: businessError
+    };
   }
 
-  const databaseBusiness =
-    Array.isArray(businessRows) && businessRows.length
-      ? businessRows[0]
-      : null;
+  const byId = new Map(
+    (businesses || []).map(b => [b.id, b])
+  );
+
+  return {
+    businesses: ids
+      .map(id => byId.get(id))
+      .filter(Boolean)
+      .map(business => ({
+        ...business,
+        owner_user_id: user.id
+      })),
+    error: null
+  };
+}
+
+async function loadUniversalBusinessWorkspace(user){
 
   /*
-   * Merge DB data over the selected Google business.
-   * This is important because the selected business object already
-   * contains the Google identity/name that the user just selected.
+   * IMPORTANT:
+   * Always resolve the current user's memberships FIRST.
+   * Never trust localStorage to decide which business belongs
+   * to the current Gmail account.
    */
-  const business = {
-    ...(activeBusiness || {}),
-    ...(databaseBusiness || {}),
-    id: businessId
-  };
+  const result =
+    await getBusinessesForCurrentUser(user);
 
-  if(!business.business_name){
-    console.warn(
-      'Selected business has no name:',
-      businessId
-    );
+  if(result.error){
     return false;
   }
 
+  const businesses =
+    result.businesses || [];
+
+  if(!businesses.length){
+    /*
+     * A stale browser selection is safe to discard because it was
+     * not found in the current user's membership list.
+     */
+    localStorage.removeItem('activeBusiness');
+
+    console.warn(
+      'No STore businesses are connected to current user:',
+      user.email
+    );
+
+    return false;
+  }
+
+  const stored =
+    getStoredActiveBusiness();
+
   /*
-   * Keep one authoritative activeBusiness object in the browser.
+   * A cached selection can only be reused if its ID exists in the
+   * CURRENT USER'S membership list.
+   */
+  let business =
+    businesses.find(
+      b => b.id === stored?.id
+    ) || null;
+
+  /*
+   * If there is no valid cached selection, use the user's most
+   * recently connected business. This prevents Account B from
+   * inheriting Account A's business.
+   *
+   * If the user has multiple businesses, we expose the list so the
+   * existing selection UI can be used rather than silently mixing
+   * accounts.
+   */
+  if(!business){
+    business = businesses[0];
+  }
+
+  /*
+   * Persist only a business that was returned by business_users for
+   * THIS authenticated user.
    */
   setActiveBusinessForUser(
-    {
-      ...business,
-      id: business.id,
-      business_name: business.business_name
-    },
+    business,
     user
   );
 
@@ -3568,14 +3586,162 @@ async function loadUniversalBusinessWorkspace(user){
   );
 
   console.log(
-    '✓ Universal business restored:',
+    '✓ Universal business restored for current user:',
+    user.email,
+    '→',
     business.business_name,
     business.id
   );
 
+  /*
+   * If the account has multiple stores, make the available list
+   * accessible to the UI without changing ownership.
+   */
+  window.__currentUserBusinesses =
+    businesses;
+
   return true;
 }
 
+
+async function renderUniversalBusinessProfile(
+  business,
+  user
+){
+
+  const workspace =
+    document.getElementById('salonWorkspace');
+
+  if(workspace){
+    workspace.style.display = 'block';
+    workspace.removeAttribute('hidden');
+  }
+
+  const businessDisplayName =
+    business.business_name ||
+    'Your Business';
+
+  const workspaceName =
+    document.getElementById('workspaceSalonName');
+
+  if(workspaceName){
+    workspaceName.innerText =
+      businessDisplayName;
+  }
+
+  document.querySelectorAll(
+    '.stall-account-name, .stall-mobile-account-name'
+  ).forEach(function(el){
+    el.innerText = businessDisplayName;
+  });
+
+  const homeHeading =
+    document.querySelector('#home h1');
+
+  if(homeHeading){
+    homeHeading.innerHTML =
+      'Good morning, ' +
+      businessDisplayName +
+      ' <span class="greeting-emoji">👋</span>';
+  }
+
+  const workspaceCode =
+    document.getElementById('workspaceSalonCode');
+
+  if(workspaceCode){
+    workspaceCode.innerText =
+      business.business_type ||
+      'Business';
+  }
+
+  const profileName =
+    document.getElementById('profileName');
+
+  if(profileName){
+    profileName.value =
+      business.business_name || '';
+  }
+
+  const profileOwner =
+    document.getElementById('profileOwner');
+
+  if(profileOwner){
+    profileOwner.value =
+      localStorage.getItem('storeUserName') ||
+      user.email ||
+      '';
+  }
+
+  const profilePhone =
+    document.getElementById('profilePhone');
+
+  if(profilePhone){
+    profilePhone.value =
+      business.phone || '';
+  }
+
+  const profileWhatsapp =
+    document.getElementById('profileWhatsapp');
+
+  if(profileWhatsapp){
+    profileWhatsapp.value =
+      business.phone || '';
+  }
+
+  const profileAddress =
+    document.getElementById('profileAddress');
+
+  if(profileAddress){
+    profileAddress.value =
+      [
+        business.address,
+        business.city,
+        business.state,
+        business.country,
+        business.postal_code
+      ]
+      .filter(Boolean)
+      .join(', ');
+  }
+
+  const profileWebsite =
+    document.getElementById('profileWebsite');
+
+  if(profileWebsite){
+    profileWebsite.value =
+      business.website || '';
+  }
+
+  const profileGoogle =
+    document.getElementById('profileGoogle');
+
+  if(profileGoogle){
+    profileGoogle.value =
+      business.google_maps_url ||
+      business.google_place_id ||
+      '';
+  }
+
+  const rating =
+    document.getElementById('profileGoogleRating');
+
+  if(rating){
+    rating.innerText =
+      business.google_rating != null
+        ? `⭐ ${business.google_rating}`
+        : '';
+  }
+
+  const reviews =
+    document.getElementById('profileGoogleReviews');
+
+  if(reviews){
+    reviews.innerText =
+      business.google_review_count != null
+        ? `${business.google_review_count} Google reviews`
+        : '';
+  }
+}
 
 async function renderUniversalBusinessProfile(
   business,
@@ -3762,38 +3928,43 @@ async function getActiveSalonId(){
 
 
 async function getActiveBusinessId(){
-  let activeBusiness = {};
 
-  try{
-    activeBusiness = JSON.parse(
-      localStorage.getItem('activeBusiness') || '{}'
-    );
-  }catch(error){
-    localStorage.removeItem('activeBusiness');
-  }
+  const { data: sessionData, error: sessionError } =
+    await supabaseClient.auth.getSession();
 
-  if(activeBusiness.id){
-    return activeBusiness.id;
-  }
-
-  const {data:sessionData}=await supabaseClient.auth.getSession();
-  if(!sessionData.session)return null;
-
-  const {data,error}=await supabaseClient
-    .from('business_users')
-    .select('business_id,created_at')
-    .eq('user_id',sessionData.session.user.id)
-    .order('created_at',{ascending:false})
-    .limit(1);
-
-  if(error){
-    console.error('Business membership error:',error);
+  if(sessionError || !sessionData?.session?.user){
     return null;
   }
 
-  return data?.[0]?.business_id || null;
-}
+  const user =
+    sessionData.session.user;
 
+  /*
+   * NEVER trust activeBusiness by itself.
+   * Validate it against the current user's memberships.
+   */
+  const result =
+    await getBusinessesForCurrentUser(user);
+
+  if(result.error || !result.businesses.length){
+    return null;
+  }
+
+  const stored =
+    getStoredActiveBusiness();
+
+  const valid =
+    result.businesses.find(
+      b => b.id === stored?.id
+    ) || result.businesses[0];
+
+  setActiveBusinessForUser(
+    valid,
+    user
+  );
+
+  return valid.id;
+}
 
 
 /*
@@ -4456,6 +4627,7 @@ async function selectGoogleBusinessLocation(
      */
     setActiveBusinessForUser(
       {
+        ...business,
         id: business.id,
         business_name: business.business_name,
         google_place_id: business.google_place_id
@@ -5002,55 +5174,120 @@ async function loadSalonWorkspace(userId){
 
 
 async function logoutStore(){
-  try {
-    const { error } = await supabaseClient.auth.signOut();
+
+  console.log(
+    'STore logout: starting...'
+  );
+
+  try{
+
+    const { error } =
+      await supabaseClient.auth.signOut({
+        scope: 'global'
+      });
 
     if(error){
-      console.error('Logout error:', error);
+      console.error(
+        'Logout error:',
+        error
+      );
     }
-  } catch(error) {
-    console.error('Logout exception:', error);
+
+    const { data } =
+      await supabaseClient.auth.getSession();
+
+    console.log(
+      'STore logout session:',
+      data?.session || null
+    );
+
+  }catch(error){
+
+    console.error(
+      'Logout exception:',
+      error
+    );
   }
 
-  localStorage.removeItem('storeLoggedIn');
-  localStorage.removeItem('storeUser');
-  localStorage.removeItem('storeRole');
-  localStorage.removeItem('storeUserName');
+  [
+    'storeLoggedIn',
+    'storeUser',
+    'storeRole',
+    'storeUserName',
+    'activeBusiness',
+    'activeSalon',
+    'stallGoogleAuthMode'
+  ].forEach(
+    key => localStorage.removeItem(key)
+  );
 
-  /* Never let the next Google account inherit this user's business. */
-  localStorage.removeItem('activeBusiness');
-  localStorage.removeItem('activeSalon');
-  localStorage.removeItem('stallGoogleAuthMode');
+  window.__currentUserBusinesses = [];
 
-  document.querySelectorAll('.screen').forEach(x => {
-    x.classList.remove('active');
-  });
+  try{
+    sessionStorage.clear();
+  }catch(error){}
 
-  const loginOverlay = document.getElementById('loginOverlay');
+  document.querySelectorAll(
+    '.screen'
+  ).forEach(
+    x => x.classList.remove('active')
+  );
+
+  const loginOverlay =
+    document.getElementById(
+      'loginOverlay'
+    );
+
   if(loginOverlay){
-    loginOverlay.style.display = 'flex';
+    loginOverlay.style.display =
+      'flex';
   }
 
-  const forgotOverlay = document.getElementById('forgotOverlay');
+  const forgotOverlay =
+    document.getElementById(
+      'forgotOverlay'
+    );
+
   if(forgotOverlay){
-    forgotOverlay.style.display = 'none';
+    forgotOverlay.style.display =
+      'none';
   }
 
-  const resetOverlay = document.getElementById('resetOverlay');
+  const resetOverlay =
+    document.getElementById(
+      'resetOverlay'
+    );
+
   if(resetOverlay){
-    resetOverlay.style.display = 'none';
+    resetOverlay.style.display =
+      'none';
   }
 
-  const loginEmail = document.getElementById('loginEmail');
-  const loginPassword = document.getElementById('loginPassword');
+  const loginEmail =
+    document.getElementById(
+      'loginEmail'
+    );
+
+  const loginPassword =
+    document.getElementById(
+      'loginPassword'
+    );
 
   if(loginEmail) loginEmail.value = '';
   if(loginPassword) loginPassword.value = '';
 
-  const loginError = document.getElementById('loginError');
-  if(loginError) loginError.innerText = '';
+  const loginError =
+    document.getElementById(
+      'loginError'
+    );
 
-  toast('Logged out successfully');
+  if(loginError){
+    loginError.innerText = '';
+  }
+
+  toast(
+    'Logged out successfully'
+  );
 }
 
 function flowDemo(){
