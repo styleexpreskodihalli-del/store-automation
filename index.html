@@ -4709,12 +4709,17 @@ async function discoverGoogleBusiness(mode = 'workspace'){
         button.innerText =
           'MAP THIS LISTING';
 
-        button.onclick =
-          () =>
-            selectGoogleBusinessLocation(
-              location,
-              isAddStore ? 'add-store' : 'workspace'
-            );
+        button.onclick = () => {
+          if(button.dataset.mappingBusy === 'true') return;
+
+          selectGoogleBusinessLocation(
+            location,
+            isNewOwner
+              ? 'new-owner'
+              : (isAddStore ? 'add-store' : 'workspace'),
+            button
+          );
+        };
 
         card.appendChild(button);
         panel.appendChild(card);
@@ -4736,11 +4741,27 @@ async function discoverGoogleBusiness(mode = 'workspace'){
 
 async function selectGoogleBusinessLocation(
   location,
-  mode = 'workspace'
+  mode = 'workspace',
+  sourceButton = null
 ){
+
+  if(sourceButton?.dataset.mappingBusy === 'true'){
+    return;
+  }
+
+  if(sourceButton){
+    sourceButton.dataset.mappingBusy = 'true';
+    sourceButton.disabled = true;
+    sourceButton.dataset.originalText = sourceButton.innerText;
+    sourceButton.innerText = 'Adding store...';
+  }
 
   const isAddStore =
     mode === 'add-store';
+
+  const isNewOwner =
+    mode === 'new-owner';
+
   const status =
     document.getElementById(
       'googleConnectionStatus'
@@ -4825,6 +4846,13 @@ async function selectGoogleBusinessLocation(
         result.error ||
         'Unable to map business profile.';
 
+      if(sourceButton){
+        sourceButton.dataset.mappingBusy = 'false';
+        sourceButton.disabled = false;
+        sourceButton.innerText =
+          sourceButton.dataset.originalText || 'MAP THIS LISTING';
+      }
+
       return;
     }
 
@@ -4841,6 +4869,13 @@ async function selectGoogleBusinessLocation(
         status.innerText =
           'This business profile is already connected to another account. ' +
           'Access approval is required.';
+      }
+
+      if(sourceButton){
+        sourceButton.dataset.mappingBusy = 'false';
+        sourceButton.disabled = false;
+        sourceButton.innerText =
+          sourceButton.dataset.originalText || 'MAP THIS LISTING';
       }
 
       return;
@@ -4875,6 +4910,13 @@ async function selectGoogleBusinessLocation(
           'Please try again.';
       }
 
+      if(sourceButton){
+        sourceButton.dataset.mappingBusy = 'false';
+        sourceButton.disabled = false;
+        sourceButton.innerText =
+          sourceButton.dataset.originalText || 'MAP THIS LISTING';
+      }
+
       return;
     }
 
@@ -4901,21 +4943,114 @@ async function selectGoogleBusinessLocation(
      */
     if(isNewOwner){
 
-      closeNewOwnerBusinessOnboarding();
+      /*
+       * MULTI-STORE NEW OWNER FLOW
+       *
+       * Do not close onboarding after the first store. The same owner
+       * can connect 5, 10 or more stores. Each successful mapping has
+       * already created/reused the business_users membership above.
+       */
+      const overlay =
+        document.getElementById('newOwnerBusinessOverlay');
 
-      localStorage.setItem(
-        'stallGoogleAuthMode',
-        'signin'
-      );
+      const message =
+        document.getElementById('newOwnerBusinessMessage');
 
-      await loadUniversalBusinessWorkspace(
-        data.session.user
-      );
+      const locationsPanel =
+        document.getElementById('newOwnerBusinessLocations');
 
-      show('home');
+      if(locationsPanel){
+        locationsPanel.innerHTML = '';
+        locationsPanel.style.display = 'block';
+      }
+
+      if(message){
+        message.innerHTML =
+          '✓ <b>' +
+          (business.business_name || 'Store') +
+          '</b> added successfully. You can add another store you own.';
+      }
+
+      if(sourceButton){
+        sourceButton.dataset.mappingBusy = 'false';
+        sourceButton.disabled = true;
+        sourceButton.innerText = 'Store Added ✓';
+      }
+
+      let actionBar =
+        document.getElementById('newOwnerBusinessActions');
+
+      if(!actionBar){
+        actionBar = document.createElement('div');
+        actionBar.id = 'newOwnerBusinessActions';
+        actionBar.style.cssText =
+          'display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;padding-top:16px;border-top:1px solid #e3e9e5';
+
+        if(locationsPanel && locationsPanel.parentNode){
+          locationsPanel.parentNode.appendChild(actionBar);
+        }else if(overlay){
+          overlay.querySelector('div')?.appendChild(actionBar);
+        }
+      }
+
+      actionBar.innerHTML = '';
+
+      const addAnother = document.createElement('button');
+      addAnother.type = 'button';
+      addAnother.innerText = '＋ Add Another Store';
+      addAnother.style.cssText =
+        'padding:11px 18px;border:0;border-radius:9px;cursor:pointer';
+
+      addAnother.onclick = () => {
+        const city = document.getElementById('newOwnerBusinessCity');
+        const area = document.getElementById('newOwnerBusinessArea');
+        const query = document.getElementById('newOwnerBusinessQuery');
+        const msg = document.getElementById('newOwnerBusinessMessage');
+        const locations = document.getElementById('newOwnerBusinessLocations');
+
+        if(city) city.value = '';
+        if(area) area.value = '';
+        if(query) query.value = '';
+        if(msg) msg.innerText = '';
+        if(locations){
+          locations.innerHTML = '';
+          locations.style.display = 'block';
+        }
+
+        actionBar.innerHTML = '';
+      };
+
+      const done = document.createElement('button');
+      done.type = 'button';
+      done.innerText = 'Continue to STall';
+      done.style.cssText =
+        'padding:11px 18px;border:1px solid #129447;background:#129447;color:#fff;border-radius:9px;cursor:pointer';
+
+      done.onclick = async () => {
+        closeNewOwnerBusinessOnboarding();
+
+        localStorage.setItem(
+          'stallGoogleAuthMode',
+          'signin'
+        );
+
+        await loadUniversalBusinessWorkspace(
+          data.session.user
+        );
+
+        show('home');
+
+        console.log(
+          '✓ New STore owner onboarding completed:',
+          data.session.user.email
+        );
+      };
+
+      actionBar.appendChild(addAnother);
+      actionBar.appendChild(done);
 
       console.log(
-        '✓ New STore owner onboarding completed:',
+        '✓ New STore store added:',
         data.session.user.email,
         '→',
         business.business_name,
@@ -5028,6 +5163,13 @@ async function selectGoogleBusinessLocation(
     if(status){
       status.innerText =
         'Unable to map business profile.';
+    }
+
+    if(sourceButton){
+      sourceButton.dataset.mappingBusy = 'false';
+      sourceButton.disabled = false;
+      sourceButton.innerText =
+        sourceButton.dataset.originalText || 'MAP THIS LISTING';
     }
   }
 }
