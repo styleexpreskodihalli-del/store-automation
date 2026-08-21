@@ -3278,10 +3278,37 @@ restoreStoreSession();
 function toggleEmailLogin(){
   const panel=document.getElementById('stallEmailLoginPanel');
   const btn=document.querySelector('.stall-email-toggle');
+  const googleBtn=document.querySelector('.stall-google-primary');
+  const flow=document.querySelector('.stall-login-flow');
   if(!panel) return;
+
   const open=panel.style.display !== 'none';
-  panel.style.display=open ? 'none' : 'block';
-  if(btn) btn.innerText=open ? 'Sign in with email instead' : 'Hide email sign in';
+
+  if(open){
+    panel.style.display='none';
+    if(googleBtn) googleBtn.style.display='flex';
+    if(flow) flow.style.display='block';
+    if(btn) btn.innerText='Sign in with email instead';
+  }else{
+    panel.style.display='block';
+    if(googleBtn) googleBtn.style.display='none';
+    if(flow) flow.style.display='none';
+    if(btn) btn.innerText='← Back to Google sign in';
+  }
+}
+
+function selectGoogleLogin(){
+  const panel=document.getElementById('stallEmailLoginPanel');
+  const btn=document.querySelector('.stall-email-toggle');
+  const googleBtn=document.querySelector('.stall-google-primary');
+  const flow=document.querySelector('.stall-login-flow');
+
+  if(panel) panel.style.display='none';
+  if(googleBtn) googleBtn.style.display='flex';
+  if(flow) flow.style.display='block';
+  if(btn) btn.innerText='Sign in with email instead';
+
+  storeGoogleLogin('signin');
 }
 
 async function storeLogin(){
