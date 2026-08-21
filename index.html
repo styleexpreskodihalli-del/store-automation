@@ -3939,10 +3939,15 @@ async function connectNewGoogleBusiness(location){
     const ownerName =
       localStorage.getItem('storeUserName') || 'Owner';
 
-    const hydrated =
+    let hydrated =
       await hydrateSelectedBusiness(
         null,
         ownerName
+      );
+
+    hydrated =
+      await loadGoogleBusinessProfileDetails(
+        hydrated
       );
 
     await loadSalonWorkspaceData();
@@ -4093,12 +4098,16 @@ async function hydrateSelectedBusiness(user, ownerName = null){
 }
 
 async function openSelectedBusiness(user, ownerName = null){
-  const business =
+  let business =
     await hydrateSelectedBusiness(user, ownerName);
 
   if(!business?.id){
     return false;
   }
+
+  // Refresh the selected business from Google before opening Home.
+  business =
+    await loadGoogleBusinessProfileDetails(business);
 
   try {
     await loadSalonWorkspaceData();
@@ -5151,8 +5160,240 @@ async function sendStoreGoogleInvitation(){
   }
 }
 
+
+async function loadGoogleBusinessProfileDetails(business){
+  if(!business?.id){
+    return business || null;
+  }
+
+  try {
+    const { data: sessionData, error: sessionError } =
+      await supabaseClient.auth.getSession();
+
+    if(sessionError || !sessionData?.session){
+      console.warn('No active session for Google Business details.');
+      return business;
+    }
+
+    const response = await fetch(
+      `/api/google?action=locations&business_id=${encodeURIComponent(business.id)}`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization:
+            `Bearer ${sessionData.session.access_token}`
+        }
+      }
+    );
+
+    const result =
+      await response.json().catch(() => ({}));
+
+    if(!response.ok || !result.success){
+      console.warn(
+        'Google Business Profile details unavailable:',
+        result
+      );
+      return business;
+    }
+
+    const locations =
+      Array.isArray(result.locations)
+        ? result.locations
+        : [];
+
+    if(!locations.length){
+      return business;
+    }
+
+    const selectedPlaceId =
+      business.google_place_id ||
+      business.place_id ||
+      '';
+
+    let match =
+      locations.find(item =>
+        item?.location?.metadata?.placeId === selectedPlaceId
+      );
+
+    // If the business has only one connected Google location,
+    // it is the safest fallback.
+    if(!match && locations.length === 1){
+      match = locations[0];
+    }
+
+    if(!match?.location){
+      console.warn(
+        'No matching Google location found for business:',
+        selectedPlaceId
+      );
+      return business;
+    }
+
+    const location = match.location;
+    const metadata = location.metadata || {};
+    const address = location.storefront_address || {};
+    const phones = location.phone_numbers || {};
+
+    const googleDetails = {
+      google_account_id:
+        result.connection?.google_account_id ||
+        business.google_account_id ||
+        null,
+
+      google_account_email:
+        result.connection?.google_account_email ||
+        business.google_account_email ||
+        null,
+
+      google_location_name:
+        location.name || null,
+
+      google_place_id:
+        metadata.placeId ||
+        selectedPlaceId ||
+        null,
+
+      google_maps_url:
+        metadata.mapsUri ||
+        business.google_maps_url ||
+        null,
+
+      google_review_url:
+        metadata.newReviewUri ||
+        business.google_review_url ||
+        null,
+
+      google_has_voice_of_merchant:
+        metadata.hasVoiceOfMerchant === true,
+
+      google_business_title:
+        location.title ||
+        business.business_name ||
+        'Your Business',
+
+      google_store_code:
+        location.store_code ||
+        business.store_code ||
+        '',
+
+      google_phone:
+        phones.primaryPhone ||
+        business.phone ||
+        '',
+
+      google_website:
+        location.website_uri ||
+        business.website ||
+        '',
+
+      google_address:
+        [
+          ...(address.addressLines || []),
+          address.locality,
+          address.administrativeArea,
+          address.postalCode,
+          address.regionCode
+        ].filter(Boolean).join(', '),
+
+      google_city:
+        address.locality || business.city || '',
+
+      google_state:
+        address.administrativeArea || business.state || '',
+
+      google_country:
+        address.regionCode || business.country || '',
+
+      google_postal_code:
+        address.postalCode || business.postal_code || ''
+    };
+
+    const merged = {
+      ...business,
+
+      // Google is the authoritative source for Google-connected
+      // business identity/details.
+      business_name:
+        googleDetails.google_business_title ||
+        business.business_name ||
+        'Your Business',
+
+      phone:
+        googleDetails.google_phone ||
+        business.phone ||
+        '',
+
+      website:
+        googleDetails.google_website ||
+        business.website ||
+        '',
+
+      address:
+        googleDetails.google_address ||
+        business.address ||
+        '',
+
+      city:
+        googleDetails.google_city ||
+        business.city ||
+        '',
+
+      state:
+        googleDetails.google_state ||
+        business.state ||
+        '',
+
+      country:
+        googleDetails.google_country ||
+        business.country ||
+        '',
+
+      postal_code:
+        googleDetails.google_postal_code ||
+        business.postal_code ||
+        '',
+
+      google_place_id:
+        googleDetails.google_place_id,
+
+      google_maps_url:
+        googleDetails.google_maps_url,
+
+      google_review_url:
+        googleDetails.google_review_url,
+
+      google_business_url:
+        googleDetails.google_maps_url,
+
+      store_code:
+        googleDetails.google_store_code ||
+        business.store_code ||
+        '',
+
+      ...googleDetails
+    };
+
+    localStorage.setItem(
+      'activeBusiness',
+      JSON.stringify(merged)
+    );
+
+    return merged;
+
+  } catch(error){
+    console.error(
+      'Google Business Profile detail load failed:',
+      error
+    );
+
+    return business;
+  }
+}
+
+
 async function loadSalonWorkspaceData(){
-  const activeBusiness =
+  let activeBusiness =
     JSON.parse(localStorage.getItem('activeBusiness') || '{}');
 
   if(!activeBusiness.id){
@@ -5160,7 +5401,8 @@ async function loadSalonWorkspaceData(){
     return;
   }
 
-  const { data: business, error: businessError } =
+  // First load the selected business from Supabase.
+  const { data: dbBusiness, error: businessError } =
     await supabaseClient
       .from('businesses')
       .select('*')
@@ -5171,6 +5413,18 @@ async function loadSalonWorkspaceData(){
     console.error('Business profile error:', businessError);
     return;
   }
+
+  // Then ask the Google Business Profile API for the live Google
+  // location details and use those details as the display source.
+  activeBusiness = {
+    ...activeBusiness,
+    ...(dbBusiness || {})
+  };
+
+  activeBusiness =
+    await loadGoogleBusinessProfileDetails(activeBusiness);
+
+  const business = activeBusiness;
 
   /*
    * Owner name comes from the authenticated STore profile.
@@ -5196,28 +5450,32 @@ async function loadSalonWorkspaceData(){
   }
 
   const businessName =
+    business.google_business_title ||
     business.business_name ||
     business.name ||
     activeBusiness.business_name ||
     'Your Business';
 
   const businessCode =
-    business.business_code ||
+    business.google_store_code ||
     business.store_code ||
-    business.salon_code ||
+    business.business_code ||
     '';
 
   const phone =
+    business.google_phone ||
     business.phone ||
     business.primary_phone ||
     '';
 
   const website =
+    business.google_website ||
     business.website ||
     business.website_uri ||
     '';
 
   const address =
+    business.google_address ||
     business.address ||
     business.formatted_address ||
     '';
@@ -5228,8 +5486,8 @@ async function loadSalonWorkspaceData(){
     '';
 
   const googleUrl =
-    business.google_business_url ||
     business.google_maps_url ||
+    business.google_business_url ||
     business.maps_url ||
     '';
 
