@@ -3428,7 +3428,7 @@ async function getBusinessesForCurrentUser(user){
   const { data: memberships, error: membershipError } =
     await supabaseClient
       .from('business_users')
-      .select('business_id, role, created_at, business_name')
+      .select('business_id, role, created_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending:false });
 
