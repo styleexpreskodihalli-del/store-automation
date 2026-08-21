@@ -3098,7 +3098,7 @@ async function sendPasswordReset(){
   const { error } = await supabaseClient.auth.resetPasswordForEmail(
     email,
     {
-      redirectTo: 'https://store-automation.vercel.app'
+      redirectTo: 'https://stall-store.cutncutestudio.in'
     }
   );
 
@@ -3306,7 +3306,7 @@ async function storeGoogleLogin(mode = 'signin'){
 
       options: {
         redirectTo:
-          window.location.origin
+          'https://stall-store.cutncutestudio.in'
       }
     });
 
