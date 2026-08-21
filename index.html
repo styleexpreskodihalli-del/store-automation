@@ -3435,11 +3435,16 @@ async function loadUniversalBusinessWorkspace(user){
   }
 
   /*
-   * ALWAYS read the authoritative record from businesses.
-   * This is what prevents the old Your Business/salons data from
-   * appearing in the Business Profile.
+   * ALWAYS prefer the authoritative businesses table.
+   * BUT never throw away a valid selected Google business if the
+   * browser is allowed to see the business only through the selected
+   * business context (for example while RLS is being refreshed).
+   *
+   * This prevents the exact problem where the Home page knows
+   * "Cut N Cute Studio" but Business Profile falls back to the old
+   * salon/demo data.
    */
-  const { data: business, error: businessError } =
+  const { data: businessRows, error: businessError } =
     await supabaseClient
       .from('businesses')
       .select(`
@@ -3464,19 +3469,34 @@ async function loadUniversalBusinessWorkspace(user){
         approval_required
       `)
       .eq('id', businessId)
-      .maybeSingle();
+      .limit(1);
 
   if(businessError){
-    console.error(
-      'Universal business profile error:',
+    console.warn(
+      'Business table lookup warning; using selected business context:',
       businessError
     );
-    return false;
   }
 
-  if(!business){
+  const databaseBusiness =
+    Array.isArray(businessRows) && businessRows.length
+      ? businessRows[0]
+      : null;
+
+  /*
+   * Merge DB data over the selected Google business.
+   * This is important because the selected business object already
+   * contains the Google identity/name that the user just selected.
+   */
+  const business = {
+    ...(activeBusiness || {}),
+    ...(databaseBusiness || {}),
+    id: businessId
+  };
+
+  if(!business.business_name){
     console.warn(
-      'Universal business record not found:',
+      'Selected business has no name:',
       businessId
     );
     return false;
@@ -3488,22 +3508,9 @@ async function loadUniversalBusinessWorkspace(user){
   localStorage.setItem(
     'activeBusiness',
     JSON.stringify({
+      ...business,
       id: business.id,
-      business_name: business.business_name,
-      business_type: business.business_type,
-      phone: business.phone,
-      website: business.website,
-      address: business.address,
-      city: business.city,
-      state: business.state,
-      country: business.country,
-      postal_code: business.postal_code,
-      latitude: business.latitude,
-      longitude: business.longitude,
-      google_place_id: business.google_place_id,
-      google_maps_url: business.google_maps_url,
-      google_rating: business.google_rating,
-      google_review_count: business.google_review_count
+      business_name: business.business_name
     })
   );
 
@@ -3532,6 +3539,7 @@ async function renderUniversalBusinessProfile(
 
   if(workspace){
     workspace.style.display = 'block';
+    workspace.removeAttribute('hidden');
   }
 
   const businessDisplayName =
