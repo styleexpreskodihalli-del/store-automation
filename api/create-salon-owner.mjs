@@ -1280,7 +1280,7 @@ async function createAdminSalonOwner({
             SUPABASE_SERVICE_ROLE_KEY,
 
           Authorization:
-            `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+            `Bearer ${SUPABASE_SERVICE_ROLE_KEY},`
         }
       }
     );
