@@ -1858,7 +1858,7 @@ window.supabaseClient = supabaseClient;
           font-size:clamp(24px,4vw,34px);
           letter-spacing:-.8px;
         ">
-          Good morning, Flow Salon <span class="greeting-emoji">👋</span>
+          Good morning, <span id="homeBusinessName">your business</span> <span class="greeting-emoji">👋</span>
         </h1>
 
         <div class="muted" style="font-size:14px">
@@ -2351,15 +2351,15 @@ Create Store
 <div id="salonWorkspace" class="card" style="display:none">
 <div class="row">
 <div>
-<div class="badge">MY SALON</div>
-<h2 id="workspaceSalonName">Flow Salon</h2>
-<div class="muted" id="workspaceSalonCode">SALON-001</div>
+<div class="badge" id="workspaceBusinessType">MY BUSINESS</div>
+<h2 id="workspaceSalonName">Your Business</h2>
+<div class="muted" id="workspaceSalonCode"></div>
 </div>
 <span class="badge">ACTIVE</span>
 </div>
 
-<h3>Salon Profile</h3>
-<label>Salon Name<input id="profileName"></label>
+<h3>Business Profile</h3>
+<label>Business Name<input id="profileName"></label>
 <label>Owner Name<input id="profileOwner"></label>
 <label>Phone<input id="profilePhone"></label>
 <label>WhatsApp<input id="profileWhatsapp"></label>
@@ -2708,7 +2708,7 @@ Discover Google Business Profile
   <div class="stall-mobile-account-info">
     <span class="online"></span>
     <div>
-      <div class="stall-mobile-account-name">Flow Salon</div>
+      <div class="stall-mobile-account-name" id="mobileBusinessAccountName">Your Business</div>
       <div class="stall-mobile-account-role">Owner</div>
     </div>
   </div>
@@ -2728,7 +2728,7 @@ Discover Google Business Profile
     <div class="stall-account-status">
       <span class="stall-online-dot"></span>
       <div>
-        <div class="stall-account-name">Flow Salon</div>
+        <div class="stall-account-name" id="desktopBusinessAccountName">Your Business</div>
         <div class="stall-account-role">Owner</div>
       </div>
     </div>
@@ -3514,6 +3514,8 @@ function continueWithSelectedStore(business){
     })
   );
 
+  applyUniversalBusinessIdentity();
+
   setStoreSelectionStatus('Store selected. Opening STore...');
 
   setTimeout(async () => {
@@ -3905,6 +3907,31 @@ async function connectNewGoogleBusiness(location){
   }
 }
 
+
+
+function applyUniversalBusinessIdentity(){
+  const activeBusiness =
+    JSON.parse(localStorage.getItem('activeBusiness') || '{}');
+
+  const name =
+    activeBusiness.business_name ||
+    activeBusiness.name ||
+    'Your Business';
+
+  const ids = [
+    'homeBusinessName',
+    'mobileBusinessAccountName',
+    'desktopBusinessAccountName',
+    'workspaceSalonName'
+  ];
+
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.innerText = name;
+  });
+
+  document.title = `${name} — STall Store Automation`;
+}
 
 async function loadRealUser(user){
   const { data, error } = await supabaseClient
@@ -4904,68 +4931,196 @@ async function sendStoreGoogleInvitation(){
 }
 
 async function loadSalonWorkspaceData(){
-  const salonId=await getActiveSalonId();
-  if(!salonId)return;
+  const activeBusiness =
+    JSON.parse(localStorage.getItem('activeBusiness') || '{}');
 
-  const {data:salon,error}=await supabaseClient
-    .from('salons')
-    .select('*')
-    .eq('id',salonId)
-    .single();
-
-  if(error){
-    console.error('Salon profile error:',error);
+  if(!activeBusiness.id){
+    console.warn('No active business selected.');
     return;
   }
 
-  document.getElementById('salonWorkspace').style.display='block';
+  const { data: business, error: businessError } =
+    await supabaseClient
+      .from('businesses')
+      .select('*')
+      .eq('id', activeBusiness.id)
+      .single();
 
-  document.getElementById('workspaceSalonName').innerText=salon.name||'';
-  document.getElementById('workspaceSalonCode').innerText=salon.salon_code||'';
+  if(businessError){
+    console.error('Business profile error:', businessError);
+    return;
+  }
 
-  document.getElementById('profileName').value=salon.name||'';
-  document.getElementById('profileOwner').value=salon.owner_name||'';
-  document.getElementById('profilePhone').value=salon.phone||'';
-  document.getElementById('profileWhatsapp').value=salon.whatsapp||'';
-  document.getElementById('profileAddress').value=salon.address||'';
-  document.getElementById('profileWebsite').value=salon.website||'';
-  document.getElementById('profileGoogle').value=salon.google_business_url||'';
-  document.getElementById('profileInstagram').value=salon.instagram_url||'';
-  document.getElementById('profileFacebook').value=salon.facebook_url||'';
-  document.getElementById('profileBrandVoice').value=salon.brand_voice||'';
-  document.getElementById('profileAudience').value=salon.target_audience||'';
+  /*
+   * Owner name comes from the authenticated STore profile.
+   * Business data comes from the selected business.
+   */
+  const { data: sessionData } =
+    await supabaseClient.auth.getSession();
 
-  await loadSalonServices(salonId);
-  await loadSalonOffers(salonId);
+  let ownerName = '';
+
+  if(sessionData?.session?.user?.id){
+    const { data: profile } =
+      await supabaseClient
+        .from('profiles')
+        .select('full_name')
+        .eq('id', sessionData.session.user.id)
+        .maybeSingle();
+
+    ownerName =
+      profile?.full_name ||
+      sessionData.session.user.email ||
+      '';
+  }
+
+  const businessName =
+    business.business_name ||
+    business.name ||
+    activeBusiness.business_name ||
+    'Your Business';
+
+  const businessCode =
+    business.business_code ||
+    business.store_code ||
+    business.salon_code ||
+    '';
+
+  const phone =
+    business.phone ||
+    business.primary_phone ||
+    '';
+
+  const website =
+    business.website ||
+    business.website_uri ||
+    '';
+
+  const address =
+    business.address ||
+    business.formatted_address ||
+    '';
+
+  const googlePlaceId =
+    business.google_place_id ||
+    activeBusiness.google_place_id ||
+    '';
+
+  const googleUrl =
+    business.google_business_url ||
+    business.google_maps_url ||
+    business.maps_url ||
+    '';
+
+  const instagram =
+    business.instagram_url ||
+    '';
+
+  const facebook =
+    business.facebook_url ||
+    '';
+
+  const nameEl = document.getElementById('workspaceSalonName');
+  const codeEl = document.getElementById('workspaceSalonCode');
+  const typeEl = document.getElementById('workspaceBusinessType');
+
+  if(nameEl) nameEl.innerText = businessName;
+  if(codeEl) codeEl.innerText = businessCode;
+  if(typeEl) typeEl.innerText = 'MY BUSINESS';
+
+  const profileName = document.getElementById('profileName');
+  const profileOwner = document.getElementById('profileOwner');
+  const profilePhone = document.getElementById('profilePhone');
+  const profileWhatsapp = document.getElementById('profileWhatsapp');
+  const profileAddress = document.getElementById('profileAddress');
+  const profileWebsite = document.getElementById('profileWebsite');
+  const profileGoogle = document.getElementById('profileGoogle');
+  const profileInstagram = document.getElementById('profileInstagram');
+  const profileFacebook = document.getElementById('profileFacebook');
+
+  if(profileName) profileName.value = businessName;
+  if(profileOwner) profileOwner.value = ownerName;
+  if(profilePhone) profilePhone.value = phone;
+  if(profileWhatsapp) profileWhatsapp.value =
+    business.whatsapp || business.whatsapp_number || '';
+  if(profileAddress) profileAddress.value = address;
+  if(profileWebsite) profileWebsite.value = website;
+  if(profileGoogle) profileGoogle.value = googleUrl;
+  if(profileInstagram) profileInstagram.value = instagram;
+  if(profileFacebook) profileFacebook.value = facebook;
+
+  applyUniversalBusinessIdentity();
+
+  const workspace = document.getElementById('salonWorkspace');
+  if(workspace) workspace.style.display = 'block';
+
+  /*
+   * Keep the existing salon services/offers modules from breaking while
+   * the dashboard is being universalized. They are loaded only when an
+   * actual salon membership exists.
+   */
+  const salonId = await getActiveSalonId();
+
+  if(salonId){
+    await loadSalonServices(salonId);
+    await loadSalonOffers(salonId);
+  }
 }
 
 async function saveSalonProfile(){
-  const salonId=await getActiveSalonId();
-  if(!salonId)return;
+  const activeBusiness =
+    JSON.parse(localStorage.getItem('activeBusiness') || '{}');
 
-  const updateData={
-    name:document.getElementById('profileName').value.trim(),
-    owner_name:document.getElementById('profileOwner').value.trim(),
-    phone:document.getElementById('profilePhone').value.trim(),
-    whatsapp:document.getElementById('profileWhatsapp').value.trim(),
-    address:document.getElementById('profileAddress').value.trim(),
-    website:document.getElementById('profileWebsite').value.trim(),
-    google_business_url:document.getElementById('profileGoogle').value.trim(),
-    instagram_url:document.getElementById('profileInstagram').value.trim(),
-    facebook_url:document.getElementById('profileFacebook').value.trim(),
-    brand_voice:document.getElementById('profileBrandVoice').value.trim(),
-    target_audience:document.getElementById('profileAudience').value.trim(),
-    updated_at:new Date().toISOString()
+  if(!activeBusiness.id){
+    return;
+  }
+
+  const updateData = {
+    business_name:
+      document.getElementById('profileName')?.value.trim() || '',
+    phone:
+      document.getElementById('profilePhone')?.value.trim() || '',
+    website:
+      document.getElementById('profileWebsite')?.value.trim() || '',
+    address:
+      document.getElementById('profileAddress')?.value.trim() || '',
+    google_business_url:
+      document.getElementById('profileGoogle')?.value.trim() || '',
+    instagram_url:
+      document.getElementById('profileInstagram')?.value.trim() || '',
+    facebook_url:
+      document.getElementById('profileFacebook')?.value.trim() || '',
+    updated_at:
+      new Date().toISOString()
   };
 
-  const {error}=await supabaseClient
-    .from('salons')
-    .update(updateData)
-    .eq('id',salonId);
+  const { error } =
+    await supabaseClient
+      .from('businesses')
+      .update(updateData)
+      .eq('id', activeBusiness.id);
 
-  document.getElementById('profileMessage').innerText =
-    error ? 'Unable to save: '+error.message :
-    'Salon profile saved successfully.';
+  const message =
+    document.getElementById('profileMessage');
+
+  if(message){
+    message.innerText =
+      error
+        ? 'Unable to save: ' + error.message
+        : 'Business profile saved successfully.';
+  }
+
+  if(!error){
+    const updated = {
+      ...activeBusiness,
+      business_name: updateData.business_name
+    };
+
+    localStorage.setItem(
+      'activeBusiness',
+      JSON.stringify(updated)
+    );
+  }
 }
 
 async function addSalonService(){
