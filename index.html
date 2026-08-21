@@ -3501,7 +3501,7 @@ async function finalizeGoogleBusinessConnection(){
     const response =
       await fetch(
        '/api/google?action=locations&business_id=' +
-encodeURIComponent(businessId)
+       encodeURIComponent(businessId),
         {
           method: 'GET',
           headers: {
@@ -3687,7 +3687,7 @@ async function connectGoogleBusiness(){
     }
 
     const response = await fetch(
-  '/api/google?business_id=' + encodeURIComponent(businessId)
+  '/api/google?business_id=' + encodeURIComponent(businessId),
       {
         method: 'GET',
         headers: {
@@ -3825,7 +3825,7 @@ async function discoverGoogleBusiness(mode = 'workspace'){
     const response =
       await fetch(
      '/api/google?action=discover&' +
-params.toString()
+     params.toString(),
         {
           method: 'GET',
           headers: {
@@ -4287,7 +4287,7 @@ async function sendStoreGoogleInvitation(){
 
     const response =
       await fetch(
-     '/api/google?action=invite-manager'
+     '/api/google?action=invite-manager',
         {
           method: 'POST',
 
