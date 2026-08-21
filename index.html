@@ -3499,9 +3499,12 @@ function storeBusinessAddress(business){
          'Address not available';
 }
 
-function continueWithSelectedStore(business){
+async function continueWithSelectedStore(business){
   if(!business?.id){
-    setStoreSelectionStatus('This store could not be selected.', true);
+    setStoreSelectionStatus(
+      'This store could not be selected.',
+      true
+    );
     return;
   }
 
@@ -3509,27 +3512,71 @@ function continueWithSelectedStore(business){
     'activeBusiness',
     JSON.stringify({
       id: business.id,
-      business_name: storeBusinessName(business),
-      google_place_id: business.google_place_id || business.place_id || null
+      business_name:
+        storeBusinessName(business),
+      google_place_id:
+        business.google_place_id ||
+        business.place_id ||
+        null
     })
   );
 
-  applyUniversalBusinessIdentity();
+  applyUniversalBusinessIdentity(
+    business,
+    localStorage.getItem('storeUserName')
+  );
 
-  setStoreSelectionStatus('Store selected. Opening STore...');
+  setStoreSelectionStatus(
+    'Store selected. Loading your business...'
+  );
 
-  setTimeout(async () => {
-    hideStoreSelectionOverlay();
+  try {
+    const { data: sessionData } =
+      await supabaseClient.auth.getSession();
 
-    try {
-      await loadSalonWorkspace(business.id);
-      await loadSalonWorkspaceData();
-    } catch(error){
-      console.warn('Workspace compatibility load skipped:', error);
+    const user =
+      sessionData?.session?.user || null;
+
+    const ownerName =
+      localStorage.getItem('storeUserName') ||
+      user?.email ||
+      'Owner';
+
+    const hydrated =
+      await hydrateSelectedBusiness(
+        user,
+        ownerName
+      );
+
+    if(!hydrated?.id){
+      setStoreSelectionStatus(
+        'The selected business could not be loaded.',
+        true
+      );
+      return;
     }
 
+    await loadSalonWorkspaceData();
+
+    applyUniversalBusinessIdentity(
+      hydrated,
+      ownerName
+    );
+
+    hideStoreSelectionOverlay();
     show('home');
-  }, 250);
+
+  } catch(error){
+    console.error(
+      'Selected business loading error:',
+      error
+    );
+
+    setStoreSelectionStatus(
+      'The store was selected, but its business information could not be loaded.',
+      true
+    );
+  }
 }
 
 async function getConnectedStoreBusinesses(userId){
@@ -3889,6 +3936,22 @@ async function connectNewGoogleBusiness(location){
       })
     );
 
+    const ownerName =
+      localStorage.getItem('storeUserName') || 'Owner';
+
+    const hydrated =
+      await hydrateSelectedBusiness(
+        null,
+        ownerName
+      );
+
+    await loadSalonWorkspaceData();
+
+    applyUniversalBusinessIdentity(
+      hydrated,
+      ownerName
+    );
+
     setStoreSelectionStatus(
       '✓ Business connected. Opening STore...'
     );
@@ -3896,7 +3959,7 @@ async function connectNewGoogleBusiness(location){
     setTimeout(() => {
       hideStoreSelectionOverlay();
       show('home');
-    }, 500);
+    }, 300);
 
   } catch(error){
     console.error('Connect business exception:', error);
@@ -3909,60 +3972,218 @@ async function connectNewGoogleBusiness(location){
 
 
 
-function applyUniversalBusinessIdentity(){
-  const activeBusiness =
+function applyUniversalBusinessIdentity(business = null, ownerName = null){
+  const stored =
     JSON.parse(localStorage.getItem('activeBusiness') || '{}');
+
+  const activeBusiness = {
+    ...stored,
+    ...(business || {})
+  };
 
   const name =
     activeBusiness.business_name ||
     activeBusiness.name ||
+    activeBusiness.title ||
     'Your Business';
 
-  const ids = [
+  const owner =
+    ownerName ||
+    localStorage.getItem('storeUserName') ||
+    'Owner';
+
+  // Keep the selected business as the single source of truth.
+  if(activeBusiness.id){
+    localStorage.setItem(
+      'activeBusiness',
+      JSON.stringify(activeBusiness)
+    );
+  }
+
+  const nameIds = [
     'homeBusinessName',
     'mobileBusinessAccountName',
     'desktopBusinessAccountName',
     'workspaceSalonName'
   ];
 
-  ids.forEach(id => {
+  nameIds.forEach(id => {
     const el = document.getElementById(id);
     if(el) el.innerText = name;
   });
 
+  const ownerIds = [
+    'mobileBusinessOwnerName',
+    'desktopBusinessOwnerName',
+    'profileOwner'
+  ];
+
+  ownerIds.forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.innerText = owner;
+  });
+
+  const ownerRoleIds = [
+    'mobileBusinessAccountRole',
+    'desktopBusinessAccountRole'
+  ];
+
+  ownerRoleIds.forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.innerText = 'Owner';
+  });
+
+  const home = document.getElementById('homeBusinessName');
+  if(home) home.innerText = name;
+
   document.title = `${name} — STall Store Automation`;
 }
 
+async function hydrateSelectedBusiness(user, ownerName = null){
+  const stored =
+    JSON.parse(localStorage.getItem('activeBusiness') || '{}');
+
+  if(!stored.id){
+    return null;
+  }
+
+  const { data: business, error } =
+    await supabaseClient
+      .from('businesses')
+      .select('*')
+      .eq('id', stored.id)
+      .maybeSingle();
+
+  if(error){
+    console.error('Selected business load error:', error);
+    applyUniversalBusinessIdentity(stored, ownerName);
+    return stored;
+  }
+
+  if(!business){
+    console.warn('Selected business record not found:', stored.id);
+    applyUniversalBusinessIdentity(stored, ownerName);
+    return stored;
+  }
+
+  const merged = {
+    ...stored,
+    ...business,
+    id: business.id || stored.id,
+    business_name:
+      business.business_name ||
+      business.name ||
+      stored.business_name ||
+      stored.name ||
+      'Your Business',
+    google_place_id:
+      business.google_place_id ||
+      stored.google_place_id ||
+      null
+  };
+
+  localStorage.setItem(
+    'activeBusiness',
+    JSON.stringify(merged)
+  );
+
+  applyUniversalBusinessIdentity(merged, ownerName);
+
+  return merged;
+}
+
+async function openSelectedBusiness(user, ownerName = null){
+  const business =
+    await hydrateSelectedBusiness(user, ownerName);
+
+  if(!business?.id){
+    return false;
+  }
+
+  try {
+    await loadSalonWorkspaceData();
+  } catch(error){
+    console.warn(
+      'Universal business workspace load warning:',
+      error
+    );
+  }
+
+  applyUniversalBusinessIdentity(business, ownerName);
+
+  show('home');
+  return true;
+}
+
 async function loadRealUser(user){
-  const { data, error } = await supabaseClient
-    .from('profiles')
-    .select('id, full_name, role')
-    .eq('id', user.id)
-    .single();
+  const { data, error } =
+    await supabaseClient
+      .from('profiles')
+      .select('id, full_name, role')
+      .eq('id', user.id)
+      .single();
 
   if(error){
     console.error('Profile error:', error);
     return;
   }
 
-  localStorage.setItem('storeRole', data.role);
-  localStorage.setItem('storeUserName', data.full_name || user.email);
+  const ownerName =
+    data.full_name ||
+    user.email ||
+    'Owner';
+
+  localStorage.setItem(
+    'storeRole',
+    data.role
+  );
+
+  localStorage.setItem(
+    'storeUserName',
+    ownerName
+  );
 
   if(data.role === 'admin'){
     enableAdmin();
-    show('admin', document.getElementById('adminNav'));
+    show(
+      'admin',
+      document.getElementById('adminNav')
+    );
     return;
   }
 
   /*
-   * UNIVERSAL STore ROUTING
-   *
-   * Do not route by salon_owner anymore.
-   * A STore account can manage any type of business.
+   * If this user already has an active STore business,
+   * restore it directly. This prevents the dashboard from
+   * falling back to "Your Business".
+   */
+  const activeBusiness =
+    JSON.parse(
+      localStorage.getItem('activeBusiness') || '{}'
+    );
+
+  if(activeBusiness.id){
+    const restored =
+      await openSelectedBusiness(
+        user,
+        ownerName
+      );
+
+    if(restored){
+      return;
+    }
+
+    // Stale activeBusiness: remove it and continue to
+    // the normal connected-store selection flow.
+    localStorage.removeItem('activeBusiness');
+  }
+
+  /*
+   * No active business: show the universal existing/new-owner
+   * store-selection flow.
    */
   await openUniversalStoreSelection(user);
 }
-
 
 async function getActiveSalonId(){
   const {data:sessionData}=await supabaseClient.auth.getSession();
