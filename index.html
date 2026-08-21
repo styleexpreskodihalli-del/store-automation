@@ -3411,6 +3411,73 @@ function setActiveBusinessForUser(business, user){
   );
 }
 
+async function ensureCurrentUserBusinessMembership(business, user){
+  if(!business?.id || !user?.id){
+    return { ok:false, error:'Missing business or authenticated user.' };
+  }
+
+  /*
+   * NEW-STORE ONBOARDING SAFETY:
+   * A Google business is not considered fully onboarded until the
+   * authenticated STore user has an explicit business_users row.
+   * Existing memberships are reused; a new membership is created
+   * automatically for the current authenticated owner.
+   */
+  const { data: existing, error: lookupError } =
+    await supabaseClient
+      .from('business_users')
+      .select('business_id, user_id, role')
+      .eq('business_id', business.id)
+      .eq('user_id', user.id)
+      .limit(1);
+
+  if(lookupError){
+    console.error(
+      'Business membership verification failed:',
+      lookupError
+    );
+
+    return { ok:false, error:lookupError };
+  }
+
+  if(existing && existing.length){
+    return { ok:true, membership:existing[0], created:false };
+  }
+
+  const { data: created, error: insertError } =
+    await supabaseClient
+      .from('business_users')
+      .insert({
+        business_id: business.id,
+        user_id: user.id,
+        role: 'owner'
+      })
+      .select('business_id, user_id, role, created_at')
+      .limit(1);
+
+  if(insertError){
+    console.error(
+      'Automatic business owner membership creation failed:',
+      insertError
+    );
+
+    return { ok:false, error:insertError };
+  }
+
+  console.log(
+    '✓ Automatic business owner membership created:',
+    user.email,
+    '→',
+    business.id
+  );
+
+  return {
+    ok:true,
+    membership:created?.[0] || null,
+    created:true
+  };
+}
+
 async function getBusinessesForCurrentUser(user){
   if(!user?.id){
     return {
@@ -4645,6 +4712,28 @@ async function selectGoogleBusinessLocation(
     if(status){
       status.innerText =
         '✓ Business profile mapped.';
+    }
+
+    /*
+     * IMPORTANT: complete the ownership relationship immediately.
+     * Mapping a Google Business creates/returns the business record,
+     * but a new STore owner also needs a business_users membership.
+     * This is what makes the business available after the next login.
+     */
+    const membershipResult =
+      await ensureCurrentUserBusinessMembership(
+        business,
+        data.session.user
+      );
+
+    if(!membershipResult.ok){
+      if(status){
+        status.innerText =
+          'Business was found, but STore could not finish owner setup. ' +
+          'Please try again.';
+      }
+
+      return;
     }
 
     /*
