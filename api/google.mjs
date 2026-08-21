@@ -1,22 +1,29 @@
 import crypto from 'node:crypto';
 
+
 const SUPABASE_URL =
   process.env.SUPABASE_URL;
+
 
 const SUPABASE_SERVICE_ROLE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+
 const SUPABASE_PUBLISHABLE_KEY =
   process.env.SUPABASE_PUBLISHABLE_KEY;
+
 
 const GOOGLE_CLIENT_ID =
   process.env.GOOGLE_CLIENT_ID;
 
+
 const GOOGLE_CLIENT_SECRET =
   process.env.GOOGLE_CLIENT_SECRET;
 
+
 const GOOGLE_REDIRECT_URI =
   process.env.GOOGLE_REDIRECT_URI;
+
 
 const STORE_GOOGLE_MANAGER_EMAIL =
   process.env.STORE_GOOGLE_MANAGER_EMAIL;
@@ -30,10 +37,12 @@ function json(
   body,
   status = 200
 ) {
+
   return new Response(
     JSON.stringify(body),
     {
       status,
+
       headers: {
         'content-type':
           'application/json; charset=utf-8',
@@ -43,6 +52,7 @@ function json(
       }
     }
   );
+
 }
 
 
@@ -50,10 +60,12 @@ function html(
   status,
   body
 ) {
+
   return new Response(
     body,
     {
       status,
+
       headers: {
         'content-type':
           'text/html; charset=utf-8',
@@ -63,12 +75,14 @@ function html(
       }
     }
   );
+
 }
 
 
 function escapeHtml(
   value
 ) {
+
   return String(
     value || ''
   )
@@ -92,6 +106,7 @@ function escapeHtml(
       "'",
       '&#039;'
     );
+
 }
 
 
@@ -103,6 +118,7 @@ async function supabaseFetch(
   path,
   options = {}
 ) {
+
   return fetch(
     `${SUPABASE_URL}${path}`,
     {
@@ -119,6 +135,7 @@ async function supabaseFetch(
       }
     }
   );
+
 }
 
 
@@ -133,6 +150,7 @@ async function googleStart(
   if (
     request.method !== 'GET'
   ) {
+
     return json(
       {
         error:
@@ -140,13 +158,16 @@ async function googleStart(
       },
       405
     );
+
   }
+
 
   if (
     !SUPABASE_URL ||
     !SUPABASE_SERVICE_ROLE_KEY ||
     !SUPABASE_PUBLISHABLE_KEY
   ) {
+
     return json(
       {
         error:
@@ -154,12 +175,15 @@ async function googleStart(
       },
       500
     );
+
   }
+
 
   if (
     !GOOGLE_CLIENT_ID ||
     !GOOGLE_REDIRECT_URI
   ) {
+
     return json(
       {
         error:
@@ -167,7 +191,9 @@ async function googleStart(
       },
       500
     );
+
   }
+
 
   /*
    * Validate logged-in STall user.
@@ -178,11 +204,13 @@ async function googleStart(
       'authorization'
     ) || '';
 
+
   if (
     !authHeader.startsWith(
       'Bearer '
     )
   ) {
+
     return json(
       {
         error:
@@ -190,10 +218,13 @@ async function googleStart(
       },
       401
     );
+
   }
+
 
   const accessToken =
     authHeader.slice(7);
+
 
   const userResponse =
     await fetch(
@@ -209,9 +240,11 @@ async function googleStart(
       }
     );
 
+
   if (
     !userResponse.ok
   ) {
+
     return json(
       {
         error:
@@ -219,23 +252,29 @@ async function googleStart(
       },
       401
     );
+
   }
+
 
   const user =
     await userResponse.json();
+
 
   const url =
     new URL(
       request.url
     );
 
+
   const businessId =
     url.searchParams.get(
       'business_id'
     );
 
+
   let targetBusinessId =
     null;
+
 
   /*
    * Universal Business flow.
@@ -247,6 +286,7 @@ async function googleStart(
 
     targetBusinessId =
       businessId;
+
 
     const membershipResponse =
       await supabaseFetch(
@@ -260,9 +300,11 @@ async function googleStart(
         `select=id,role&limit=1`
       );
 
+
     if (
       !membershipResponse.ok
     ) {
+
       return json(
         {
           error:
@@ -270,14 +312,18 @@ async function googleStart(
         },
         500
       );
+
     }
+
 
     const memberships =
       await membershipResponse.json();
 
+
     if (
       !memberships.length
     ) {
+
       return json(
         {
           error:
@@ -285,7 +331,9 @@ async function googleStart(
         },
         403
       );
+
     }
+
 
     console.log(
       'OAuth flow initiated for business:',
@@ -300,18 +348,23 @@ async function googleStart(
           memberships[0].role
       }
     );
+
   }
+
 
   /*
    * Generate cryptographically secure state.
    */
 
   const state =
-    crypto.randomBytes(
-      32
-    ).toString(
-      'hex'
-    );
+    crypto
+      .randomBytes(
+        32
+      )
+      .toString(
+        'hex'
+      );
+
 
   const stateHash =
     crypto
@@ -325,6 +378,7 @@ async function googleStart(
         'hex'
       );
 
+
   const expiresAt =
     new Date(
       Date.now() +
@@ -333,24 +387,31 @@ async function googleStart(
       1000
     ).toISOString();
 
+
   /*
    * Store only state hash.
    */
 
   const stateBody = {
+
     state_hash:
       stateHash,
 
     expires_at:
       expiresAt
+
   };
+
 
   if (
     targetBusinessId
   ) {
+
     stateBody.business_id =
       targetBusinessId;
+
   }
+
 
   const stateResponse =
     await supabaseFetch(
@@ -374,6 +435,7 @@ async function googleStart(
       }
     );
 
+
   if (
     !stateResponse.ok
   ) {
@@ -381,10 +443,12 @@ async function googleStart(
     const detail =
       await stateResponse.text();
 
+
     console.error(
       'OAuth state insert failed:',
       detail
     );
+
 
     return json(
       {
@@ -393,7 +457,9 @@ async function googleStart(
       },
       500
     );
+
   }
+
 
   /*
    * Google OAuth authorization URL.
@@ -401,6 +467,7 @@ async function googleStart(
 
   const params =
     new URLSearchParams({
+
       client_id:
         GOOGLE_CLIENT_ID,
 
@@ -423,14 +490,18 @@ async function googleStart(
 
       scope:
         'openid email https://www.googleapis.com/auth/business.manage'
+
     });
+
 
   const authorizationUrl =
     `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
 
+
   return json({
     authorizationUrl
   });
+
 }
 
 
@@ -447,24 +518,29 @@ async function googleCallback(
       request.url
     );
 
+
   const code =
     url.searchParams.get(
       'code'
     );
+
 
   const state =
     url.searchParams.get(
       'state'
     );
 
+
   const error =
     url.searchParams.get(
       'error'
     );
 
+
   if (
     error
   ) {
+
     return html(
       400,
       `
@@ -472,17 +548,22 @@ async function googleCallback(
       <p>${escapeHtml(error)}</p>
       `
     );
+
   }
+
 
   if (
     !code ||
     !state
   ) {
+
     return html(
       400,
       '<h2>Missing Google authorization code or state.</h2>'
     );
+
   }
+
 
   if (
     !SUPABASE_URL ||
@@ -491,15 +572,19 @@ async function googleCallback(
     !GOOGLE_CLIENT_SECRET ||
     !GOOGLE_REDIRECT_URI
   ) {
+
     console.error(
       'Missing required OAuth environment variables'
     );
+
 
     return html(
       500,
       '<h2>Google connection is not configured.</h2>'
     );
+
   }
+
 
   /*
    * Hash raw OAuth state.
@@ -516,6 +601,7 @@ async function googleCallback(
       .digest(
         'hex'
       );
+
 
   /*
    * Find unused, non-expired state.
@@ -535,6 +621,7 @@ async function googleCallback(
       `&limit=1`
     );
 
+
   if (
     !stateResponse.ok
   ) {
@@ -544,19 +631,24 @@ async function googleCallback(
       await stateResponse.text()
     );
 
+
     return html(
       500,
       '<h2>Unable to verify Google connection.</h2>'
     );
+
   }
+
 
   const states =
     await stateResponse.json();
+
 
   if (
     !Array.isArray(states) ||
     !states.length
   ) {
+
     return html(
       400,
       `
@@ -564,13 +656,17 @@ async function googleCallback(
       <p>Please start the connection again.</p>
       `
     );
+
   }
+
 
   const oauthState =
     states[0];
 
+
   const businessId =
     oauthState.business_id;
+
 
   /*
    * Consume state before code exchange.
@@ -578,6 +674,7 @@ async function googleCallback(
 
   const usedAt =
     new Date().toISOString();
+
 
   const markUsedResponse =
     await supabaseFetch(
@@ -603,6 +700,7 @@ async function googleCallback(
       }
     );
 
+
   if (
     !markUsedResponse.ok
   ) {
@@ -612,11 +710,14 @@ async function googleCallback(
       await markUsedResponse.text()
     );
 
+
     return html(
       500,
       '<h2>Unable to secure Google connection.</h2>'
     );
+
   }
+
 
   /*
    * Exchange Google authorization code.
@@ -636,6 +737,7 @@ async function googleCallback(
 
         body:
           new URLSearchParams({
+
             code,
 
             client_id:
@@ -649,9 +751,11 @@ async function googleCallback(
 
             grant_type:
               'authorization_code'
+
           })
       }
     );
+
 
   const tokenData =
     await tokenResponse
@@ -659,6 +763,7 @@ async function googleCallback(
       .catch(
         () => ({})
       );
+
 
   if (
     !tokenResponse.ok
@@ -671,6 +776,7 @@ async function googleCallback(
       'unknown error'
     );
 
+
     return html(
       400,
       `
@@ -678,7 +784,9 @@ async function googleCallback(
       <p>Please start the connection again.</p>
       `
     );
+
   }
+
 
   /*
    * Verify Business Profile scope.
@@ -687,6 +795,7 @@ async function googleCallback(
   const requiredGoogleScope =
     'https://www.googleapis.com/auth/business.manage';
 
+
   const grantedScopes =
     String(
       tokenData.scope ||
@@ -694,6 +803,7 @@ async function googleCallback(
     )
       .split(/\s+/)
       .filter(Boolean);
+
 
   console.log(
     'Google OAuth granted scopes:',
@@ -707,6 +817,7 @@ async function googleCallback(
         )
     })
   );
+
 
   if (
     !grantedScopes.includes(
@@ -727,7 +838,9 @@ async function googleCallback(
       </p>
       `
     );
+
   }
+
 
   /*
    * Identify Google account.
@@ -736,8 +849,10 @@ async function googleCallback(
   let googleAccountId =
     null;
 
+
   let googleAccountEmail =
     null;
+
 
   if (
     tokenData.access_token
@@ -754,12 +869,14 @@ async function googleCallback(
         }
       );
 
+
     const userInfo =
       await userInfoResponse
         .json()
         .catch(
           () => ({})
         );
+
 
     if (
       !userInfoResponse.ok
@@ -770,6 +887,7 @@ async function googleCallback(
         userInfo
       );
 
+
       return html(
         400,
         `
@@ -777,22 +895,28 @@ async function googleCallback(
         <p>Please reconnect Google Business.</p>
         `
       );
+
     }
+
 
     googleAccountId =
       userInfo.sub ||
       null;
 
+
     googleAccountEmail =
       userInfo.email ||
       null;
+
   }
+
 
   console.log(
     'Google OAuth account:',
     googleAccountEmail ||
     'email unavailable'
   );
+
 
   if (
     !tokenData.refresh_token
@@ -801,6 +925,7 @@ async function googleCallback(
     console.error(
       'Google did not return a refresh token'
     );
+
 
     return html(
       400,
@@ -811,7 +936,9 @@ async function googleCallback(
       </p>
       `
     );
+
   }
+
 
   /*
    * Token expiry.
@@ -828,14 +955,13 @@ async function googleCallback(
         ).toISOString()
       : null;
 
+
   const now =
     new Date().toISOString();
 
+
   /*
    * Business connection.
-   *
-   * business_id is required for the universal
-   * business flow.
    */
 
   if (
@@ -881,7 +1007,9 @@ async function googleCallback(
 
       updated_at:
         now
+
     };
+
 
     const businessConnResponse =
       await supabaseFetch(
@@ -905,6 +1033,7 @@ async function googleCallback(
         }
       );
 
+
     if (
       !businessConnResponse.ok
     ) {
@@ -912,10 +1041,12 @@ async function googleCallback(
       const detail =
         await businessConnResponse.text();
 
+
       console.error(
         'Google connection storage failed:',
         detail
       );
+
 
       return html(
         500,
@@ -925,12 +1056,15 @@ async function googleCallback(
         </h2>
         `
       );
+
     }
+
 
     console.log(
       'Google Business connection saved for business:',
       businessId
     );
+
 
     /*
      * Preserve existing universal business redirect.
@@ -940,6 +1074,7 @@ async function googleCallback(
       `/?google_connected=1&business_id=${encodeURIComponent(
         businessId
       )}`;
+
 
     return new Response(
       null,
@@ -956,7 +1091,9 @@ async function googleCallback(
         }
       }
     );
+
   }
+
 
   /*
    * Fallback when no business ID exists.
@@ -991,6 +1128,7 @@ async function googleCallback(
     </html>
     `
   );
+
 }
 
 
@@ -1005,6 +1143,7 @@ async function googleInviteManager(
   if (
     request.method !== 'POST'
   ) {
+
     return json(
       {
         error:
@@ -1012,11 +1151,14 @@ async function googleInviteManager(
       },
       405
     );
+
   }
+
 
   if (
     !STORE_GOOGLE_MANAGER_EMAIL
   ) {
+
     return json(
       {
         error:
@@ -1024,7 +1166,9 @@ async function googleInviteManager(
       },
       500
     );
+
   }
+
 
   if (
     !SUPABASE_URL ||
@@ -1032,6 +1176,7 @@ async function googleInviteManager(
     !GOOGLE_CLIENT_ID ||
     !GOOGLE_CLIENT_SECRET
   ) {
+
     return json(
       {
         error:
@@ -1039,18 +1184,22 @@ async function googleInviteManager(
       },
       500
     );
+
   }
+
 
   const authHeader =
     request.headers.get(
       'authorization'
     );
 
+
   if (
     !authHeader?.startsWith(
       'Bearer '
     )
   ) {
+
     return json(
       {
         error:
@@ -1058,10 +1207,13 @@ async function googleInviteManager(
       },
       401
     );
+
   }
+
 
   const supabaseAccessToken =
     authHeader.slice(7);
+
 
   /*
    * Validate logged-in STall user.
@@ -1082,9 +1234,11 @@ async function googleInviteManager(
       }
     );
 
+
   if (
     !userResponse.ok
   ) {
+
     return json(
       {
         error:
@@ -1092,10 +1246,13 @@ async function googleInviteManager(
       },
       401
     );
+
   }
+
 
   const user =
     await userResponse.json();
+
 
   const body =
     await request
@@ -1104,9 +1261,11 @@ async function googleInviteManager(
         () => null
       );
 
+
   if (
     !body?.business_id
   ) {
+
     return json(
       {
         error:
@@ -1114,10 +1273,13 @@ async function googleInviteManager(
       },
       400
     );
+
   }
+
 
   const businessId =
     body.business_id;
+
 
   /*
    * Verify Business membership.
@@ -1136,6 +1298,7 @@ async function googleInviteManager(
       `&limit=1`
     );
 
+
   if (
     !memberResponse.ok
   ) {
@@ -1145,6 +1308,7 @@ async function googleInviteManager(
       await memberResponse.text()
     );
 
+
     return json(
       {
         error:
@@ -1152,14 +1316,18 @@ async function googleInviteManager(
       },
       500
     );
+
   }
+
 
   const members =
     await memberResponse.json();
 
+
   if (
     !members.length
   ) {
+
     return json(
       {
         error:
@@ -1167,7 +1335,9 @@ async function googleInviteManager(
       },
       403
     );
+
   }
+
 
   /*
    * Load verified Google connection.
@@ -1196,6 +1366,7 @@ async function googleInviteManager(
       `&limit=1`
     );
 
+
   if (
     !connectionResponse.ok
   ) {
@@ -1205,6 +1376,7 @@ async function googleInviteManager(
       await connectionResponse.text()
     );
 
+
     return json(
       {
         error:
@@ -1212,14 +1384,18 @@ async function googleInviteManager(
       },
       500
     );
+
   }
+
 
   const connections =
     await connectionResponse.json();
 
+
   if (
     !connections.length
   ) {
+
     return json(
       {
         error:
@@ -1227,10 +1403,13 @@ async function googleInviteManager(
       },
       404
     );
+
   }
+
 
   const connection =
     connections[0];
+
 
   /*
    * Require verified location.
@@ -1251,11 +1430,14 @@ async function googleInviteManager(
       },
       409
     );
+
   }
+
 
   if (
     !connection.refresh_token
   ) {
+
     return json(
       {
         error:
@@ -1263,7 +1445,9 @@ async function googleInviteManager(
       },
       400
     );
+
   }
+
 
   /*
    * Refresh Google access token if required.
@@ -1272,12 +1456,14 @@ async function googleInviteManager(
   let accessToken =
     connection.access_token;
 
+
   const expiresAt =
     connection.token_expires_at
       ? new Date(
           connection.token_expires_at
         ).getTime()
       : 0;
+
 
   const needsRefresh =
     !accessToken ||
@@ -1286,6 +1472,7 @@ async function googleInviteManager(
       Date.now() +
       60 *
       1000;
+
 
   if (
     needsRefresh
@@ -1305,6 +1492,7 @@ async function googleInviteManager(
 
           body:
             new URLSearchParams({
+
               client_id:
                 GOOGLE_CLIENT_ID,
 
@@ -1316,9 +1504,11 @@ async function googleInviteManager(
 
               grant_type:
                 'refresh_token'
+
             })
         }
       );
+
 
     const tokenData =
       await tokenResponse
@@ -1326,6 +1516,7 @@ async function googleInviteManager(
         .catch(
           () => ({})
         );
+
 
     if (
       !tokenResponse.ok ||
@@ -1336,6 +1527,7 @@ async function googleInviteManager(
         'Google token refresh failed:',
         tokenData
       );
+
 
       await updateConnection(
         businessId,
@@ -1351,6 +1543,7 @@ async function googleInviteManager(
         }
       );
 
+
       return json(
         {
           error:
@@ -1358,10 +1551,13 @@ async function googleInviteManager(
         },
         401
       );
+
     }
+
 
     accessToken =
       tokenData.access_token;
+
 
     const newExpiresAt =
       tokenData.expires_in
@@ -1373,6 +1569,7 @@ async function googleInviteManager(
             1000
           ).toISOString()
         : null;
+
 
     await updateConnection(
       businessId,
@@ -1393,7 +1590,9 @@ async function googleInviteManager(
           new Date().toISOString()
       }
     );
+
   }
+
 
   /*
    * Validate Google location ID.
@@ -1402,11 +1601,13 @@ async function googleInviteManager(
   const locationId =
     connection.business_profile_location_id;
 
+
   if (
     !locationId.startsWith(
       'locations/'
     )
   ) {
+
     return json(
       {
         error:
@@ -1414,7 +1615,9 @@ async function googleInviteManager(
       },
       400
     );
+
   }
+
 
   /*
    * Check existing invitation.
@@ -1422,6 +1625,7 @@ async function googleInviteManager(
 
   const adminsCheckUrl =
     `https://mybusinessaccountmanagement.googleapis.com/v1/${locationId}/admins`;
+
 
   const adminsCheckResponse =
     await fetch(
@@ -1437,12 +1641,14 @@ async function googleInviteManager(
       }
     );
 
+
   const adminsCheckData =
     await adminsCheckResponse
       .json()
       .catch(
         () => ({})
       );
+
 
   if (
     adminsCheckResponse.ok
@@ -1461,9 +1667,35 @@ async function googleInviteManager(
           )
         : null;
 
+
     if (
       existingPendingInvitation
     ) {
+
+      console.log(
+        'STore EXISTING INVITATION CHECK',
+        JSON.stringify({
+          email:
+            STORE_GOOGLE_MANAGER_EMAIL,
+
+          admin:
+            existingPendingInvitation.admin ||
+            null,
+
+          role:
+            existingPendingInvitation.role ||
+            null,
+
+          pendingInvitation:
+            existingPendingInvitation.pendingInvitation ||
+            false,
+
+          invitationId:
+            existingPendingInvitation.name ||
+            null
+        })
+      );
+
 
       await updateConnection(
         businessId,
@@ -1489,6 +1721,7 @@ async function googleInviteManager(
         }
       );
 
+
       return json({
         success:
           true,
@@ -1512,6 +1745,7 @@ async function googleInviteManager(
         message:
           'STore Manager invitation is already pending acceptance.'
       });
+
     }
 
   } else {
@@ -1528,6 +1762,7 @@ async function googleInviteManager(
       })
     );
 
+
     return json(
       {
         error:
@@ -1542,7 +1777,9 @@ async function googleInviteManager(
       },
       502
     );
+
   }
+
 
   /*
    * Send Manager invitation.
@@ -1551,8 +1788,9 @@ async function googleInviteManager(
   const inviteUrl =
     `https://mybusinessaccountmanagement.googleapis.com/v1/${locationId}/admins`;
 
+
   console.log(
-    'STore INVITE PAYLOAD VERSION 20260818-A',
+    'STore INVITE PAYLOAD VERSION 20260821-B',
     JSON.stringify({
       admin:
         STORE_GOOGLE_MANAGER_EMAIL,
@@ -1561,6 +1799,7 @@ async function googleInviteManager(
         'MANAGER'
     })
   );
+
 
   const inviteResponse =
     await fetch(
@@ -1579,14 +1818,17 @@ async function googleInviteManager(
 
         body:
           JSON.stringify({
+
             admin:
               STORE_GOOGLE_MANAGER_EMAIL,
 
             role:
               'MANAGER'
+
           })
       }
     );
+
 
   const inviteData =
     await inviteResponse
@@ -1595,9 +1837,101 @@ async function googleInviteManager(
         () => ({})
       );
 
+
+  /*
+   * IMPORTANT:
+   *
+   * Google returns 400 INVALID_ARGUMENT when the
+   * manager has already been invited.
+   *
+   * This is NOT a real application failure.
+   * Treat it as awaiting acceptance.
+   */
+
   if (
     !inviteResponse.ok
   ) {
+
+    const alreadyInvited =
+      inviteData?.error?.details?.some(
+        detail =>
+          Array.isArray(
+            detail?.fieldViolations
+          ) &&
+          detail.fieldViolations.some(
+            violation =>
+              String(
+                violation?.description ||
+                ''
+              )
+                .toLowerCase()
+                .includes(
+                  'already been invited'
+                )
+          )
+      );
+
+
+    if (
+      alreadyInvited
+    ) {
+
+      console.log(
+        'STore GOOGLE INVITE:',
+        'Manager has already been invited.'
+      );
+
+
+      await updateConnection(
+        businessId,
+        {
+          store_manager_email:
+            STORE_GOOGLE_MANAGER_EMAIL,
+
+          store_manager_invitation_status:
+            'awaiting_acceptance',
+
+          connection_status:
+            'awaiting_acceptance',
+
+          last_error:
+            null,
+
+          updated_at:
+            new Date().toISOString()
+        }
+      );
+
+
+      return json({
+        success:
+          true,
+
+        status:
+          'awaiting_acceptance',
+
+        store_manager_email:
+          STORE_GOOGLE_MANAGER_EMAIL,
+
+        business_id:
+          businessId,
+
+        business_profile_location_id:
+          locationId,
+
+        business_profile_location_name:
+          connection.business_profile_location_name,
+
+        message:
+          'STore Manager invitation is already pending acceptance.'
+      });
+
+    }
+
+
+    /*
+     * Genuine Google API failure.
+     */
 
     console.error(
       'STore GOOGLE INVITE FAILURE',
@@ -1612,6 +1946,7 @@ async function googleInviteManager(
           inviteData
       })
     );
+
 
     await updateConnection(
       businessId,
@@ -1629,6 +1964,7 @@ async function googleInviteManager(
           new Date().toISOString()
       }
     );
+
 
     return json(
       {
@@ -1655,15 +1991,19 @@ async function googleInviteManager(
       },
       502
     );
+
   }
+
 
   /*
    * Google accepted invitation.
+   * It may still be pending acceptance.
    */
 
   const invitationId =
     inviteData.name ||
     null;
+
 
   await updateConnection(
     businessId,
@@ -1693,6 +2033,7 @@ async function googleInviteManager(
     }
   );
 
+
   return json({
     success:
       true,
@@ -1717,6 +2058,7 @@ async function googleInviteManager(
     business_profile_location_name:
       connection.business_profile_location_name
   });
+
 }
 
 
@@ -1754,6 +2096,7 @@ async function updateConnection(
       }
     );
 
+
   if (
     !response.ok
   ) {
@@ -1762,9 +2105,12 @@ async function updateConnection(
       'Google connection update failed:',
       await response.text()
     );
+
   }
 
+
   return response;
+
 }
 
 
@@ -1785,20 +2131,24 @@ export default {
           request.url
         );
 
+
       const code =
         url.searchParams.get(
           'code'
         );
+
 
       const state =
         url.searchParams.get(
           'state'
         );
 
+
       const action =
         url.searchParams.get(
           'action'
         );
+
 
       /*
        * GOOGLE CALLBACK
@@ -1817,7 +2167,9 @@ export default {
         return await googleCallback(
           request
         );
+
       }
+
 
       /*
        * GOOGLE START
@@ -1832,7 +2184,9 @@ export default {
         return await googleStart(
           request
         );
+
       }
+
 
       /*
        * MANAGER INVITATION
@@ -1849,7 +2203,9 @@ export default {
         return await googleInviteManager(
           request
         );
+
       }
+
 
       /*
        * Unknown operation.
@@ -1890,6 +2246,7 @@ export default {
         }
       );
 
+
       /*
        * OAuth callback returns HTML.
        */
@@ -1908,7 +2265,9 @@ export default {
           </p>
           `
         );
+
       }
+
 
       return json(
         {
@@ -1917,6 +2276,9 @@ export default {
         },
         500
       );
+
     }
+
   }
+
 };
