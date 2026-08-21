@@ -26,7 +26,9 @@ export default {
         authHeader.slice(7);
 
       /*
-       * Validate logged-in STore user.
+       * ------------------------------------------------------------
+       * 1. VALIDATE CURRENT STore USER
+       * ------------------------------------------------------------
        */
       const userResponse = await fetch(
         `${SUPABASE_URL}/auth/v1/user`,
@@ -50,11 +52,15 @@ export default {
       const user =
         await userResponse.json();
 
+      const currentEmail =
+        String(user.email || '')
+          .trim()
+          .toLowerCase();
+
       /*
-       * Determine whether the authenticated STall user is an admin.
-       *
-       * Admins can discover/map a business for onboarding, but must
-       * NEVER become the business owner automatically.
+       * ------------------------------------------------------------
+       * 2. CHECK ADMIN STATUS
+       * ------------------------------------------------------------
        */
       let isStallAdmin = false;
 
@@ -75,6 +81,11 @@ export default {
           profiles[0].role === 'admin';
       }
 
+      /*
+       * ------------------------------------------------------------
+       * 3. READ REQUEST
+       * ------------------------------------------------------------
+       */
       const body =
         await request.json()
           .catch(() => null);
@@ -112,7 +123,9 @@ export default {
       }
 
       /*
-       * Check whether this Google Place is already mapped.
+       * ------------------------------------------------------------
+       * 4. FIND EXISTING STore BUSINESS BY GOOGLE PLACE ID
+       * ------------------------------------------------------------
        */
       const existingResponse =
         await supabaseFetch(
@@ -139,15 +152,113 @@ export default {
 
       let business;
 
+      /*
+       * ------------------------------------------------------------
+       * 5. REUSE EXISTING BUSINESS
+       * ------------------------------------------------------------
+       */
       if (existing.length) {
 
         business = existing[0];
 
-      } else {
-
         /*
-         * Create universal business record.
+         * IMPORTANT:
+         *
+         * This is an EXISTING Google Business.
+         *
+         * We must NOT create another STore business.
+         *
+         * We also refresh the Google-derived business information.
          */
+        const updateResponse =
+          await supabaseFetch(
+            `/rest/v1/businesses` +
+            `?id=eq.${encodeURIComponent(business.id)}`,
+            {
+              method: 'PATCH',
+
+              headers: {
+                'Content-Type':
+                  'application/json',
+
+                Prefer:
+                  'return=representation'
+              },
+
+              body:
+                JSON.stringify({
+                  business_name,
+                  business_type:
+                    business_type || business.business_type || null,
+
+                  phone:
+                    phone || business.phone || null,
+
+                  website:
+                    website || business.website || null,
+
+                  address:
+                    address || business.address || null,
+
+                  city:
+                    city || business.city || null,
+
+                  state:
+                    state || business.state || null,
+
+                  country:
+                    country || business.country || null,
+
+                  postal_code:
+                    postal_code ||
+                    business.postal_code ||
+                    null,
+
+                  latitude:
+                    latitude ??
+                    business.latitude ??
+                    null,
+
+                  longitude:
+                    longitude ??
+                    business.longitude ??
+                    null,
+
+                  google_maps_url:
+                    google_maps_url ||
+                    business.google_maps_url ||
+                    null,
+
+                  google_rating:
+                    google_rating ??
+                    business.google_rating ??
+                    null,
+
+                  google_review_count:
+                    google_review_count ??
+                    business.google_review_count ??
+                    null
+                })
+            }
+          );
+
+        if(updateResponse.ok){
+          const updated =
+            await updateResponse.json();
+
+          if(Array.isArray(updated) && updated[0]){
+            business = updated[0];
+          }
+        }
+      }
+
+      /*
+       * ------------------------------------------------------------
+       * 6. CREATE BUSINESS ONLY IF IT DOES NOT EXIST
+       * ------------------------------------------------------------
+       */
+      else {
+
         const businessResponse =
           await supabaseFetch(
             `/rest/v1/businesses`,
@@ -157,6 +268,7 @@ export default {
               headers: {
                 'Content-Type':
                   'application/json',
+
                 Prefer:
                   'return=representation'
               },
@@ -164,38 +276,55 @@ export default {
               body:
                 JSON.stringify({
                   business_name,
+
                   business_type:
                     business_type || null,
+
                   phone:
                     phone || null,
+
                   website:
                     website || null,
+
                   address:
                     address || null,
+
                   city:
                     city || null,
+
                   state:
                     state || null,
+
                   country:
                     country || null,
+
                   postal_code:
                     postal_code || null,
+
                   latitude:
                     latitude ?? null,
+
                   longitude:
                     longitude ?? null,
+
                   google_place_id:
                     place_id,
+
                   google_maps_url:
                     google_maps_url || null,
+
                   google_rating:
                     google_rating ?? null,
+
                   google_review_count:
                     google_review_count ?? null,
+
                   status:
                     'active',
+
                   automation_enabled:
                     false,
+
                   approval_required:
                     true
                 })
@@ -230,29 +359,16 @@ export default {
       if (!business?.id) {
         return json({
           error:
-            'Business was created but no business ID was returned'
+            'Business was created/found but no business ID was returned'
         }, 500);
       }
 
       /*
-       * ADMIN ONBOARDING FLOW
-       *
-       * An STall admin may discover/map a business for onboarding,
-       * but mapping a Google business must NOT make the admin its owner.
-       *
-       * Ownership will be established through the actual owner approval
-       * and Google authorization workflow.
+       * ------------------------------------------------------------
+       * 7. ADMIN FLOW
+       * ------------------------------------------------------------
        */
       if (isStallAdmin) {
-
-        console.log(
-          'Business mapped for STall admin onboarding:',
-          {
-            business_id: business.id,
-            place_id,
-            admin_user_id: user.id
-          }
-        );
 
         return json({
           success: true,
@@ -260,12 +376,16 @@ export default {
           business: {
             id:
               business.id,
+
             business_name:
               business.business_name,
+
             business_type:
               business.business_type,
+
             google_place_id:
               business.google_place_id,
+
             google_maps_url:
               business.google_maps_url
           },
@@ -282,18 +402,9 @@ export default {
       }
 
       /*
-       * OWNER FLOW
-       *
-       * Non-admin users continue through the existing ownership
-       * protection logic. This preserves the current owner-created
-       * store flow while we build the approval workflow separately.
-       */
-      /*
-       * Verify whether this business already has an owner.
-       *
-       * Ownership is intentionally separate from Business identity.
-       * A user may own multiple Businesses, but a Business may not
-       * silently acquire a second owner through this mapping flow.
+       * ------------------------------------------------------------
+       * 8. FIND EXISTING STore OWNER
+       * ------------------------------------------------------------
        */
       const ownerResponse =
         await supabaseFetch(
@@ -319,129 +430,310 @@ export default {
       const owners =
         await ownerResponse.json();
 
+      /*
+       * ------------------------------------------------------------
+       * 9. EXISTING OWNER
+       * ------------------------------------------------------------
+       */
       if (owners.length) {
-        const existingOwner = owners[0];
+
+        const existingOwner =
+          owners[0];
 
         /*
-         * Business already has an owner.
-         *
-         * Existing owner may continue using the Business.
-         * A different user must go through the access workflow.
+         * If the current Supabase user is already the owner,
+         * everything is fine.
          */
-        if (existingOwner.user_id !== user.id) {
-          console.warn(
-            'Business access denied - already owned by another user:',
+        if(existingOwner.user_id === user.id){
+
+          console.log(
+            'Existing STore owner confirmed:',
             {
-              business_id: business.id,
-              place_id,
-              requesting_user_id: user.id,
-              owner_user_id: existingOwner.user_id
+              business_id:
+                business.id,
+
+              user_id:
+                user.id
             }
           );
 
-          return json({
-            success: false,
-            business_id: business.id,
-            next_step: 'access_required',
-            error:
-              'This business profile is already connected to another account. ' +
-              'The account owner must grant you access.'
-          });
+          return successResponse(
+            business,
+            'existing_owner'
+          );
         }
 
         /*
-         * Current user is already the owner.
-         * Ownership is already satisfied.
+         * --------------------------------------------------------
+         * 10. GOOGLE IDENTITY CHECK
+         * --------------------------------------------------------
+         *
+         * THIS IS THE IMPORTANT FIX.
+         *
+         * A Google Business can already be connected to an older
+         * STore user ID while the same Gmail is now logging in
+         * through a new Supabase user.
+         *
+         * We therefore check the Google connection before declaring
+         * "another account".
+         * --------------------------------------------------------
          */
-        console.log(
-          'Business ownership already established:',
+
+        if(currentEmail){
+
+          const googleConnectionResponse =
+            await supabaseFetch(
+              `/rest/v1/google_connections` +
+              `?business_id=eq.${encodeURIComponent(business.id)}` +
+              `&select=*` +
+              `&limit=10`
+            );
+
+          if(googleConnectionResponse.ok){
+
+            const connections =
+              await googleConnectionResponse.json();
+
+            const matchingConnection =
+              connections.find(connection => {
+
+                const googleEmail =
+                  String(
+                    connection.google_account_email ||
+                    connection.account_email ||
+                    connection.email ||
+                    ''
+                  )
+                  .trim()
+                  .toLowerCase();
+
+                return (
+                  googleEmail &&
+                  googleEmail === currentEmail
+                );
+              });
+
+            /*
+             * SAME GOOGLE ACCOUNT
+             *
+             * The STore user ID changed, but the Google identity
+             * is the same. Reassign the STore owner relationship.
+             */
+            if(matchingConnection){
+
+              console.log(
+                'Same Google identity detected. Reassigning STore ownership:',
+                {
+                  business_id:
+                    business.id,
+
+                  old_user_id:
+                    existingOwner.user_id,
+
+                  new_user_id:
+                    user.id,
+
+                  google_email:
+                    currentEmail
+                }
+              );
+
+              /*
+               * Remove the stale owner relationship.
+               */
+              const deleteOwnerResponse =
+                await supabaseFetch(
+                  `/rest/v1/business_users` +
+                  `?id=eq.${encodeURIComponent(existingOwner.id)}`,
+                  {
+                    method:
+                      'DELETE'
+                  }
+                );
+
+              if(!deleteOwnerResponse.ok){
+
+                console.error(
+                  'Unable to remove stale owner:',
+                  await deleteOwnerResponse.text()
+                );
+
+                return json({
+                  success: false,
+
+                  business_id:
+                    business.id,
+
+                  next_step:
+                    'owner_reassignment_required',
+
+                  error:
+                    'The Google account matches this business, but the existing STore ownership record could not be updated.'
+                }, 500);
+              }
+
+              /*
+               * Create the new owner relationship.
+               */
+              const createOwnerResponse =
+                await supabaseFetch(
+                  `/rest/v1/business_users`,
+                  {
+                    method:
+                      'POST',
+
+                    headers: {
+                      'Content-Type':
+                        'application/json',
+
+                      Prefer:
+                        'resolution=ignore-duplicates,return=minimal'
+                    },
+
+                    body:
+                      JSON.stringify({
+                        business_id:
+                          business.id,
+
+                        user_id:
+                          user.id,
+
+                        role:
+                          'owner'
+                      })
+                  }
+                );
+
+              if(!createOwnerResponse.ok){
+
+                const detail =
+                  await createOwnerResponse.text();
+
+                console.error(
+                  'New owner creation failed:',
+                  detail
+                );
+
+                return json({
+                  success: false,
+
+                  business_id:
+                    business.id,
+
+                  next_step:
+                    'owner_reassignment_required',
+
+                  error:
+                    'Google identity matched, but STore owner access could not be reassigned.',
+
+                  detail
+                }, 500);
+              }
+
+              return successResponse(
+                business,
+                'google_identity_owner_reconnected'
+              );
+            }
+          }
+        }
+
+        /*
+         * --------------------------------------------------------
+         * 11. DIFFERENT GOOGLE ACCOUNT
+         * --------------------------------------------------------
+         *
+         * Only NOW do we return access_required.
+         */
+        console.warn(
+          'Business access denied - different owner/account:',
           {
-            business_id: business.id,
-            user_id: user.id
+            business_id:
+              business.id,
+
+            place_id,
+
+            requesting_user_id:
+              user.id,
+
+            owner_user_id:
+              existingOwner.user_id,
+
+            requesting_google_email:
+              currentEmail
           }
         );
 
-      } else {
+        return json({
+          success: false,
 
-        /*
-         * No owner exists.
-         *
-         * Create ownership. The database UNIQUE constraint on
-         * (business_id, user_id) makes this relationship idempotent
-         * against duplicate requests.
-         */
-        const createOwnerResponse =
-          await supabaseFetch(
-            `/rest/v1/business_users`,
-            {
-              method: 'POST',
-
-              headers: {
-                'Content-Type':
-                  'application/json',
-                Prefer:
-                  'resolution=ignore-duplicates,return=minimal'
-              },
-
-              body:
-                JSON.stringify({
-                  business_id:
-                    business.id,
-                  user_id:
-                    user.id,
-                  role:
-                    'owner'
-                })
-            }
-          );
-
-        if (!createOwnerResponse.ok) {
-          const detail =
-            await createOwnerResponse.text();
-
-          console.error(
-            'Business owner creation failed:',
-            detail
-          );
-
-          return json({
-            error:
-              'Business created but owner access could not be assigned',
-            detail
-          }, 500);
-        }
-      }
-
-      console.log(
-        'Business mapped:',
-        {
           business_id:
             business.id,
-          place_id,
-          user_id:
-            user.id
-        }
+
+          next_step:
+            'access_required',
+
+          error:
+            'This business profile is already connected to another Google account. The account owner must grant you access.'
+        });
+      }
+
+      /*
+       * ------------------------------------------------------------
+       * 12. NO OWNER EXISTS
+       * ------------------------------------------------------------
+       */
+      const createOwnerResponse =
+        await supabaseFetch(
+          `/rest/v1/business_users`,
+          {
+            method:
+              'POST',
+
+            headers: {
+              'Content-Type':
+                'application/json',
+
+              Prefer:
+                'resolution=ignore-duplicates,return=minimal'
+            },
+
+            body:
+              JSON.stringify({
+                business_id:
+                  business.id,
+
+                user_id:
+                  user.id,
+
+                role:
+                  'owner'
+              })
+          }
+        );
+
+      if (!createOwnerResponse.ok) {
+
+        const detail =
+          await createOwnerResponse.text();
+
+        console.error(
+          'Business owner creation failed:',
+          detail
+        );
+
+        return json({
+          error:
+            'Business created but owner access could not be assigned',
+
+          detail
+        }, 500);
+      }
+
+      return successResponse(
+        business,
+        'new_owner'
       );
-
-      return json({
-        success: true,
-
-        business: {
-          id:
-            business.id,
-          business_name:
-            business.business_name,
-          business_type:
-            business.business_type,
-          google_place_id:
-            business.google_place_id,
-          google_maps_url:
-            business.google_maps_url
-        },
-
-        next_step:
-          'authorize_google'
-      });
 
     } catch (error) {
 
@@ -452,22 +744,109 @@ export default {
 
       return json({
         error:
-          'Unable to map business'
+          'Unable to map business',
+
+        detail:
+          error?.message ||
+          String(error)
       }, 500);
     }
   }
 };
 
+
+/*
+ * ================================================================
+ * SUCCESS RESPONSE
+ * ================================================================
+ */
+function successResponse(
+  business,
+  connectionType
+) {
+
+  return json({
+
+    success: true,
+
+    business: {
+
+      id:
+        business.id,
+
+      business_name:
+        business.business_name,
+
+      business_type:
+        business.business_type,
+
+      phone:
+        business.phone,
+
+      website:
+        business.website,
+
+      address:
+        business.address,
+
+      city:
+        business.city,
+
+      state:
+        business.state,
+
+      country:
+        business.country,
+
+      postal_code:
+        business.postal_code,
+
+      latitude:
+        business.latitude,
+
+      longitude:
+        business.longitude,
+
+      google_place_id:
+        business.google_place_id,
+
+      google_maps_url:
+        business.google_maps_url,
+
+      google_rating:
+        business.google_rating,
+
+      google_review_count:
+        business.google_review_count
+    },
+
+    connection_type:
+      connectionType,
+
+    next_step:
+      'authorize_google'
+  });
+}
+
+
+/*
+ * ================================================================
+ * SUPABASE SERVICE-ROLE REQUEST
+ * ================================================================
+ */
 async function supabaseFetch(
   path,
   options = {}
 ) {
+
   return fetch(
     `${SUPABASE_URL}${path}`,
     {
+
       ...options,
 
       headers: {
+
         apikey:
           SUPABASE_SERVICE_ROLE_KEY,
 
@@ -480,16 +859,25 @@ async function supabaseFetch(
   );
 }
 
+
+/*
+ * ================================================================
+ * JSON RESPONSE
+ * ================================================================
+ */
 function json(
   body,
   status = 200
 ) {
+
   return new Response(
     JSON.stringify(body),
+
     {
       status,
 
       headers: {
+
         'content-type':
           'application/json',
 
