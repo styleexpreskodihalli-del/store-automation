@@ -3782,8 +3782,8 @@ async function discoverGoogleBusiness(mode = 'workspace'){
 
     const response =
       await fetch(
-        '/api/google-discover?' +
-        params.toString(),
+     '/api/google?action=discover&' +
+params.toString()
         {
           method: 'GET',
           headers: {
