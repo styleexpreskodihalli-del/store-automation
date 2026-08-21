@@ -1812,6 +1812,7 @@ window.supabaseClient = supabaseClient;
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <select id="ownerStoreSwitcher" onchange="switchOwnerStore(this.value)" style="min-width:220px;padding:10px 12px;border:1px solid #d9e1dd;border-radius:9px;background:#fff;font-weight:800"></select>
           <button type="button" class="secondary" onclick="openOwnerPortfolio()">View All Stores</button>
+          <button type="button" class="secondary" id="ownerAddStoreButton" onclick="startOwnerAddStore()">＋ Add Another Store</button>
         </div>
       </div>
       <div id="ownerPortfolioPanel" style="display:none;margin-top:10px"></div>
@@ -3754,7 +3755,54 @@ function renderOwnerStoreSwitcher(businesses, activeBusinessId){
   });
 }
 
-async function switchOwnerStore(businessId){
+async function startOwnerAddStore(){
+  (async () => {
+    try {
+      const { data, error } =
+        await supabaseClient.auth.getSession();
+
+      if(error || !data?.session?.user){
+        toast('Please log in again.');
+        return;
+      }
+
+      const button =
+        document.getElementById('ownerAddStoreButton');
+
+      if(button){
+        button.disabled = true;
+        button.innerText = 'Opening...';
+      }
+
+      showNewOwnerBusinessOnboarding(
+        data.session.user
+      );
+
+      if(button){
+        button.disabled = false;
+        button.innerText = '＋ Add Another Store';
+      }
+    } catch(error){
+      console.error(
+        'Open add-store flow error:',
+        error
+      );
+
+      toast('Unable to open the add-store flow.');
+
+      const button =
+        document.getElementById('ownerAddStoreButton');
+
+      if(button){
+        button.disabled = false;
+        button.innerText = '＋ Add Another Store';
+      }
+    }
+  })();
+}
+
+
+function switchOwnerStore(businessId){
   const businesses = window.__currentUserBusinesses || [];
   const selected = businesses.find(b => b.id === businessId);
   if(!selected) return;
