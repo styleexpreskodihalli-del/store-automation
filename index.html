@@ -3267,15 +3267,6 @@ async function restoreStoreSession(){
     }
 
     if(!data.session){
-      // No authenticated user: never retain a previous user's
-      // selected business or identity in the local STore state.
-      localStorage.removeItem('storeLoggedIn');
-      localStorage.removeItem('storeUser');
-      localStorage.removeItem('storeRole');
-      localStorage.removeItem('storeUserName');
-      localStorage.removeItem('activeBusiness');
-      localStorage.removeItem('activeSalon');
-
       const loginOverlay =
         document.getElementById(
           'loginOverlay'
@@ -3439,12 +3430,6 @@ async function storeGoogleLogin(mode = 'signin'){
       options: {
         redirectTo:
           'https://stall-store.cutncutestudio.in',
-
-        /*
-         * Always ask Google which account to use.
-         * This is important for STore because one browser may
-         * have multiple Gmail accounts signed in.
-         */
         queryParams: {
           prompt: 'select_account'
         }
@@ -4148,21 +4133,25 @@ async function loadRealUser(user){
       .from('profiles')
       .select('id, full_name, role')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
 
   if(error){
-    console.error('Profile error:', error);
+    console.error('Profile lookup error:', error);
     return;
   }
 
   const ownerName =
-    data.full_name ||
+    data?.full_name ||
     user.email ||
     'Owner';
 
+  const userRole =
+    data?.role ||
+    'store_owner';
+
   localStorage.setItem(
     'storeRole',
-    data.role
+    userRole
   );
 
   localStorage.setItem(
@@ -4170,7 +4159,7 @@ async function loadRealUser(user){
     ownerName
   );
 
-  if(data.role === 'admin'){
+  if(userRole === 'admin'){
     enableAdmin();
     show(
       'admin',
@@ -5792,44 +5781,26 @@ async function loadSalonWorkspace(userId){
 
 
 async function logoutStore(){
+  console.log('STore logout: starting...');
+
   try {
-    const { error } =
-      await supabaseClient.auth.signOut({
-        scope: 'global'
-      });
+    const { error } = await supabaseClient.auth.signOut({ scope: 'global' });
+    if(error) console.error('STore logout error:', error);
 
-    if(error){
-      console.error('Logout error:', error);
-    }
-
-    // Verify the session is actually gone
-    const { data } =
-      await supabaseClient.auth.getSession();
-
-    console.log(
-      'SESSION AFTER LOGOUT:',
-      data.session
-    );
-
+    const { data } = await supabaseClient.auth.getSession();
+    console.log('STore logout session:', data?.session || null);
   } catch(error) {
-    console.error(
-      'Logout exception:',
-      error
-    );
+    console.error('STore logout exception:', error);
   }
 
-  localStorage.removeItem('storeLoggedIn');
-  localStorage.removeItem('storeUser');
-  localStorage.removeItem('storeRole');
-  localStorage.removeItem('storeUserName');
-  localStorage.removeItem('activeBusiness');
-  localStorage.removeItem('activeSalon');
-  localStorage.removeItem('stallGoogleAuthMode');
+  [
+    'storeLoggedIn','storeUser','storeRole','storeUserName',
+    'activeBusiness','activeSalon','stallGoogleAuthMode'
+  ].forEach(key => localStorage.removeItem(key));
 
-  // Start a completely fresh STore session
-  window.location.replace(
-    'https://stall-store.cutncutestudio.in/'
-  );
+  try { sessionStorage.clear(); } catch(error) {}
+
+  window.location.replace('https://stall-store.cutncutestudio.in/');
 }
 
 function flowDemo(){
