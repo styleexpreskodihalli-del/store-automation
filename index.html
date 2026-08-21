@@ -3267,6 +3267,15 @@ async function restoreStoreSession(){
     }
 
     if(!data.session){
+      // No authenticated user: never retain a previous user's
+      // selected business or identity in the local STore state.
+      localStorage.removeItem('storeLoggedIn');
+      localStorage.removeItem('storeUser');
+      localStorage.removeItem('storeRole');
+      localStorage.removeItem('storeUserName');
+      localStorage.removeItem('activeBusiness');
+      localStorage.removeItem('activeSalon');
+
       const loginOverlay =
         document.getElementById(
           'loginOverlay'
@@ -3429,7 +3438,16 @@ async function storeGoogleLogin(mode = 'signin'){
 
       options: {
         redirectTo:
-          'https://stall-store.cutncutestudio.in'
+          'https://stall-store.cutncutestudio.in',
+
+        /*
+         * Always ask Google which account to use.
+         * This is important for STore because one browser may
+         * have multiple Gmail accounts signed in.
+         */
+        queryParams: {
+          prompt: 'select_account'
+        }
       }
     });
 
@@ -5790,6 +5808,8 @@ async function logoutStore(){
   localStorage.removeItem('storeRole');
   localStorage.removeItem('storeUserName');
   localStorage.removeItem('activeBusiness');
+  localStorage.removeItem('stallGoogleAuthMode');
+  localStorage.removeItem('activeSalon');
 
   // Always reload the live STore entry page.
   // This prevents an old login overlay from being shown
