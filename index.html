@@ -5793,27 +5793,40 @@ async function loadSalonWorkspace(userId){
 
 async function logoutStore(){
   try {
-    const { error } = await supabaseClient.auth.signOut();
+    const { error } =
+      await supabaseClient.auth.signOut({
+        scope: 'global'
+      });
 
     if(error){
       console.error('Logout error:', error);
     }
+
+    // Verify the session is actually gone
+    const { data } =
+      await supabaseClient.auth.getSession();
+
+    console.log(
+      'SESSION AFTER LOGOUT:',
+      data.session
+    );
+
   } catch(error) {
-    console.error('Logout exception:', error);
+    console.error(
+      'Logout exception:',
+      error
+    );
   }
 
-  // Clear STore session state
   localStorage.removeItem('storeLoggedIn');
   localStorage.removeItem('storeUser');
   localStorage.removeItem('storeRole');
   localStorage.removeItem('storeUserName');
   localStorage.removeItem('activeBusiness');
-  localStorage.removeItem('stallGoogleAuthMode');
   localStorage.removeItem('activeSalon');
+  localStorage.removeItem('stallGoogleAuthMode');
 
-  // Always reload the live STore entry page.
-  // This prevents an old login overlay from being shown
-  // from the already-loaded application.
+  // Start a completely fresh STore session
   window.location.replace(
     'https://stall-store.cutncutestudio.in/'
   );
