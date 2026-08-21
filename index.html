@@ -3458,8 +3458,8 @@ async function finalizeGoogleBusinessConnection(){
 
     const response =
       await fetch(
-        '/api/google-business-locations?business_id=' +
-        encodeURIComponent(businessId),
+       '/api/google?action=locations&business_id=' +
+encodeURIComponent(businessId)
         {
           method: 'GET',
           headers: {
