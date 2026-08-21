@@ -3511,16 +3511,42 @@ async function continueWithSelectedStore(business){
     return;
   }
 
+  const { data: sessionData } =
+    await supabaseClient.auth.getSession();
+
+  if(!sessionData?.session?.user){
+    setStoreSelectionStatus(
+      'Your login session has expired. Please sign in again.',
+      true
+    );
+    return;
+  }
+
+  const selectedBusiness = {
+    ...business,
+    id: business.id,
+    business_name:
+      storeBusinessName(business),
+    google_place_id:
+      business.google_place_id ||
+      business.place_id ||
+      null
+  };
+
   localStorage.setItem(
     'activeBusiness',
+    JSON.stringify(selectedBusiness)
+  );
+
+  localStorage.setItem(
+    'storeUser',
     JSON.stringify({
-      id: business.id,
-      business_name:
-        storeBusinessName(business),
-      google_place_id:
-        business.google_place_id ||
-        business.place_id ||
-        null
+      id: sessionData.session.user.id,
+      email: sessionData.session.user.email || '',
+      full_name:
+        localStorage.getItem('storeUserName') ||
+        sessionData.session.user.email ||
+        'Owner'
     })
   );
 
@@ -3591,8 +3617,20 @@ async function getConnectedStoreBusinesses(userId){
       .order('created_at', { ascending:false });
 
   if(membershipError){
-    console.error('Connected business lookup error:', membershipError);
-    return { businesses:[], error:membershipError };
+    console.warn(
+      'Connected business lookup warning:',
+      membershipError
+    );
+
+    /*
+     * Do not block a new owner because the membership table is empty
+     * or an older schema is being migrated.
+     */
+    return {
+      businesses: [],
+      error: null,
+      membershipLookupFailed: true
+    };
   }
 
   const ids = [...new Set(
@@ -3602,23 +3640,33 @@ async function getConnectedStoreBusinesses(userId){
   )];
 
   if(!ids.length){
-    return { businesses:[], error:null };
+    return {
+      businesses: [],
+      error: null
+    };
   }
 
-  /*
-   * Business columns have evolved during the universal-business work.
-   * First try the known business fields. If the table exposes additional
-   * fields, they are intentionally not required here.
-   */
   const { data: businesses, error: businessError } =
     await supabaseClient
       .from('businesses')
-      .select('id,business_name,google_place_id,phone,website,address,city,state,country,postal_code')
+      .select('*')
       .in('id', ids);
 
   if(businessError){
-    console.error('Business details lookup error:', businessError);
-    return { businesses:[], error:businessError };
+    console.warn(
+      'Business details lookup warning:',
+      businessError
+    );
+
+    /*
+     * Keep the universal flow alive. The user can discover the
+     * Google Business and we can repair/link the STore record.
+     */
+    return {
+      businesses: [],
+      error: null,
+      businessLookupFailed: true
+    };
   }
 
   const byId = new Map(
@@ -3626,7 +3674,9 @@ async function getConnectedStoreBusinesses(userId){
   );
 
   return {
-    businesses: ids.map(id => byId.get(id)).filter(Boolean),
+    businesses: ids
+      .map(id => byId.get(id))
+      .filter(Boolean),
     error:null
   };
 }
@@ -3669,13 +3719,23 @@ function renderConnectedStoreCards(businesses){
 async function openUniversalStoreSelection(user){
   showStoreSelectionOverlay();
 
-  const title = document.getElementById('storeSelectionTitle');
-  const subtitle = document.getElementById('storeSelectionSubtitle');
-  const connectedPanel = document.getElementById('connectedStoresPanel');
-  const newOwnerPanel = document.getElementById('newOwnerSearchPanel');
-  const resultsPanel = document.getElementById('googleStoreResultsPanel');
+  const title =
+    document.getElementById('storeSelectionTitle');
+
+  const subtitle =
+    document.getElementById('storeSelectionSubtitle');
+
+  const connectedPanel =
+    document.getElementById('connectedStoresPanel');
+
+  const newOwnerPanel =
+    document.getElementById('newOwnerSearchPanel');
+
+  const resultsPanel =
+    document.getElementById('googleStoreResultsPanel');
 
   if(title) title.innerText = 'Select Your Store';
+
   if(subtitle){
     subtitle.innerText =
       'Choose the business you want to manage with STore.';
@@ -3685,17 +3745,16 @@ async function openUniversalStoreSelection(user){
   if(newOwnerPanel) newOwnerPanel.style.display = 'none';
   if(resultsPanel) resultsPanel.innerHTML = '';
 
-  setStoreSelectionStatus('Checking your STore businesses...');
+  setStoreSelectionStatus(
+    'Checking your STore businesses...'
+  );
 
-  const result = await getConnectedStoreBusinesses(user.id);
-
-  if(result.error){
-    setStoreSelectionStatus(
-      'We could not load your connected stores. Please try again.',
-      true
-    );
-    return;
-  }
+  /*
+   * business_users is the existing-owner path.
+   * A missing profile row does not matter here.
+   */
+  const result =
+    await getConnectedStoreBusinesses(user.id);
 
   if(result.businesses.length){
     setStoreSelectionStatus(
@@ -3709,19 +3768,23 @@ async function openUniversalStoreSelection(user){
   }
 
   /*
-   * New owner: no STore business exists yet.
+   * No connected STore business:
+   * this is the universal new-owner path.
    */
   if(title) title.innerText = 'Choose Your Business';
+
   if(subtitle){
     subtitle.innerText =
-      'We could not find a connected STore business. Choose the Google Business Profile you want to bring into STore.';
+      'Choose the Google Business Profile you want to bring into STore.';
   }
 
   setStoreSelectionStatus(
     'No connected STore business was found. Search Google to continue.'
   );
 
-  if(newOwnerPanel) newOwnerPanel.style.display = 'block';
+  if(newOwnerPanel){
+    newOwnerPanel.style.display = 'block';
+  }
 }
 
 async function searchBusinessesForNewOwner(){
@@ -4128,6 +4191,16 @@ async function openSelectedBusiness(user, ownerName = null){
 }
 
 async function loadRealUser(user){
+  /*
+   * UNIVERSAL STore AUTHENTICATION
+   *
+   * A Google/Supabase user must NEVER be blocked because a legacy
+   * profiles row is missing. The business-selection flow is the
+   * source of truth for what the user manages.
+   */
+
+  let profile = null;
+
   const { data, error } =
     await supabaseClient
       .from('profiles')
@@ -4136,17 +4209,23 @@ async function loadRealUser(user){
       .maybeSingle();
 
   if(error){
-    console.error('Profile lookup error:', error);
-    return;
+    console.warn(
+      'Profile lookup warning. Continuing with universal STore flow:',
+      error
+    );
+  } else {
+    profile = data || null;
   }
 
   const ownerName =
-    data?.full_name ||
+    profile?.full_name ||
+    user.user_metadata?.full_name ||
+    user.user_metadata?.name ||
     user.email ||
     'Owner';
 
   const userRole =
-    data?.role ||
+    profile?.role ||
     'store_owner';
 
   localStorage.setItem(
@@ -4159,6 +4238,16 @@ async function loadRealUser(user){
     ownerName
   );
 
+  localStorage.setItem(
+    'storeUser',
+    JSON.stringify({
+      id: user.id,
+      email: user.email,
+      full_name: ownerName,
+      role: userRole
+    })
+  );
+
   if(userRole === 'admin'){
     enableAdmin();
     show(
@@ -4169,9 +4258,8 @@ async function loadRealUser(user){
   }
 
   /*
-   * If this user already has an active STore business,
-   * restore it directly. This prevents the dashboard from
-   * falling back to "Your Business".
+   * If an active business exists, validate/hydrate it.
+   * If it is stale, remove it and fall through to selection.
    */
   const activeBusiness =
     JSON.parse(
@@ -4189,14 +4277,12 @@ async function loadRealUser(user){
       return;
     }
 
-    // Stale activeBusiness: remove it and continue to
-    // the normal connected-store selection flow.
     localStorage.removeItem('activeBusiness');
   }
 
   /*
-   * No active business: show the universal existing/new-owner
-   * store-selection flow.
+   * Existing owner -> connected stores.
+   * New owner -> Google Business discovery.
    */
   await openUniversalStoreSelection(user);
 }
@@ -5170,6 +5256,9 @@ async function sendStoreGoogleInvitation(){
 
 async function loadGoogleBusinessProfileDetails(business){
   if(!business?.id){
+    console.warn(
+      'Google Business refresh skipped: no active STore business ID.'
+    );
     return business || null;
   }
 
@@ -5432,6 +5521,12 @@ async function loadSalonWorkspaceData(){
     await loadGoogleBusinessProfileDetails(activeBusiness);
 
   const business = activeBusiness;
+
+  // Persist the final Google-backed business immediately.
+  localStorage.setItem(
+    'activeBusiness',
+    JSON.stringify(business)
+  );
 
   /*
    * Owner name comes from the authenticated STore profile.
