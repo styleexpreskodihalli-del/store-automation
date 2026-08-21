@@ -3428,7 +3428,7 @@ async function getBusinessesForCurrentUser(user){
   const { data: memberships, error: membershipError } =
     await supabaseClient
       .from('business_users')
-      .select('business_id, role, created_at')
+      .select('business_id, role, created_at, business_name')
       .eq('user_id', user.id)
       .order('created_at', { ascending:false });
 
@@ -3451,6 +3451,12 @@ async function getBusinessesForCurrentUser(user){
         .filter(Boolean)
     )
   ];
+
+  console.log(
+    'STall current-user memberships:',
+    user.email,
+    ids
+  );
 
   if(!ids.length){
     return {
@@ -3485,30 +3491,47 @@ async function getBusinessesForCurrentUser(user){
       `)
       .in('id', ids);
 
+  /*
+   * IMPORTANT FALLBACK:
+   * Some environments can return the authenticated user's
+   * business_users membership while the direct businesses SELECT is
+   * temporarily filtered by RLS.  That must NOT be interpreted as
+   * "this user has no business".
+   *
+   * business_users.business_name is kept as the membership-level
+   * fallback.  It is still scoped to the CURRENT authenticated user,
+   * so Account B can never inherit Account A's business.
+   */
   if(businessError){
-    console.error(
-      'Current-user business records lookup failed:',
+    console.warn(
+      'Current-user business records lookup warning. Using membership fallback:',
       businessError
     );
-
-    return {
-      businesses: [],
-      error: businessError
-    };
   }
 
   const byId = new Map(
     (businesses || []).map(b => [b.id, b])
   );
 
+  const resolvedBusinesses = (memberships || [])
+    .filter(row => row.business_id)
+    .map(row => {
+      const business = byId.get(row.business_id);
+
+      return {
+        ...(business || {}),
+        id: row.business_id,
+        business_name:
+          business?.business_name ||
+          row.business_name ||
+          'Your Business',
+        owner_user_id: user.id,
+        membership_role: row.role || null
+      };
+    });
+
   return {
-    businesses: ids
-      .map(id => byId.get(id))
-      .filter(Boolean)
-      .map(business => ({
-        ...business,
-        owner_user_id: user.id
-      })),
+    businesses: resolvedBusinesses,
     error: null
   };
 }
@@ -3535,6 +3558,8 @@ async function loadUniversalBusinessWorkspace(user){
     /*
      * A stale browser selection is safe to discard because it was
      * not found in the current user's membership list.
+     * Memberships are authoritative; an RLS-filtered businesses row
+     * must never make an existing membership disappear.
      */
     localStorage.removeItem('activeBusiness');
 
