@@ -3645,7 +3645,7 @@ async function connectGoogleBusiness(){
     }
 
     const response = await fetch(
-      '/api/google-start?business_id=' + encodeURIComponent(businessId),
+  '/api/google?business_id=' + encodeURIComponent(businessId)
       {
         method: 'GET',
         headers: {
