@@ -4641,40 +4641,19 @@ async function logoutStore(){
     console.error('Logout exception:', error);
   }
 
+  // Clear STore session state
   localStorage.removeItem('storeLoggedIn');
   localStorage.removeItem('storeUser');
   localStorage.removeItem('storeRole');
   localStorage.removeItem('storeUserName');
+  localStorage.removeItem('activeBusiness');
 
-  document.querySelectorAll('.screen').forEach(x => {
-    x.classList.remove('active');
-  });
-
-  const loginOverlay = document.getElementById('loginOverlay');
-  if(loginOverlay){
-    loginOverlay.style.display = 'flex';
-  }
-
-  const forgotOverlay = document.getElementById('forgotOverlay');
-  if(forgotOverlay){
-    forgotOverlay.style.display = 'none';
-  }
-
-  const resetOverlay = document.getElementById('resetOverlay');
-  if(resetOverlay){
-    resetOverlay.style.display = 'none';
-  }
-
-  const loginEmail = document.getElementById('loginEmail');
-  const loginPassword = document.getElementById('loginPassword');
-
-  if(loginEmail) loginEmail.value = '';
-  if(loginPassword) loginPassword.value = '';
-
-  const loginError = document.getElementById('loginError');
-  if(loginError) loginError.innerText = '';
-
-  toast('Logged out successfully');
+  // Always reload the live STore entry page.
+  // This prevents an old login overlay from being shown
+  // from the already-loaded application.
+  window.location.replace(
+    'https://stall-store.cutncutestudio.in/'
+  );
 }
 
 function flowDemo(){
