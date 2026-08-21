@@ -1718,6 +1718,58 @@ window.supabaseClient = supabaseClient;
   </div>
 </div>
 
+
+<!-- UNIVERSAL STore BUSINESS SELECTION -->
+<div id="storeSelectionOverlay"
+     style="display:none;position:fixed;inset:0;background:#10201c;color:#fff;z-index:9999;align-items:center;justify-content:center;padding:24px;overflow:auto">
+  <div style="width:min(760px,100%);background:#fff;color:#16201d;border-radius:22px;padding:30px;box-shadow:0 24px 80px rgba(0,0,0,.28)">
+    <div style="text-align:center;margin-bottom:24px">
+      <img src="assets/stall-logo.png" alt="STall" style="width:72px;height:72px;object-fit:contain;margin-bottom:10px">
+      <h1 id="storeSelectionTitle" style="margin:0 0 8px;font-size:28px">Select Your Store</h1>
+      <p id="storeSelectionSubtitle" style="margin:0;color:#66736e">
+        Choose the business you want to manage with STore.
+      </p>
+    </div>
+
+    <div id="storeSelectionStatus"
+         style="display:none;margin-bottom:16px;padding:12px 14px;border-radius:12px;background:#f1f6f3;color:#30443c"></div>
+
+    <div id="connectedStoresPanel"></div>
+
+    <div id="newOwnerSearchPanel" style="display:none">
+      <div style="padding:18px;border:1px solid #dfe7e3;border-radius:16px;background:#fafcfb">
+        <h3 style="margin:0 0 6px">Find your business on Google</h3>
+        <p style="margin:0 0 16px;color:#66736e;font-size:14px">
+          Search for the Google Business Profile you want to connect to STore.
+        </p>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <input id="storeSelectCountry" value="India" placeholder="Country"
+                 style="padding:12px;border:1px solid #ccd8d3;border-radius:10px">
+          <input id="storeSelectCity" placeholder="City"
+                 style="padding:12px;border:1px solid #ccd8d3;border-radius:10px">
+          <input id="storeSelectArea" placeholder="Area / locality"
+                 style="padding:12px;border:1px solid #ccd8d3;border-radius:10px">
+          <input id="storeSelectQuery" placeholder="Business name"
+                 style="padding:12px;border:1px solid #ccd8d3;border-radius:10px">
+        </div>
+
+        <button type="button" onclick="searchBusinessesForNewOwner()"
+                style="width:100%;margin-top:14px;padding:13px 16px;border:0;border-radius:10px;background:#163d32;color:#fff;font-weight:700;cursor:pointer">
+          Search Google Businesses
+        </button>
+      </div>
+    </div>
+
+    <div id="googleStoreResultsPanel" style="margin-top:18px"></div>
+
+    <button type="button" onclick="logoutStore()"
+            style="display:block;margin:22px auto 0;background:none;border:0;color:#69756f;cursor:pointer">
+      Sign out
+    </button>
+  </div>
+</div>
+
 <div id="loginOverlay" style="display:none;">
   <div class="loginBox stall-login-clean">
     <div class="stall-login-top">
@@ -1786,7 +1838,7 @@ window.supabaseClient = supabaseClient;
 
 </header>
 <main>
-<section id="home" class="screen active">
+<section id="home" class="screen">
 
   <div class="hero" style="position:relative;overflow:hidden">
 
@@ -3398,6 +3450,462 @@ async function storeGoogleLogin(mode = 'signin'){
 }
 
 
+
+/*
+ * UNIVERSAL STore BUSINESS ROUTING
+ *
+ * Existing owner:
+ *   Google login -> connected STore businesses -> select -> dashboard
+ *
+ * New owner:
+ *   Google login -> no connected STore business -> Google discovery
+ *   -> select business -> map/create -> dashboard
+ */
+
+function showStoreSelectionOverlay(){
+  const overlay = document.getElementById('storeSelectionOverlay');
+  if(overlay) overlay.style.display = 'flex';
+
+  const loginOverlay = document.getElementById('loginOverlay');
+  if(loginOverlay) loginOverlay.style.display = 'none';
+}
+
+function hideStoreSelectionOverlay(){
+  const overlay = document.getElementById('storeSelectionOverlay');
+  if(overlay) overlay.style.display = 'none';
+}
+
+function setStoreSelectionStatus(message, isError = false){
+  const box = document.getElementById('storeSelectionStatus');
+  if(!box) return;
+
+  box.style.display = message ? 'block' : 'none';
+  box.style.background = isError ? '#fff1f0' : '#f1f6f3';
+  box.style.color = isError ? '#9b2c2c' : '#30443c';
+  box.innerText = message || '';
+}
+
+function storeBusinessName(business){
+  return business?.business_name ||
+         business?.name ||
+         business?.title ||
+         'Unnamed business';
+}
+
+function storeBusinessAddress(business){
+  return business?.address ||
+         business?.location ||
+         business?.city ||
+         'Address not available';
+}
+
+function continueWithSelectedStore(business){
+  if(!business?.id){
+    setStoreSelectionStatus('This store could not be selected.', true);
+    return;
+  }
+
+  localStorage.setItem(
+    'activeBusiness',
+    JSON.stringify({
+      id: business.id,
+      business_name: storeBusinessName(business),
+      google_place_id: business.google_place_id || business.place_id || null
+    })
+  );
+
+  setStoreSelectionStatus('Store selected. Opening STore...');
+
+  setTimeout(async () => {
+    hideStoreSelectionOverlay();
+
+    try {
+      await loadSalonWorkspace(business.id);
+      await loadSalonWorkspaceData();
+    } catch(error){
+      console.warn('Workspace compatibility load skipped:', error);
+    }
+
+    show('home');
+  }, 250);
+}
+
+async function getConnectedStoreBusinesses(userId){
+  const { data: memberships, error: membershipError } =
+    await supabaseClient
+      .from('business_users')
+      .select('business_id,created_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending:false });
+
+  if(membershipError){
+    console.error('Connected business lookup error:', membershipError);
+    return { businesses:[], error:membershipError };
+  }
+
+  const ids = [...new Set(
+    (memberships || [])
+      .map(row => row.business_id)
+      .filter(Boolean)
+  )];
+
+  if(!ids.length){
+    return { businesses:[], error:null };
+  }
+
+  /*
+   * Business columns have evolved during the universal-business work.
+   * First try the known business fields. If the table exposes additional
+   * fields, they are intentionally not required here.
+   */
+  const { data: businesses, error: businessError } =
+    await supabaseClient
+      .from('businesses')
+      .select('id,business_name,google_place_id,phone,website,address,city,state,country,postal_code')
+      .in('id', ids);
+
+  if(businessError){
+    console.error('Business details lookup error:', businessError);
+    return { businesses:[], error:businessError };
+  }
+
+  const byId = new Map(
+    (businesses || []).map(b => [b.id, b])
+  );
+
+  return {
+    businesses: ids.map(id => byId.get(id)).filter(Boolean),
+    error:null
+  };
+}
+
+function renderConnectedStoreCards(businesses){
+  const panel = document.getElementById('connectedStoresPanel');
+  if(!panel) return;
+
+  panel.innerHTML = '';
+
+  businesses.forEach(business => {
+    const card = document.createElement('div');
+
+    card.style.cssText =
+      'border:1px solid #dfe7e3;border-radius:16px;padding:18px;margin-bottom:12px;background:#fff';
+
+    const name = document.createElement('div');
+    name.style.cssText = 'font-size:18px;font-weight:800;margin-bottom:5px';
+    name.innerText = storeBusinessName(business);
+
+    const address = document.createElement('div');
+    address.style.cssText = 'color:#68756f;font-size:14px;margin-bottom:14px';
+    address.innerText = storeBusinessAddress(business);
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.innerText = 'Select Store';
+    button.style.cssText =
+      'padding:10px 16px;border:0;border-radius:9px;background:#163d32;color:#fff;font-weight:700;cursor:pointer';
+
+    button.onclick = () => continueWithSelectedStore(business);
+
+    card.appendChild(name);
+    card.appendChild(address);
+    card.appendChild(button);
+    panel.appendChild(card);
+  });
+}
+
+async function openUniversalStoreSelection(user){
+  showStoreSelectionOverlay();
+
+  const title = document.getElementById('storeSelectionTitle');
+  const subtitle = document.getElementById('storeSelectionSubtitle');
+  const connectedPanel = document.getElementById('connectedStoresPanel');
+  const newOwnerPanel = document.getElementById('newOwnerSearchPanel');
+  const resultsPanel = document.getElementById('googleStoreResultsPanel');
+
+  if(title) title.innerText = 'Select Your Store';
+  if(subtitle){
+    subtitle.innerText =
+      'Choose the business you want to manage with STore.';
+  }
+
+  if(connectedPanel) connectedPanel.innerHTML = '';
+  if(newOwnerPanel) newOwnerPanel.style.display = 'none';
+  if(resultsPanel) resultsPanel.innerHTML = '';
+
+  setStoreSelectionStatus('Checking your STore businesses...');
+
+  const result = await getConnectedStoreBusinesses(user.id);
+
+  if(result.error){
+    setStoreSelectionStatus(
+      'We could not load your connected stores. Please try again.',
+      true
+    );
+    return;
+  }
+
+  if(result.businesses.length){
+    setStoreSelectionStatus(
+      result.businesses.length === 1
+        ? 'We found your STore business.'
+        : `We found ${result.businesses.length} STore businesses.`
+    );
+
+    renderConnectedStoreCards(result.businesses);
+    return;
+  }
+
+  /*
+   * New owner: no STore business exists yet.
+   */
+  if(title) title.innerText = 'Choose Your Business';
+  if(subtitle){
+    subtitle.innerText =
+      'We could not find a connected STore business. Choose the Google Business Profile you want to bring into STore.';
+  }
+
+  setStoreSelectionStatus(
+    'No connected STore business was found. Search Google to continue.'
+  );
+
+  if(newOwnerPanel) newOwnerPanel.style.display = 'block';
+}
+
+async function searchBusinessesForNewOwner(){
+  const country =
+    document.getElementById('storeSelectCountry')?.value.trim() || '';
+  const city =
+    document.getElementById('storeSelectCity')?.value.trim() || '';
+  const area =
+    document.getElementById('storeSelectArea')?.value.trim() || '';
+  const query =
+    document.getElementById('storeSelectQuery')?.value.trim() || '';
+
+  const panel =
+    document.getElementById('googleStoreResultsPanel');
+
+  if(!query){
+    setStoreSelectionStatus(
+      'Enter the business name to search Google.',
+      true
+    );
+    return;
+  }
+
+  setStoreSelectionStatus('Searching Google Businesses...');
+
+  if(panel) panel.innerHTML = '';
+
+  try {
+    const { data, error } =
+      await supabaseClient.auth.getSession();
+
+    if(error || !data.session){
+      setStoreSelectionStatus(
+        'Your session has expired. Please sign in again.',
+        true
+      );
+      return;
+    }
+
+    const params = new URLSearchParams({
+      country,
+      city,
+      area,
+      query
+    });
+
+    const response = await fetch(
+      '/api/google?action=discover&' + params.toString(),
+      {
+        method:'GET',
+        headers:{
+          Authorization:
+            `Bearer ${data.session.access_token}`
+        }
+      }
+    );
+
+    const result =
+      await response.json().catch(() => ({}));
+
+    if(!response.ok){
+      console.error('Universal business discovery error:', result);
+      setStoreSelectionStatus(
+        result.error || 'Unable to search Google Businesses.',
+        true
+      );
+      return;
+    }
+
+    const locations =
+      Array.isArray(result.locations)
+        ? result.locations
+        : [];
+
+    if(!locations.length){
+      setStoreSelectionStatus(
+        'No matching Google businesses were found.',
+        true
+      );
+      return;
+    }
+
+    setStoreSelectionStatus(
+      `${locations.length} Google business${locations.length === 1 ? '' : 'es'} found. Select the correct one.`
+    );
+
+    locations.forEach(location => {
+      const card = document.createElement('div');
+
+      card.style.cssText =
+        'border:1px solid #dfe7e3;border-radius:16px;padding:18px;margin-bottom:12px;background:#fff';
+
+      const title = document.createElement('div');
+      title.style.cssText =
+        'font-size:18px;font-weight:800;margin-bottom:6px';
+      title.innerText =
+        location.location_name || 'Unnamed business';
+
+      const details = document.createElement('div');
+      details.style.cssText =
+        'color:#68756f;font-size:14px;line-height:1.55;margin-bottom:12px';
+      details.innerText = [
+        location.address,
+        location.phone,
+        location.website,
+        location.rating ? `⭐ ${location.rating}` : null,
+        location.user_rating_count
+          ? `${location.user_rating_count} reviews`
+          : null
+      ].filter(Boolean).join(' • ');
+
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.innerText = 'Select This Business';
+      button.style.cssText =
+        'padding:10px 16px;border:0;border-radius:9px;background:#163d32;color:#fff;font-weight:700;cursor:pointer';
+
+      button.onclick = () =>
+        connectNewGoogleBusiness(location);
+
+      card.appendChild(title);
+      card.appendChild(details);
+      card.appendChild(button);
+
+      if(panel) panel.appendChild(card);
+    });
+
+  } catch(error){
+    console.error('Universal discovery exception:', error);
+    setStoreSelectionStatus(
+      'Unable to search Google Businesses.',
+      true
+    );
+  }
+}
+
+async function connectNewGoogleBusiness(location){
+  setStoreSelectionStatus(
+    'Connecting the selected Google Business to STore...'
+  );
+
+  try {
+    const { data, error } =
+      await supabaseClient.auth.getSession();
+
+    if(error || !data.session){
+      setStoreSelectionStatus(
+        'Your session has expired. Please sign in again.',
+        true
+      );
+      return;
+    }
+
+    const response = await fetch(
+      '/api/map-business',
+      {
+        method:'POST',
+        headers:{
+          'content-type':'application/json',
+          Authorization:
+            `Bearer ${data.session.access_token}`
+        },
+        body:JSON.stringify({
+          place_id: location.place_id,
+          business_name: location.location_name,
+          phone: location.phone,
+          website: location.website,
+          address: location.address,
+          city: location.city,
+          state: location.state,
+          country: location.country,
+          postal_code: location.postal_code,
+          latitude: location.latitude,
+          longitude: location.longitude,
+          google_maps_url: location.google_maps_url,
+          google_rating: location.rating,
+          google_review_count: location.user_rating_count
+        })
+      }
+    );
+
+    const result =
+      await response.json().catch(() => ({}));
+
+    if(!response.ok || result.success === false){
+      console.error('Map business error:', result);
+      setStoreSelectionStatus(
+        result.error ||
+        'This business could not be connected to STore.',
+        true
+      );
+      return;
+    }
+
+    const business = result.business;
+
+    if(!business?.id){
+      setStoreSelectionStatus(
+        'Google business was found, but STore did not receive a business ID.',
+        true
+      );
+      return;
+    }
+
+    localStorage.setItem(
+      'activeBusiness',
+      JSON.stringify({
+        id: business.id,
+        business_name:
+          business.business_name ||
+          location.location_name,
+        google_place_id:
+          business.google_place_id ||
+          location.place_id
+      })
+    );
+
+    setStoreSelectionStatus(
+      '✓ Business connected. Opening STore...'
+    );
+
+    setTimeout(() => {
+      hideStoreSelectionOverlay();
+      show('home');
+    }, 500);
+
+  } catch(error){
+    console.error('Connect business exception:', error);
+    setStoreSelectionStatus(
+      'Unable to connect this business.',
+      true
+    );
+  }
+}
+
+
 async function loadRealUser(user){
   const { data, error } = await supabaseClient
     .from('profiles')
@@ -3419,11 +3927,13 @@ async function loadRealUser(user){
     return;
   }
 
-  if(data.role === 'salon_owner'){
-    await loadSalonWorkspace(user.id);
-    await loadSalonWorkspaceData();
-    show('home');
-  }
+  /*
+   * UNIVERSAL STore ROUTING
+   *
+   * Do not route by salon_owner anymore.
+   * A STore account can manage any type of business.
+   */
+  await openUniversalStoreSelection(user);
 }
 
 
@@ -3466,15 +3976,14 @@ async function getActiveBusinessId(){
     .select('business_id,created_at')
     .eq('user_id',sessionData.session.user.id)
     .order('created_at',{ascending:false})
-    .limit(1)
-    .single();
+    .limit(1);
 
   if(error){
     console.error('Business membership error:',error);
     return null;
   }
 
-  return data.business_id;
+  return data?.[0]?.business_id || null;
 }
 
 
