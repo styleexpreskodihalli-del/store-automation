@@ -3388,18 +3388,66 @@ async function loadRealUser(user){
 }
 
 
-async function loadUniversalBusinessWorkspace(user){
+function getActiveBusinessForUser(user){
+  if(!user?.id) return null;
 
-  let activeBusiness = {};
-
+  let active = null;
   try{
-    activeBusiness = JSON.parse(
-      localStorage.getItem('activeBusiness') || '{}'
+    active = JSON.parse(
+      localStorage.getItem('activeBusiness') || 'null'
     );
   }catch(error){
-    console.warn('Invalid activeBusiness in localStorage:', error);
+    console.warn('Invalid activeBusiness:', error);
     localStorage.removeItem('activeBusiness');
+    return null;
   }
+
+  /*
+   * CRITICAL MULTI-ACCOUNT SAFETY:
+   * activeBusiness belongs to a specific authenticated STore user.
+   * Never allow one Gmail account to inherit another Gmail account's
+   * selected business from browser localStorage.
+   */
+  if(!active?.id || !active?.owner_user_id){
+    if(active?.id){
+      console.warn(
+        'Ignoring unscoped activeBusiness from an older STore session.'
+      );
+    }
+    localStorage.removeItem('activeBusiness');
+    return null;
+  }
+
+  if(active.owner_user_id !== user.id){
+    console.warn(
+      'Ignoring activeBusiness belonging to another STore user:',
+      active.owner_user_id,
+      'current user:',
+      user.id
+    );
+    localStorage.removeItem('activeBusiness');
+    return null;
+  }
+
+  return active;
+}
+
+function setActiveBusinessForUser(business, user){
+  if(!business?.id || !user?.id) return;
+
+  localStorage.setItem(
+    'activeBusiness',
+    JSON.stringify({
+      ...business,
+      owner_user_id: user.id
+    })
+  );
+}
+
+async function loadUniversalBusinessWorkspace(user){
+
+  const activeBusiness =
+    getActiveBusinessForUser(user);
 
   let businessId = activeBusiness?.id || null;
 
@@ -3505,13 +3553,13 @@ async function loadUniversalBusinessWorkspace(user){
   /*
    * Keep one authoritative activeBusiness object in the browser.
    */
-  localStorage.setItem(
-    'activeBusiness',
-    JSON.stringify({
+  setActiveBusinessForUser(
+    {
       ...business,
       id: business.id,
       business_name: business.business_name
-    })
+    },
+    user
   );
 
   await renderUniversalBusinessProfile(
@@ -3837,9 +3885,8 @@ async function finalizeGoogleBusinessConnection(){
      * Store the confirmed business context locally.
      */
     if(result.business){
-      localStorage.setItem(
-        'activeBusiness',
-        JSON.stringify({
+      setActiveBusinessForUser(
+        {
           id:
             result.business.id ||
             businessId,
@@ -3851,7 +3898,8 @@ async function finalizeGoogleBusinessConnection(){
           google_place_id:
             result.business.google_place_id ||
             null
-        })
+        },
+        data.session.user
       );
     }
 
@@ -4406,13 +4454,13 @@ async function selectGoogleBusinessLocation(
     /*
      * Store business_id locally for the next step.
      */
-    localStorage.setItem(
-      'activeBusiness',
-      JSON.stringify({
+    setActiveBusinessForUser(
+      {
         id: business.id,
         business_name: business.business_name,
         google_place_id: business.google_place_id
-      })
+      },
+      data.session.user
     );
 
     /*
@@ -4759,13 +4807,15 @@ async function saveBusinessProfile(){
   }
 
   if(updatedBusiness){
-    localStorage.setItem(
-      'activeBusiness',
-      JSON.stringify(updatedBusiness)
-    );
-
     const { data: currentSession } =
       await supabaseClient.auth.getSession();
+
+    if(currentSession?.session?.user){
+      setActiveBusinessForUser(
+        updatedBusiness,
+        currentSession.session.user
+      );
+    }
 
     await renderUniversalBusinessProfile(
       updatedBusiness,
@@ -4966,6 +5016,11 @@ async function logoutStore(){
   localStorage.removeItem('storeUser');
   localStorage.removeItem('storeRole');
   localStorage.removeItem('storeUserName');
+
+  /* Never let the next Google account inherit this user's business. */
+  localStorage.removeItem('activeBusiness');
+  localStorage.removeItem('activeSalon');
+  localStorage.removeItem('stallGoogleAuthMode');
 
   document.querySelectorAll('.screen').forEach(x => {
     x.classList.remove('active');
