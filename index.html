@@ -3802,7 +3802,7 @@ async function startOwnerAddStore(){
 }
 
 
-function switchOwnerStore(businessId){
+async function switchOwnerStore(businessId){
   const businesses = window.__currentUserBusinesses || [];
   const selected = businesses.find(b => b.id === businessId);
   if(!selected) return;
