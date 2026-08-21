@@ -1802,6 +1802,21 @@ window.supabaseClient = supabaseClient;
 
     </div>
 
+    <!-- MULTI-STORE OWNER PORTFOLIO -->
+    <div id="ownerPortfolioBar" style="margin-top:16px;display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 14px;border:1px solid #e1e8e4;border-radius:12px;background:#fff">
+        <div>
+          <div style="font-size:11px;font-weight:900;letter-spacing:.5px;color:#65736d">MY STORES</div>
+          <div style="font-size:15px;font-weight:900;margin-top:3px"><span id="ownerStoreCount">1</span> store<span id="ownerStorePlural">s</span> under this account</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <select id="ownerStoreSwitcher" onchange="switchOwnerStore(this.value)" style="min-width:220px;padding:10px 12px;border:1px solid #d9e1dd;border-radius:9px;background:#fff;font-weight:800"></select>
+          <button type="button" class="secondary" onclick="openOwnerPortfolio()">View All Stores</button>
+        </div>
+      </div>
+      <div id="ownerPortfolioPanel" style="display:none;margin-top:10px"></div>
+    </div>
+
     <div class="actions" style="margin-top:18px">
       <button onclick="show('content')">
         Review Today's Marketing
@@ -3710,9 +3725,95 @@ async function loadUniversalBusinessWorkspace(user){
   window.__currentUserBusinesses =
     businesses;
 
+  renderOwnerStoreSwitcher(
+    businesses,
+    business.id
+  );
+
   return true;
 }
 
+
+function renderOwnerStoreSwitcher(businesses, activeBusinessId){
+  const bar = document.getElementById('ownerPortfolioBar');
+  const select = document.getElementById('ownerStoreSwitcher');
+  const count = document.getElementById('ownerStoreCount');
+  const plural = document.getElementById('ownerStorePlural');
+  if(!bar || !select) return;
+  const list = Array.isArray(businesses) ? businesses : [];
+  bar.style.display = list.length ? 'block' : 'none';
+  if(count) count.textContent = String(list.length);
+  if(plural) plural.textContent = list.length === 1 ? '' : 's';
+  select.innerHTML = '';
+  list.forEach((b, i) => {
+    const option = document.createElement('option');
+    option.value = b.id;
+    option.textContent = b.business_name || `Store ${i + 1}`;
+    option.selected = b.id === activeBusinessId;
+    select.appendChild(option);
+  });
+}
+
+async function switchOwnerStore(businessId){
+  const businesses = window.__currentUserBusinesses || [];
+  const selected = businesses.find(b => b.id === businessId);
+  if(!selected) return;
+  const { data } = await supabaseClient.auth.getSession();
+  const user = data?.session?.user;
+  if(!user) return;
+  setActiveBusinessForUser(selected, user);
+  await renderUniversalBusinessProfile(selected, user);
+  const panel = document.getElementById('ownerPortfolioPanel');
+  if(panel) panel.style.display = 'none';
+  toast('Switched to ' + (selected.business_name || 'selected store'));
+  console.log('✓ Active store switched:', user.email, selected.business_name, selected.id);
+}
+
+function openOwnerPortfolio(){
+  const panel = document.getElementById('ownerPortfolioPanel');
+  const businesses = window.__currentUserBusinesses || [];
+  const active = getStoredActiveBusiness();
+  if(!panel) return;
+  if(!businesses.length){
+    panel.innerHTML = '<div class="card"><b>No stores connected yet.</b></div>';
+    panel.style.display = 'block';
+    return;
+  }
+  if(panel.style.display === 'block'){
+    panel.style.display = 'none';
+    return;
+  }
+  const cards = businesses.map((b) => {
+    const isActive = active?.id === b.id;
+    const activities = [];
+    if(b.google_place_id) activities.push('Google Business connected');
+    if(b.automation_enabled !== false) activities.push('Automation active');
+    if(b.business_name) activities.push('Business profile available');
+    if(b.membership_role) activities.push((b.membership_role || 'owner') + ' access');
+    return `
+      <div style="border:1px solid #e1e8e4;border-radius:12px;padding:14px;background:#fff">
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
+          <div><div style="font-weight:900;font-size:16px">${escapeHtmlSafe(b.business_name || 'Your Business')}</div><div class="muted" style="margin-top:4px">${escapeHtmlSafe(b.city || b.address || 'Business location')}</div></div>
+          ${isActive ? '<span class="badge">ACTIVE</span>' : ''}
+        </div>
+        <div style="margin-top:10px">${activities.map(a => `<div class="muted" style="margin-top:5px">✓ ${escapeHtmlSafe(a)}</div>`).join('')}</div>
+        <div style="margin-top:12px"><button type="button" ${isActive ? 'disabled' : ''} onclick="switchOwnerStore('${b.id}')">${isActive ? 'Current Store' : 'Open Store'}</button></div>
+      </div>`;
+  }).join('');
+  panel.innerHTML = `
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+        <div><h2 style="margin:0">Store Portfolio</h2><div class="muted" style="margin-top:4px">All stores connected to this Google account.</div></div>
+        <span class="badge">${businesses.length} STORE${businesses.length === 1 ? '' : 'S'}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:14px">${cards}</div>
+    </div>`;
+  panel.style.display = 'block';
+}
+
+function escapeHtmlSafe(value){
+  return String(value ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
 
 async function renderUniversalBusinessProfile(
   business,
@@ -3831,6 +3932,11 @@ async function renderUniversalBusinessProfile(
       business.google_place_id ||
       '';
   }
+
+  renderOwnerStoreSwitcher(
+    window.__currentUserBusinesses || [business],
+    business.id
+  );
 
   const rating =
     document.getElementById('profileGoogleRating');
