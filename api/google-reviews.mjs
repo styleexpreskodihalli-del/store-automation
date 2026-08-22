@@ -378,21 +378,7 @@ async function getAuthenticatedUser(
     };
   }
 
-console.log(
-  'GOOGLE TOKEN INFO:',
-  {
-    status:
-      tokenInfoResponse.status,
 
-    scope:
-      tokenInfo.scope,
-
-    email:
-      tokenInfo.email,
-
-    audience:
-      tokenInfo.aud
-  }
 );
   const response =
     await fetch(
