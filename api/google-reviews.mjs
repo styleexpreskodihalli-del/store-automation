@@ -378,7 +378,32 @@ async function getAuthenticatedUser(
     };
   }
 
+const tokenInfoResponse =
+  await fetch(
+    `https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`
+  );
 
+const tokenInfo =
+  await tokenInfoResponse
+    .json()
+    .catch(() => ({}));
+
+console.log(
+  'GOOGLE TOKEN INFO:',
+  {
+    status:
+      tokenInfoResponse.status,
+
+    scope:
+      tokenInfo.scope,
+
+    email:
+      tokenInfo.email,
+
+    audience:
+      tokenInfo.aud
+  }
+);
   const response =
     await fetch(
       `${SUPABASE_URL}/auth/v1/user`,
