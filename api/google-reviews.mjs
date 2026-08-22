@@ -233,7 +233,7 @@ export default {
       const googleResult =
         await fetchAllGoogleReviews(
           connection,
-          accessToken
+          accessToken,businessId
         );
 
       if (!googleResult.ok) {
