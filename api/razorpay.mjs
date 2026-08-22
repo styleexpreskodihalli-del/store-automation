@@ -1298,6 +1298,20 @@ async function verifyPayment(
       razorpay_payment_id:
         paymentId,
 
+        status:
+          "captured"
+    }
+  );
+    // ----------------------------------------------------------
+  // PAYMENT IS GENUINE + CAPTURED
+  // ----------------------------------------------------------
+
+  await updatePayment(
+    orderId,
+    {
+      razorpay_payment_id:
+        paymentId,
+
       razorpay_signature:
         signature,
 
@@ -1308,66 +1322,202 @@ async function verifyPayment(
 
 
   // ----------------------------------------------------------
-  // ACTIVATE LISTING
+  // ACTIVATE THE LISTING
   // ----------------------------------------------------------
 
-  const activation =
-    await activateListing(
-      paymentRecord,
-      paymentData
-    );
+  const onboardingId =
+    paymentRecord.onboarding_id;
 
 
-  if (!activation.ok) {
-
-    console.error(
-      "Payment captured but listing activation failed",
-      activation.error
-    );
+  let businessId =
+    paymentRecord.business_id ||
+    null;
 
 
-    return json(
-      {
-        success:
-          true,
+  // ----------------------------------------------------------
+  // FIND BUSINESS FROM ONBOARDING
+  // ----------------------------------------------------------
 
-        verified:
-          true,
+  if (
+    !businessId &&
+    onboardingId
+  ) {
 
-        payment_verified:
-          true,
+    const businessResponse =
+      await supabaseFetch(
+        `/rest/v1/businesses` +
+        `?onboarding_id=eq.${encodeURIComponent(
+          onboardingId
+        )}` +
+        `&select=id` +
+        `&limit=1`
+      );
 
-        captured:
-          true,
 
-        paid:
-          true,
+    if (
+      businessResponse.ok
+    ) {
 
-        activation:
-          false,
+      const businesses =
+        await businessResponse.json();
 
-        error:
-          "Payment was successful but listing activation needs reconciliation",
 
-        razorpay_order_id:
-          orderId,
+      if (
+        Array.isArray(
+          businesses
+        ) &&
+        businesses.length
+      ) {
 
-        razorpay_payment_id:
-          paymentId
-      },
-      202
-    );
+        businessId =
+          businesses[0].id ||
+          null;
+      }
+    }
   }
 
+
+  // ----------------------------------------------------------
+  // UPDATE ONBOARDING PAYMENT STATUS
+  // ----------------------------------------------------------
+
+  if (
+    onboardingId
+  ) {
+
+    const onboardingUpdate =
+      await supabaseFetch(
+        `/rest/v1/google_oauth_states` +
+        `?onboarding_id=eq.${encodeURIComponent(
+          onboardingId
+        )}`,
+        {
+          method:
+            "PATCH",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+
+            Prefer:
+              "return=minimal"
+          },
+
+          body:
+            JSON.stringify(
+              {
+                payment_status:
+                  "paid",
+
+                payment_plan:
+                  LISTING_PLAN,
+
+                razorpay_order_id:
+                  orderId,
+
+                razorpay_payment_id:
+                  paymentId
+              }
+            )
+        }
+      );
+
+
+    if (
+      !onboardingUpdate.ok
+    ) {
+
+      console.error(
+        "Unable to update onboarding payment status:",
+        await onboardingUpdate.text()
+      );
+    }
+  }
+
+
+  // ----------------------------------------------------------
+  // UPDATE BUSINESS PAYMENT STATUS
+  // ----------------------------------------------------------
+
+  if (
+    businessId
+  ) {
+
+    const businessUpdate =
+      await supabaseFetch(
+        `/rest/v1/businesses` +
+        `?id=eq.${encodeURIComponent(
+          businessId
+        )}`,
+        {
+          method:
+            "PATCH",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+
+            Prefer:
+              "return=minimal"
+          },
+
+          body:
+            JSON.stringify(
+              {
+                payment_status:
+                  "paid",
+
+                payment_plan:
+                  LISTING_PLAN,
+
+                razorpay_order_id:
+                  orderId,
+
+                razorpay_payment_id:
+                  paymentId,
+
+                listing_status:
+                  "active"
+              }
+            )
+        }
+      );
+
+
+    if (
+      !businessUpdate.ok
+    ) {
+
+      console.error(
+        "Unable to update business payment status:",
+        await businessUpdate.text()
+      );
+    }
+  }
+
+
+  // ----------------------------------------------------------
+  // MARK PAYMENT AS PAID
+  // ----------------------------------------------------------
 
   await updatePayment(
     orderId,
     {
+      razorpay_payment_id:
+        paymentId,
+
+      razorpay_signature:
+        signature,
+
       status:
         "paid"
     }
   );
 
+
+  // ----------------------------------------------------------
+  // RETURN SUCCESS
+  // ----------------------------------------------------------
 
   return json(
     {
@@ -1395,827 +1545,43 @@ async function verifyPayment(
       plan:
         LISTING_PLAN,
 
+      amount:
+        paymentData.amount,
+
+      currency:
+        paymentData.currency,
+
       razorpay_order_id:
         orderId,
 
       razorpay_payment_id:
-        paymentId
-    }
-  );
-}
+        paymentId,
 
+      business_id:
+        businessId,
 
-// ============================================================
-// RAZORPAY ORDER STATUS
-// ============================================================
-
-async function getOrderStatus(
-  body
-) {
-
-  const orderId =
-    body?.razorpay_order_id ||
-    body?.order_id;
-
-
-  if (!orderId) {
-
-    return json(
-      {
-        success:
-          false,
-
-        error:
-          "razorpay_order_id is required"
-      },
-      400
-    );
-  }
-
-
-  const recordResult =
-    await getPaymentRecord(
-      orderId
-    );
-
-
-  if (
-    !recordResult.ok
-  ) {
-
-    return json(
-      {
-        success:
-          false,
-
-        error:
-          recordResult.notFound
-            ? "Order not found"
-            : "Unable to load order"
-      },
-      recordResult.notFound
-        ? 404
-        : 500
-    );
-  }
-
-
-  const razorpayResponse =
-    await razorpayFetch(
-      `/orders/${encodeURIComponent(
-        orderId
-      )}`,
-      {
-        method:
-          "GET"
-      }
-    );
-
-
-  const razorpayOrder =
-    await razorpayResponse
-      .json()
-      .catch(
-        () => ({})
-      );
-
-
-  if (
-    !razorpayResponse.ok
-  ) {
-
-    return json(
-      {
-        success:
-          false,
-
-        error:
-          razorpayOrder?.error?.description ||
-          "Unable to retrieve Razorpay order"
-      },
-      502
-    );
-  }
-
-
-  return json(
-    {
-      success:
-        true,
-
-      order: {
-        id:
-          razorpayOrder.id,
-
-        amount:
-          razorpayOrder.amount,
-
-        currency:
-          razorpayOrder.currency,
-
-        status:
-          razorpayOrder.status,
-
-        amount_paid:
-          razorpayOrder.amount_paid,
-
-        amount_due:
-          razorpayOrder.amount_due
-      },
-
-      local: {
-        status:
-          recordResult.payment.status,
-
-        plan:
-          recordResult.payment.plan,
-
-        onboarding_id:
-          recordResult.payment.onboarding_id
-      }
-    }
-  );
-}
-
-
-// ============================================================
-// ACTIVATE LISTING
-// ============================================================
-
-async function activateListing(
-  paymentRecord,
-  paymentData
-) {
-
-  const onboardingId =
-    paymentRecord?.onboarding_id;
-
-
-  if (!onboardingId) {
-
-    return {
-      ok: false,
-
-      error:
-        "Payment record does not contain onboarding_id"
-    };
-  }
-
-
-  // ----------------------------------------------------------
-  // IMPORTANT
-  //
-  // This attempts to update the existing onboarding state
-  // without inventing a new business table/schema.
-  //
-  // If your production database uses a different listing
-  // status column, this section can be adapted after the
-  // payment flow is confirmed.
-  // ----------------------------------------------------------
-
-  const response =
-    await supabaseFetch(
-      `/rest/v1/google_oauth_states` +
-      `?onboarding_id=eq.${encodeURIComponent(
+      onboarding_id:
         onboardingId
-      )}`,
-      {
-        method:
-          "PATCH",
-
-        headers: {
-          "Content-Type":
-            "application/json",
-
-          Prefer:
-            "return=minimal"
-        },
-
-        body:
-          JSON.stringify(
-            {
-              payment_status:
-                "paid",
-
-              payment_plan:
-                LISTING_PLAN,
-
-              razorpay_order_id:
-                paymentRecord.razorpay_order_id,
-
-              razorpay_payment_id:
-                paymentData.id,
-
-              listing_status:
-                "active"
-            }
-          )
-      }
-    );
-
-
-  if (!response.ok) {
-
-    const detail =
-      await response.text();
-
-
-    console.error(
-      "Listing activation update failed",
-      detail
-    );
-
-
-    return {
-      ok: false,
-
-      error:
-        detail
-    };
-  }
-
-
-  return {
-    ok: true
-  };
-}
-
-
-// ============================================================
-// WEBHOOK SIGNATURE
-// ============================================================
-
-async function verifyWebhookSignature(
-  rawBody,
-  signature
-) {
-
-  if (
-    !RAZORPAY_WEBHOOK_SECRET ||
-    !signature
-  ) {
-
-    return false;
-  }
-
-
-  const expected =
-    await hmacSha256Hex(
-      RAZORPAY_WEBHOOK_SECRET,
-      rawBody
-    );
-
-
-  return safeEqual(
-    expected,
-    signature
-  );
-}
-
-
-// ============================================================
-// HANDLE WEBHOOK
-// ============================================================
-
-async function handleWebhook(
-  request
-) {
-
-  if (
-    !RAZORPAY_WEBHOOK_SECRET
-  ) {
-
-    return json(
-      {
-        success:
-          false,
-
-        error:
-          "Razorpay webhook secret is not configured"
-      },
-      500
-    );
-  }
-
-
-  const rawBody =
-    await request.text();
-
-
-  const signature =
-    request.headers.get(
-      "x-razorpay-signature"
-    );
-
-
-  const valid =
-    await verifyWebhookSignature(
-      rawBody,
-      signature
-    );
-
-
-  if (!valid) {
-
-    console.error(
-      "Invalid Razorpay webhook signature"
-    );
-
-
-    return json(
-      {
-        success:
-          false,
-
-        error:
-          "Invalid webhook signature"
-      },
-      400
-    );
-  }
-
-
-  let event;
-
-
-  try {
-
-    event =
-      JSON.parse(
-        rawBody
-      );
-
-  } catch {
-
-    return json(
-      {
-        success:
-          false,
-
-        error:
-          "Invalid webhook JSON"
-      },
-      400
-    );
-  }
-
-
-  console.log(
-    "RAZORPAY WEBHOOK",
-    JSON.stringify(
-      {
-        event:
-          event?.event ||
-          null
-      }
-    )
-  );
-
-
-  const eventName =
-    event?.event;
-
-
-  const paymentEntity =
-    event?.payload?.payment?.entity ||
-    null;
-
-
-  const orderEntity =
-    event?.payload?.order?.entity ||
-    null;
-
-
-  const orderId =
-    paymentEntity?.order_id ||
-    orderEntity?.id ||
-    null;
-
-
-  const paymentId =
-    paymentEntity?.id ||
-    null;
-
-
-  if (!orderId) {
-
-    return json(
-      {
-        success:
-          true,
-
-        received:
-          true
-      }
-    );
-  }
-
-
-  const recordResult =
-    await getPaymentRecord(
-      orderId
-    );
-
-
-  if (
-    !recordResult.ok
-  ) {
-
-    console.error(
-      "Webhook order not found in STall",
-      {
-        orderId,
-        event:
-          eventName
-      }
-    );
-
-
-    // Acknowledge the webhook so Razorpay
-    // does not endlessly retry an event for an
-    // order that is not in our ledger.
-    return json(
-      {
-        success:
-          true,
-
-        received:
-          true,
-
-        reconciled:
-          false,
-
-        reason:
-          "Order not found"
-      }
-    );
-  }
-
-
-  const paymentRecord =
-    recordResult.payment;
-
-
-  // ----------------------------------------------------------
-  // PAYMENT CAPTURED / ORDER PAID
-  // ----------------------------------------------------------
-
-  if (
-    eventName ===
-      "payment.captured" ||
-    eventName ===
-      "order.paid"
-  ) {
-
-    const finalPaymentId =
-      paymentId ||
-      paymentRecord.razorpay_payment_id;
-
-
-    await updatePayment(
-      orderId,
-      {
-        razorpay_payment_id:
-          finalPaymentId,
-
-        status:
-          "captured"
-      }
-    );
-
-
-    if (
-      finalPaymentId
-    ) {
-
-      const activation =
-        await activateListing(
-          paymentRecord,
-          paymentEntity ||
-            {
-              id:
-                finalPaymentId
-            }
-        );
-
-
-      if (
-        activation.ok
-      ) {
-
-        await updatePayment(
-          orderId,
-          {
-            status:
-              "paid"
-          }
-        );
-
-      } else {
-
-        console.error(
-          "Webhook listing activation failed",
-          activation.error
-        );
-      }
-    }
-  }
-
-
-  // ----------------------------------------------------------
-  // PAYMENT AUTHORIZED
-  // ----------------------------------------------------------
-
-  else if (
-    eventName ===
-      "payment.authorized"
-  ) {
-
-    await updatePayment(
-      orderId,
-      {
-        razorpay_payment_id:
-          paymentId,
-
-        status:
-          "authorized"
-      }
-    );
-  }
-
-
-  // ----------------------------------------------------------
-  // PAYMENT FAILED
-  // ----------------------------------------------------------
-
-  else if (
-    eventName ===
-      "payment.failed"
-  ) {
-
-    await updatePayment(
-      orderId,
-      {
-        razorpay_payment_id:
-          paymentId,
-
-        status:
-          "failed"
-      }
-    );
-  }
-
-
-  return json(
-    {
-      success:
-        true,
-
-      received:
-        true,
-
-      event:
-        eventName,
-
-      order_id:
-        orderId,
-
-      payment_id:
-        paymentId
     }
   );
 }
 
 
 // ============================================================
-// MAIN REQUEST HANDLER
-// ============================================================
-
-export default {
-  async fetch(
-    request
-  ) {
-
-    try {
-
-      // --------------------------------------------------------
-      // ONLY POST
-      // --------------------------------------------------------
-
-      if (
-        request.method !==
-          "POST"
-      ) {
-
-        return json(
-          {
-            success:
-              false,
-
-            error:
-              "Method not allowed"
-          },
-          405
-        );
-      }
-
-
-      // --------------------------------------------------------
-      // CONFIGURATION
-      // --------------------------------------------------------
-
-      if (
-        !RAZORPAY_KEY_ID ||
-        !RAZORPAY_KEY_SECRET
-      ) {
-
-        return json(
-          {
-            success:
-              false,
-
-            error:
-              "Razorpay is not configured"
-          },
-          500
-        );
-      }
-
-
-      // --------------------------------------------------------
-      // ROUTE
-      // --------------------------------------------------------
-
-      const url =
-        new URL(
-          request.url
-        );
-
-
-      const action =
-        (
-          url.searchParams.get(
-            "action"
-          ) ||
-          "verify"
-        ).toLowerCase();
-
-
-      // --------------------------------------------------------
-      // WEBHOOK
-      // --------------------------------------------------------
-
-      if (
-        action ===
-          "webhook"
-      ) {
-
-        return handleWebhook(
-          request
-        );
-      }
-
-
-      // --------------------------------------------------------
-      // NORMAL JSON REQUEST
-      // --------------------------------------------------------
-
-      const body =
-        await readJson(
-          request
-        );
-
-
-      if (!body) {
-
-        return json(
-          {
-            success:
-              false,
-
-            error:
-              "Invalid request body"
-          },
-          400
-        );
-      }
-
-
-      // --------------------------------------------------------
-      // CREATE ORDER
-      // --------------------------------------------------------
-
-      if (
-        action ===
-          "create-order"
-      ) {
-
-        return createOrder(
-          body
-        );
-      }
-
-
-      // --------------------------------------------------------
-      // VERIFY PAYMENT
-      // --------------------------------------------------------
-
-      if (
-        action ===
-          "verify"
-      ) {
-
-        return verifyPayment(
-          body
-        );
-      }
-
-
-      // --------------------------------------------------------
-      // STATUS
-      // --------------------------------------------------------
-
-      if (
-        action ===
-          "status"
-      ) {
-
-        return getOrderStatus(
-          body
-        );
-      }
-
-
-      // --------------------------------------------------------
-      // UNKNOWN ACTION
-      // --------------------------------------------------------
-
-      return json(
-        {
-          success:
-            false,
-
-          error:
-            "Unknown Razorpay action",
-
-          supported_actions: [
-            "create-order",
-            "verify",
-            "status",
-            "webhook"
-          ]
-        },
-        400
-      );
-
-    } catch (
-      error
-    ) {
-
-      console.error(
-        "RAZORPAY ERROR",
-        {
-          name:
-            error?.name ||
-            null,
-
-          message:
-            error?.message ||
-            String(error),
-
-          stack:
-            error?.stack ||
-            null
-        }
-      );
-
-
-      return json(
-        {
-          success:
-            false,
-
-          error:
-            error?.message ||
-            "Unable to process Razorpay request"
-        },
-        500
-      );
-    }
-  }
-};
-// ============================================================
-// CUSTOMER / BUSINESS HELPERS
+// GET BUSINESS FOR ONBOARDING
 // ============================================================
 
 async function getBusinessForOnboarding(
   onboardingId
 ) {
 
-  if (!onboardingId) {
+  if (
+    !onboardingId
+  ) {
 
     return {
-      ok: false,
+      ok:
+        false,
 
       error:
         "onboarding_id is required"
@@ -2234,7 +1600,9 @@ async function getBusinessForOnboarding(
     );
 
 
-  if (!response.ok) {
+  if (
+    !response.ok
+  ) {
 
     const detail =
       await response.text();
@@ -2247,7 +1615,8 @@ async function getBusinessForOnboarding(
 
 
     return {
-      ok: false,
+      ok:
+        false,
 
       error:
         "Unable to load STall business",
@@ -2269,7 +1638,8 @@ async function getBusinessForOnboarding(
   ) {
 
     return {
-      ok: true,
+      ok:
+        true,
 
       business:
         null
@@ -2278,7 +1648,8 @@ async function getBusinessForOnboarding(
 
 
   return {
-    ok: true,
+    ok:
+      true,
 
     business:
       businesses[0]
@@ -2294,10 +1665,13 @@ async function getBusinessById(
   businessId
 ) {
 
-  if (!businessId) {
+  if (
+    !businessId
+  ) {
 
     return {
-      ok: false,
+      ok:
+        false,
 
       error:
         "business_id is required"
@@ -2316,10 +1690,13 @@ async function getBusinessById(
     );
 
 
-  if (!response.ok) {
+  if (
+    !response.ok
+  ) {
 
     return {
-      ok: false,
+      ok:
+        false,
 
       error:
         await response.text()
@@ -2339,7 +1716,8 @@ async function getBusinessById(
   ) {
 
     return {
-      ok: false,
+      ok:
+        false,
 
       notFound:
         true
@@ -2348,7 +1726,8 @@ async function getBusinessById(
 
 
   return {
-    ok: true,
+    ok:
+      true,
 
     business:
       businesses[0]
@@ -2364,10 +1743,13 @@ async function getPaymentByPaymentId(
   paymentId
 ) {
 
-  if (!paymentId) {
+  if (
+    !paymentId
+  ) {
 
     return {
-      ok: false,
+      ok:
+        false,
 
       notFound:
         true
@@ -2386,10 +1768,13 @@ async function getPaymentByPaymentId(
     );
 
 
-  if (!response.ok) {
+  if (
+    !response.ok
+  ) {
 
     return {
-      ok: false,
+      ok:
+        false,
 
       error:
         await response.text()
@@ -2409,7 +1794,8 @@ async function getPaymentByPaymentId(
   ) {
 
     return {
-      ok: false,
+      ok:
+        false,
 
       notFound:
         true
@@ -2418,7 +1804,8 @@ async function getPaymentByPaymentId(
 
 
   return {
-    ok: true,
+    ok:
+      true,
 
     payment:
       rows[0]
@@ -2442,7 +1829,8 @@ async function savePaymentEvent(
   ) {
 
     return {
-      ok: false,
+      ok:
+        false,
 
       error:
         "Razorpay order ID is missing"
@@ -2475,10 +1863,13 @@ async function savePaymentEvent(
     );
 
 
-  if (!response.ok) {
+  if (
+    !response.ok
+  ) {
 
     return {
-      ok: false,
+      ok:
+        false,
 
       error:
         "Unable to update payment record"
@@ -2487,7 +1878,8 @@ async function savePaymentEvent(
 
 
   return {
-    ok: true
+    ok:
+      true
   };
 }
 
@@ -2506,7 +1898,8 @@ async function markPaymentPaid(
   ) {
 
     return {
-      ok: false,
+      ok:
+        false,
 
       error:
         "Payment order is missing"
@@ -2529,10 +1922,13 @@ async function markPaymentPaid(
     );
 
 
-  if (!response.ok) {
+  if (
+    !response.ok
+  ) {
 
     return {
-      ok: false,
+      ok:
+        false,
 
       error:
         "Unable to mark payment as paid"
@@ -2541,7 +1937,8 @@ async function markPaymentPaid(
 
 
   return {
-    ok: true
+    ok:
+      true
   };
 }
 
@@ -2554,7 +1951,10 @@ function isPaymentComplete(
   payment
 ) {
 
-  if (!payment) {
+  if (
+    !payment
+  ) {
+
     return false;
   }
 
@@ -2601,7 +2001,10 @@ function normalizePhone(
   phone
 ) {
 
-  if (!phone) {
+  if (
+    !phone
+  ) {
+
     return "";
   }
 
@@ -2625,7 +2028,10 @@ function normalizeEmail(
   email
 ) {
 
-  if (!email) {
+  if (
+    !email
+  ) {
+
     return "";
   }
 
@@ -2646,7 +2052,10 @@ function normalizeBusinessName(
   value
 ) {
 
-  if (!value) {
+  if (
+    !value
+  ) {
+
     return "STall Listing";
   }
 
@@ -2770,10 +2179,13 @@ async function updateBusinessPaymentStatus(
   paymentData
 ) {
 
-  if (!businessId) {
+  if (
+    !businessId
+  ) {
 
     return {
-      ok: true,
+      ok:
+        true,
 
       skipped:
         true
@@ -2827,7 +2239,9 @@ async function updateBusinessPaymentStatus(
     );
 
 
-  if (!response.ok) {
+  if (
+    !response.ok
+  ) {
 
     const detail =
       await response.text();
@@ -2840,7 +2254,8 @@ async function updateBusinessPaymentStatus(
 
 
     return {
-      ok: false,
+      ok:
+        false,
 
       error:
         detail
@@ -2849,7 +2264,8 @@ async function updateBusinessPaymentStatus(
 
 
   return {
-    ok: true
+    ok:
+      true
   };
 }
 
@@ -2863,10 +2279,13 @@ async function updateOnboardingPaymentStatus(
   paymentData
 ) {
 
-  if (!onboardingId) {
+  if (
+    !onboardingId
+  ) {
 
     return {
-      ok: true,
+      ok:
+        true,
 
       skipped:
         true
@@ -2920,7 +2339,9 @@ async function updateOnboardingPaymentStatus(
     );
 
 
-  if (!response.ok) {
+  if (
+    !response.ok
+  ) {
 
     const detail =
       await response.text();
@@ -2933,7 +2354,8 @@ async function updateOnboardingPaymentStatus(
 
 
     return {
-      ok: false,
+      ok:
+        false,
 
       error:
         detail
@@ -2942,7 +2364,8 @@ async function updateOnboardingPaymentStatus(
 
 
   return {
-    ok: true
+    ok:
+      true
   };
 }
 
@@ -3008,11 +2431,14 @@ async function activatePaidListing(
   // ----------------------------------------------------------
 
   let businessResult = {
-    ok: true
+    ok:
+      true
   };
 
 
-  if (businessId) {
+  if (
+    businessId
+  ) {
 
     businessResult =
       await updateBusinessPaymentStatus(
@@ -3028,7 +2454,8 @@ async function activatePaidListing(
   ) {
 
     return {
-      ok: false,
+      ok:
+        false,
 
       error:
         "Unable to activate paid listing"
@@ -3037,7 +2464,8 @@ async function activatePaidListing(
 
 
   return {
-    ok: true,
+    ok:
+      true,
 
     business_id:
       businessId,
@@ -3056,10 +2484,13 @@ async function fetchRazorpayPayment(
   paymentId
 ) {
 
-  if (!paymentId) {
+  if (
+    !paymentId
+  ) {
 
     return {
-      ok: false,
+      ok:
+        false,
 
       error:
         "Razorpay payment ID is required"
@@ -3087,7 +2518,9 @@ async function fetchRazorpayPayment(
       );
 
 
-  if (!response.ok) {
+  if (
+    !response.ok
+  ) {
 
     console.error(
       "Razorpay payment lookup failed:",
@@ -3101,7 +2534,8 @@ async function fetchRazorpayPayment(
 
 
     return {
-      ok: false,
+      ok:
+        false,
 
       error:
         data?.error?.description ||
@@ -3116,7 +2550,8 @@ async function fetchRazorpayPayment(
 
 
   return {
-    ok: true,
+    ok:
+      true,
 
     payment:
       data
@@ -3132,10 +2567,13 @@ async function fetchRazorpayOrder(
   orderId
 ) {
 
-  if (!orderId) {
+  if (
+    !orderId
+  ) {
 
     return {
-      ok: false,
+      ok:
+        false,
 
       error:
         "Razorpay order ID is required"
@@ -3163,7 +2601,9 @@ async function fetchRazorpayOrder(
       );
 
 
-  if (!response.ok) {
+  if (
+    !response.ok
+  ) {
 
     console.error(
       "Razorpay order lookup failed:",
@@ -3177,7 +2617,8 @@ async function fetchRazorpayOrder(
 
 
     return {
-      ok: false,
+      ok:
+        false,
 
       error:
         data?.error?.description ||
@@ -3192,7 +2633,8 @@ async function fetchRazorpayOrder(
 
 
   return {
-    ok: true,
+    ok:
+      true,
 
     order:
       data
@@ -3227,7 +2669,10 @@ function paymentAmountMatches(
   expectedAmount
 ) {
 
-  if (!payment) {
+  if (
+    !payment
+  ) {
+
     return false;
   }
 
@@ -3311,7 +2756,9 @@ function paymentSummary(
   payment
 ) {
 
-  if (!payment) {
+  if (
+    !payment
+  ) {
 
     return null;
   }
@@ -3364,7 +2811,9 @@ function orderSummary(
   order
 ) {
 
-  if (!order) {
+  if (
+    !order
+  ) {
 
     return null;
   }
@@ -3411,10 +2860,13 @@ async function reconcilePayment(
   payment
 ) {
 
-  if (!paymentRecord) {
+  if (
+    !paymentRecord
+  ) {
 
     return {
-      ok: false,
+      ok:
+        false,
 
       error:
         "Payment record is missing"
@@ -3427,7 +2879,8 @@ async function reconcilePayment(
   ) {
 
     return {
-      ok: false,
+      ok:
+        false,
 
       error:
         "Razorpay payment is missing"
@@ -3443,7 +2896,8 @@ async function reconcilePayment(
   ) {
 
     return {
-      ok: false,
+      ok:
+        false,
 
       error:
         "Payment does not belong to this order"
@@ -3459,7 +2913,8 @@ async function reconcilePayment(
   ) {
 
     return {
-      ok: false,
+      ok:
+        false,
 
       error:
         "Payment amount does not match"
@@ -3490,7 +2945,8 @@ async function reconcilePayment(
 
 
     return {
-      ok: true,
+      ok:
+        true,
 
       paid:
         false,
@@ -3538,7 +2994,8 @@ async function reconcilePayment(
     ) {
 
       return {
-        ok: false,
+        ok:
+          false,
 
         paid:
           true,
@@ -3565,7 +3022,8 @@ async function reconcilePayment(
 
 
     return {
-      ok: true,
+      ok:
+        true,
 
       paid:
         true,
@@ -3607,7 +3065,8 @@ async function reconcilePayment(
 
 
     return {
-      ok: true,
+      ok:
+        true,
 
       paid:
         false,
@@ -3645,7 +3104,8 @@ async function reconcilePayment(
 
 
   return {
-    ok: true,
+    ok:
+      true,
 
     paid:
       false,
@@ -4054,7 +3514,9 @@ async function getOrderStatus(
     body?.order_id;
 
 
-  if (!orderId) {
+  if (
+    !orderId
+  ) {
 
     return json(
       {
@@ -4182,7 +3644,9 @@ async function getPaymentHistory(
     body?.onboarding_id;
 
 
-  if (!onboardingId) {
+  if (
+    !onboardingId
+  ) {
 
     return json(
       {
@@ -4220,7 +3684,9 @@ async function getPaymentHistory(
     );
 
 
-  if (!response.ok) {
+  if (
+    !response.ok
+  ) {
 
     const detail =
       await response.text();
@@ -4277,7 +3743,9 @@ async function getCurrentPaymentStatus(
     body?.onboarding_id;
 
 
-  if (!onboardingId) {
+  if (
+    !onboardingId
+  ) {
 
     return json(
       {
@@ -4315,7 +3783,9 @@ async function getCurrentPaymentStatus(
     );
 
 
-  if (!response.ok) {
+  if (
+    !response.ok
+  ) {
 
     return json(
       {
@@ -4497,7 +3967,15 @@ async function handleWebhook(
         rawBody
       );
 
-  } catch {
+  } catch (
+    error
+  ) {
+
+    console.error(
+      "Invalid Razorpay webhook JSON:",
+      error
+    );
+
 
     return json(
       {
@@ -4524,7 +4002,7 @@ async function handleWebhook(
 
 
   // ----------------------------------------------------------
-  // EXTRACT PAYMENT
+  // PAYMENT ENTITY
   // ----------------------------------------------------------
 
   const paymentEntity =
@@ -4533,7 +4011,7 @@ async function handleWebhook(
 
 
   // ----------------------------------------------------------
-  // EXTRACT ORDER
+  // ORDER ENTITY
   // ----------------------------------------------------------
 
   const orderEntity =
@@ -4552,7 +4030,13 @@ async function handleWebhook(
     null;
 
 
-  if (!orderId) {
+  // ----------------------------------------------------------
+  // NO ORDER ID
+  // ----------------------------------------------------------
+
+  if (
+    !orderId
+  ) {
 
     console.log(
       "Razorpay webhook has no order ID; acknowledging."
@@ -4597,12 +4081,8 @@ async function handleWebhook(
     );
 
 
-    // We acknowledge the webhook.
-    //
-    // Razorpay can send events for orders that may
-    // have been created elsewhere. We don't create
-    // arbitrary STall records from untrusted webhook
-    // data.
+    // Do not create arbitrary payment records from
+    // webhook data that our system never initiated.
     return json(
       {
         success:
@@ -4693,7 +4173,13 @@ async function handleWebhook(
           true,
 
         event:
-          eventName
+          eventName,
+
+        order_id:
+          orderId,
+
+        payment_id:
+          paymentId
       }
     );
   }
@@ -4822,9 +4308,7 @@ async function handleWebhook(
       );
 
 
-      // We intentionally return 500 here.
-      // Razorpay can retry the webhook, giving STall
-      // another opportunity to complete activation.
+      // Returning 500 allows Razorpay to retry the webhook.
       return json(
         {
           success:
@@ -4890,8 +4374,10 @@ async function handleWebhook(
       paymentEntity;
 
 
-    // If the webhook contains an order but not a
-    // payment entity, ask Razorpay for the payment.
+    // --------------------------------------------------------
+    // FIND CAPTURED PAYMENT IF WEBHOOK DOES NOT INCLUDE ONE
+    // --------------------------------------------------------
+
     if (
       !payment &&
       orderId
@@ -4936,6 +4422,10 @@ async function handleWebhook(
     }
 
 
+    // --------------------------------------------------------
+    // NO PAYMENT ENTITY
+    // --------------------------------------------------------
+
     if (
       !payment
     ) {
@@ -4958,6 +4448,10 @@ async function handleWebhook(
     }
 
 
+    // --------------------------------------------------------
+    // ORDER MATCH
+    // --------------------------------------------------------
+
     if (
       !paymentBelongsToOrder(
         payment,
@@ -4978,6 +4472,10 @@ async function handleWebhook(
     }
 
 
+    // --------------------------------------------------------
+    // AMOUNT MATCH
+    // --------------------------------------------------------
+
     if (
       !paymentAmountMatches(
         payment,
@@ -4997,6 +4495,10 @@ async function handleWebhook(
       );
     }
 
+
+    // --------------------------------------------------------
+    // CAPTURED CHECK
+    // --------------------------------------------------------
 
     if (
       !isCaptured(
@@ -5183,8 +4685,6 @@ async function handleWebhook(
     }
   );
 }
-
-
 // ============================================================
 // MAIN ROUTER
 // ============================================================
@@ -5219,7 +4719,7 @@ export default {
 
 
       // --------------------------------------------------------
-      // REQUIRED SERVER VARIABLES
+      // REQUIRED SERVER CONFIGURATION
       // --------------------------------------------------------
 
       if (
@@ -5259,7 +4759,7 @@ export default {
 
 
       // --------------------------------------------------------
-      // ROUTE
+      // URL / ACTION
       // --------------------------------------------------------
 
       const url =
@@ -5280,8 +4780,10 @@ export default {
       // --------------------------------------------------------
       // WEBHOOK
       //
-      // Webhooks use the RAW request body.
-      // Do not call request.json() before this.
+      // IMPORTANT:
+      // Webhooks must receive the raw request body because the
+      // Razorpay webhook signature is calculated against the
+      // exact raw payload.
       // --------------------------------------------------------
 
       if (
@@ -5300,14 +4802,14 @@ export default {
       // --------------------------------------------------------
 
       const body =
-        await request
-          .json()
-          .catch(
-            () => null
-          );
+        await readJson(
+          request
+        );
 
 
-      if (!body) {
+      if (
+        !body
+      ) {
 
         return json(
           {
@@ -5338,7 +4840,7 @@ export default {
 
 
       // --------------------------------------------------------
-      // VERIFY
+      // VERIFY PAYMENT
       // --------------------------------------------------------
 
       if (
@@ -5445,19 +4947,3 @@ export default {
     }
   }
 };
-// ============================================================
-// END OF RAZORPAY MODULE
-// ============================================================
-//
-// Supported endpoints:
-//
-// POST /api/razorpay?action=create-order
-// POST /api/razorpay?action=verify
-// POST /api/razorpay?action=status
-// POST /api/razorpay?action=history
-// POST /api/razorpay?action=current-status
-// POST /api/razorpay?action=webhook
-//
-// The module intentionally keeps all Razorpay server-side
-// functionality in this single file.
-// ============================================================
