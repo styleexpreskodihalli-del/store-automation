@@ -21,7 +21,6 @@ const GOOGLE_CLIENT_SECRET =
 // Body:
 // {
 //   "business_id": "..."
-//
 // }
 //
 // This version:
@@ -233,7 +232,7 @@ export default {
       const googleResult =
         await fetchAllGoogleReviews(
           connection,
-          accessToken,businessId
+          accessToken
         );
 
       if (!googleResult.ok) {
@@ -379,7 +378,6 @@ async function getAuthenticatedUser(
   }
 
 
-);
   const response =
     await fetch(
       `${SUPABASE_URL}/auth/v1/user`,
@@ -511,6 +509,8 @@ async function verifyBusinessMembership(
       members[0]
   };
 }
+
+
 // ============================================================
 // GET GOOGLE CONNECTION
 // ============================================================
@@ -1064,6 +1064,8 @@ async function fetchAllGoogleReviews(
     reviews
   };
 }
+
+
 // ============================================================
 // SYNC REVIEWS INTO public.reviews
 // ============================================================
