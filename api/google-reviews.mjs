@@ -378,16 +378,6 @@ async function getAuthenticatedUser(
     };
   }
 
-const tokenInfoResponse =
-  await fetch(
-    `https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`
-  );
-
-const tokenInfo =
-  await tokenInfoResponse
-    .json()
-    .catch(() => ({}));
-
 console.log(
   'GOOGLE TOKEN INFO:',
   {
