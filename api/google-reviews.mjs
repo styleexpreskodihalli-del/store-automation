@@ -510,8 +510,6 @@ async function verifyBusinessMembership(
       members[0]
   };
 }
-
-
 // ============================================================
 // GET GOOGLE CONNECTION
 // ============================================================
@@ -815,20 +813,16 @@ async function fetchAllGoogleReviews(
   accessToken
 ) {
 
+  const GOOGLE_CLOUD_PROJECT_ID =
+    'stall-app-1aab7';
+
   const accountName =
-    connection
-      .business_profile_account_id;
+    connection.business_profile_account_id;
 
   const locationName =
-    connection
-      .business_profile_location_id;
+    connection.business_profile_location_id;
 
-
-  if (
-    !accountName ||
-    !locationName
-  ) {
-
+  if (!accountName || !locationName) {
     return {
       ok: false,
 
@@ -843,31 +837,41 @@ async function fetchAllGoogleReviews(
     };
   }
 
+  const accountId =
+    String(accountName)
+      .replace(/^accounts\//, '')
+      .replace(/\/+$/, '');
 
-  const accountPath =
-    stripTrailingSlash(
-      accountName
-    );
+  const locationId =
+    String(locationName)
+      .replace(/^locations\//, '')
+      .replace(/\/+$/, '');
 
+  if (!accountId || !locationId) {
+    return {
+      ok: false,
 
-  const locationPath =
-    stripTrailingSlash(
-      locationName
-    );
+      response:
+        json(
+          {
+            error:
+              'Invalid Google Business Profile account or location ID',
 
+            account:
+              accountName,
 
-  const parent =
-    `${accountPath}/${locationPath}`;
-
+            location:
+              locationName
+          },
+          409
+        )
+    };
+  }
 
   const reviews = [];
 
   let pageToken =
     null;
-
-
-  // Google supports pagination for review lists.
-  // We continue until there is no nextPageToken.
 
   do {
 
@@ -884,7 +888,6 @@ async function fetchAllGoogleReviews(
       'updateTime desc'
     );
 
-
     if (pageToken) {
       params.set(
         'pageToken',
@@ -892,10 +895,23 @@ async function fetchAllGoogleReviews(
       );
     }
 
-
     const url =
-      `https://mybusiness.googleapis.com/v4/${parent}/reviews?${params.toString()}`;
+      `https://mybusiness.googleapis.com/v4/accounts/` +
+      `${encodeURIComponent(accountId)}/locations/` +
+      `${encodeURIComponent(locationId)}/reviews?` +
+      params.toString();
 
+    console.log(
+      'Google Reviews request:',
+      {
+        project:
+          GOOGLE_CLOUD_PROJECT_ID,
+
+        accountId,
+
+        locationId
+      }
+    );
 
     const response =
       await fetch(
@@ -909,31 +925,53 @@ async function fetchAllGoogleReviews(
               `Bearer ${accessToken}`,
 
             Accept:
-              'application/json'
+              'application/json',
+
+            'x-goog-user-project':
+              GOOGLE_CLOUD_PROJECT_ID
           }
         }
       );
 
+    const rawText =
+      await response.text();
 
-    const data =
-      await response
-        .json()
-        .catch(() => ({}));
+    let data = {};
 
+    try {
+      data =
+        rawText
+          ? JSON.parse(rawText)
+          : {};
+    } catch {
+      data = {
+        raw_response:
+          rawText
+      };
+    }
 
     if (!response.ok) {
 
       console.error(
-        'Google reviews API failed:',
+        'Google Reviews API failed:',
         {
           status:
             response.status,
+
+          statusText:
+            response.statusText,
+
+          project:
+            GOOGLE_CLOUD_PROJECT_ID,
+
+          accountId,
+
+          locationId,
 
           response:
             data
         }
       );
-
 
       return {
         ok: false,
@@ -947,18 +985,45 @@ async function fetchAllGoogleReviews(
               google_status:
                 response.status,
 
+              google_status_text:
+                response.statusText,
+
               google_error:
                 data?.error?.message ||
                 data?.error ||
-                'Unknown Google API error'
+                data?.raw_response ||
+                'Unknown Google API error',
+
+              google_error_code:
+                data?.error?.code ||
+                response.status,
+
+              google_error_status:
+                data?.error?.status ||
+                null,
+
+              google_error_details:
+                data?.error?.details ||
+                null,
+
+              project_id:
+                GOOGLE_CLOUD_PROJECT_ID,
+
+              account_id:
+                accountId,
+
+              location_id:
+                locationId
             },
+
             response.status === 401
               ? 401
-              : 502
+              : response.status === 403
+                ? 403
+                : 502
           )
       };
     }
-
 
     const pageReviews =
       Array.isArray(
@@ -967,11 +1032,9 @@ async function fetchAllGoogleReviews(
         ? data.reviews
         : [];
 
-
     reviews.push(
       ...pageReviews
     );
-
 
     pageToken =
       data.nextPageToken ||
@@ -979,6 +1042,20 @@ async function fetchAllGoogleReviews(
 
   } while (pageToken);
 
+  console.log(
+    'Google Reviews fetched successfully:',
+    {
+      project:
+        GOOGLE_CLOUD_PROJECT_ID,
+
+      accountId,
+
+      locationId,
+
+      count:
+        reviews.length
+    }
+  );
 
   return {
     ok: true,
@@ -986,8 +1063,6 @@ async function fetchAllGoogleReviews(
     reviews
   };
 }
-
-
 // ============================================================
 // SYNC REVIEWS INTO public.reviews
 // ============================================================
