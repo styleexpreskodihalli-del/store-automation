@@ -3238,7 +3238,7 @@ async function renderGoogleReviewsSummary(summary = {}, reviews = []){
         </div>
         <div class="actions">
           <button onclick="approve(this)">Approve Reply</button>
-          <button class="secondary review-regenerate" data-review-index="0">Regenerate</button>
+          <button class="secondary review-regenerate" data-review-index="0" data-review-variants='${JSON.stringify(reviewVariants).replace(/'/g, '&apos;')}' onclick="regenerateReviewReply(this)">Regenerate</button>
         </div>
       </div>
     `;
@@ -3251,38 +3251,38 @@ async function renderGoogleReviewsSummary(summary = {}, reviews = []){
     </div>
     ${cards}
   `;
-
-  const reviewCards = container.querySelectorAll('.review-card');
-  reviewCards.forEach((card, index) => {
-    const responseTextEl = card.querySelector('.review-response-text');
-    const button = card.querySelector('.review-regenerate');
-    if (!responseTextEl || !button) return;
-
-    const variants = typeof generateReviewResponseVariants === 'function'
-      ? generateReviewResponseVariants({
-          businessName,
-          businessType,
-          city,
-          phone: activeBusiness?.phone || null,
-          website: activeBusiness?.website || null,
-          specialties: ['haircut', 'hair spa', 'facial']
-        }, reviews[index]?.text || 'Customer review', Number(reviews[index]?.rating || 0))
-      : [responseTextEl.innerText.trim()];
-
-    button._reviewVariants = variants;
-    button._reviewIndex = 0;
-    button.onclick = function () {
-      const currentIndex = Number(button._reviewIndex || 0);
-      const next = typeof getNextReviewVariant === 'function'
-        ? getNextReviewVariant(currentIndex, variants)
-        : { index: 0, text: variants[0] || '' };
-
-      responseTextEl.innerText = next.text || responseTextEl.innerText;
-      button._reviewIndex = next.index;
-      button.innerText = next.index === 0 ? 'Regenerate' : 'Try Another';
-    };
-  });
 }
+
+function regenerateReviewReply(button) {
+  if (!button) return;
+
+  const card = button.closest('.review-card');
+  const responseText = card && card.querySelector('.review-response-text');
+  if (!responseText) return;
+
+  const variants = [];
+  try {
+    const raw = String(button.dataset.reviewVariants || '[]');
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      variants.push(...parsed);
+    }
+  } catch (error) {
+    // ignore malformed JSON and keep the current response text unchanged
+  }
+
+  const currentIndex = Number(button.dataset.reviewIndex || 0);
+  const nextIndex = variants.length ? (currentIndex + 1) % variants.length : 0;
+
+  if (variants.length) {
+    responseText.textContent = variants[nextIndex];
+  }
+
+  button.dataset.reviewIndex = String(nextIndex);
+  button.textContent = nextIndex === 0 ? 'Regenerate' : 'Try Another';
+}
+
+window.regenerateReviewReply = regenerateReviewReply;
 
 async function resolveActiveBusinessContext(){
   try {
