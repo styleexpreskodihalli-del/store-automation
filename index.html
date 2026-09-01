@@ -3194,11 +3194,24 @@ async function renderGoogleReviewsSummary(summary = {}, reviews = []){
     return;
   }
 
+  const activeBusiness = await resolveActiveBusinessContext();
+  const businessName = activeBusiness?.business_name || activeBusiness?.name || 'Your business';
+  const businessType = activeBusiness?.business_type || 'unisex salon';
+  const city = activeBusiness?.city || 'Bengaluru';
+  const keywords = [
+    `unisex salon in ${city}`,
+    `hair salon in ${city}`,
+    `best salon in ${city}`
+  ];
+
   const cards = reviews.map(review => {
     const starLabel = review.rating ? `${review.rating}★` : 'Review';
     const text = review.text || 'Customer review';
     const author = review.author_name || 'Customer';
     const relativeTime = review.relative_time ? ` • ${review.relative_time}` : '';
+    const aiResponse = typeof buildReviewResponseText === 'function'
+      ? buildReviewResponseText({ businessName, businessType, city, keywords }, text)
+      : 'Thank you for sharing your feedback. We appreciate the time you took to let us know how we’re doing.';
 
     return `
       <div class="card" style="margin-top:12px">
@@ -3207,7 +3220,7 @@ async function renderGoogleReviewsSummary(summary = {}, reviews = []){
         <div class="muted">“${text}”${relativeTime}</div>
         <div class="item">
           <b>AI response</b>
-          <div class="muted">Thank you for sharing your feedback. We appreciate the time you took to let us know how we’re doing.</div>
+          <div class="muted">${aiResponse}</div>
         </div>
         <div class="actions">
           <button onclick="approve(this)">Approve Reply</button>

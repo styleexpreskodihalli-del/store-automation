@@ -117,6 +117,30 @@
     return raw;
   }
 
+  function buildReviewResponseText(businessContext = {}, reviewText = '') {
+    const businessName = String(businessContext.businessName || businessContext.name || 'Your business').trim();
+    const businessType = String(businessContext.businessType || '').trim();
+    const city = String(businessContext.city || '').trim();
+    const keywords = Array.isArray(businessContext.keywords) ? businessContext.keywords.filter(Boolean) : [];
+    const reviewSummary = String(reviewText || '').trim();
+
+    const keywordText = keywords.length
+      ? ` ${keywords.slice(0, 3).join(' • ')}`
+      : '';
+
+    const categoryText = businessType
+      ? `We’re glad to help you enjoy your ${businessType} experience with us.`
+      : 'We’re glad to help you enjoy your salon experience with us.';
+
+    const cityText = city ? ` Thank you for choosing ${businessName} in ${city}.` : ` Thank you for choosing ${businessName}.`;
+
+    const reviewFlavor = reviewSummary
+      ? `We’re so happy to hear your feedback about ${reviewSummary.toLowerCase().includes('hair') ? 'our hair services' : 'our salon services'} and we appreciate the time you took to share it.`
+      : 'We appreciate the time you took to share your feedback with us.';
+
+    return `Thank you for choosing ${businessName}${cityText}${categoryText} ${reviewFlavor}${keywordText}`;
+  }
+
   global.pickLatestMembership = pickLatestMembership;
   global.pickPreferredStoreMembership = pickPreferredStoreMembership;
   global.normalizeStoreMemberships = normalizeStoreMemberships;
@@ -124,6 +148,7 @@
   global.mergeStoreCollections = mergeStoreCollections;
   global.filterStoresForEmail = filterStoresForEmail;
   global.getSafeStoreDisplayName = getSafeStoreDisplayName;
+  global.buildReviewResponseText = buildReviewResponseText;
 
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
@@ -133,7 +158,8 @@
       normalizeBusinessMemberships,
       mergeStoreCollections,
       filterStoresForEmail,
-      getSafeStoreDisplayName
+      getSafeStoreDisplayName,
+      buildReviewResponseText
     };
   }
 })(typeof window !== 'undefined' ? window : globalThis);

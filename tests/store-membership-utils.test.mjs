@@ -10,7 +10,8 @@ const {
   normalizeBusinessMemberships,
   filterStoresForEmail,
   mergeStoreCollections,
-  getSafeStoreDisplayName
+  getSafeStoreDisplayName,
+  buildReviewResponseText
 } = storeMembershipUtils;
 
 test('pickLatestMembership prefers the newest membership row', () => {
@@ -191,4 +192,19 @@ test('getSafeStoreDisplayName strips stale Flow Salon placeholder values and fal
   assert.equal(getSafeStoreDisplayName('Flow Salon'), 'Your Store');
   assert.equal(getSafeStoreDisplayName('Lakme Salon'), 'Lakme Salon');
   assert.equal(getSafeStoreDisplayName('', 'My Studio'), 'My Studio');
+});
+
+test('buildReviewResponseText includes category-specific SEO keywords for salon business reviews', () => {
+  const response = buildReviewResponseText({
+    businessName: 'Style Expres Unisex Salon',
+    businessType: 'unisex salon',
+    city: 'Bengaluru',
+    keywords: ['unisex salon in Whitefield', 'hair salon in Bengaluru', 'best salon in Whitefield']
+  }, 'Loved the haircut and friendly team.');
+
+  assert.match(response, /Style Expres Unisex Salon/i);
+  assert.match(response, /unisex salon in Whitefield/i);
+  assert.match(response, /hair salon in Bengaluru/i);
+  assert.match(response, /best salon in Whitefield/i);
+  assert.match(response, /Thank you for choosing/i);
 });
