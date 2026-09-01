@@ -3346,6 +3346,25 @@ async function resolveActiveBusinessContext(){
   }
 }
 
+async function getSupabaseAccessToken(){
+  try {
+    const { data, error } = await supabaseClient.auth.getSession();
+    if(error) throw error;
+
+    if(data?.session?.access_token){
+      return data.session.access_token;
+    }
+
+    const refreshResult = await supabaseClient.auth.refreshSession();
+    if(refreshResult.error) throw refreshResult.error;
+
+    return refreshResult.data?.session?.access_token || null;
+  } catch (error) {
+    console.error('Failed to restore Supabase access token for review API:', error);
+    return null;
+  }
+}
+
 async function loadGoogleReviewsForActiveBusiness(){
   const container = document.getElementById('googleReviewsList');
   if(!container) return;
@@ -3362,8 +3381,8 @@ async function loadGoogleReviewsForActiveBusiness(){
   container.innerHTML = '<div class="muted">Loading Google reviews...</div>';
 
   try {
-    const { data, error } = await supabaseClient.auth.getSession();
-    if(error || !data.session){
+    const accessToken = await getSupabaseAccessToken();
+    if(!accessToken){
       container.innerHTML = '<div class="muted">Please log in to load live Google reviews.</div>';
       return;
     }
@@ -3375,7 +3394,7 @@ async function loadGoogleReviewsForActiveBusiness(){
     const response = await fetch('/api/google-review-details?' + params.toString(), {
       method: 'GET',
       headers: {
-        Authorization: `Bearer ${data.session.access_token}`
+        Authorization: `Bearer ${accessToken}`
       }
     });
 
