@@ -222,6 +222,16 @@
     ].slice(0, 4);
   }
 
+  function getNextReviewVariant(currentIndex, variants) {
+    if (!Array.isArray(variants) || !variants.length) {
+      return { index: 0, text: '' };
+    }
+
+    const safeIndex = Number(currentIndex) || 0;
+    const nextIndex = (safeIndex + 1) % variants.length;
+    return { index: nextIndex, text: variants[nextIndex] || '' };
+  }
+
   global.pickLatestMembership = pickLatestMembership;
   global.pickPreferredStoreMembership = pickPreferredStoreMembership;
   global.normalizeStoreMemberships = normalizeStoreMemberships;
@@ -230,6 +240,7 @@
   global.filterStoresForEmail = filterStoresForEmail;
   global.getSafeStoreDisplayName = getSafeStoreDisplayName;
   global.buildReviewResponseText = buildReviewResponseText;
+  global.getNextReviewVariant = getNextReviewVariant;
 
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
@@ -243,7 +254,8 @@
       buildReviewResponseText,
       getReviewKeywordSet,
       REVIEW_KEYWORDS_BY_CATEGORY,
-      generateReviewResponseVariants
+      generateReviewResponseVariants,
+      getNextReviewVariant
     };
   }
 })(typeof window !== 'undefined' ? window : globalThis);

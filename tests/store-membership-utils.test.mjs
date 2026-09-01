@@ -12,7 +12,8 @@ const {
   mergeStoreCollections,
   getSafeStoreDisplayName,
   buildReviewResponseText,
-  generateReviewResponseVariants
+  generateReviewResponseVariants,
+  getNextReviewVariant
 } = storeMembershipUtils;
 
 test('pickLatestMembership prefers the newest membership row', () => {
@@ -226,4 +227,15 @@ test('generateReviewResponseVariants creates multiple recovery and customer-spec
   assert.match(variants[1], /sorry|did not meet expectations|make it right/i);
   assert.match(variants[1], /haircut|hair spa|facial/i);
   assert.match(variants[1], /73381 45999|styleexpres\.in/i);
+});
+
+test('getNextReviewVariant cycles through the review options in order', () => {
+  const variants = ['first reply', 'second reply', 'third reply'];
+  const next = getNextReviewVariant(0, variants);
+  const nextAgain = getNextReviewVariant(next.index, variants);
+
+  assert.equal(next.index, 1);
+  assert.equal(next.text, 'second reply');
+  assert.equal(nextAgain.index, 2);
+  assert.equal(nextAgain.text, 'third reply');
 });

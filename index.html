@@ -3234,7 +3234,7 @@ async function renderGoogleReviewsSummary(summary = {}, reviews = []){
         <div class="muted">“${text}”${relativeTime}</div>
         <div class="item">
           <b>AI response</b>
-          <div class="muted review-response-text" data-review-variants='${JSON.stringify(reviewVariants).replace(/'/g, '&apos;')}'>${initialResponse}</div>
+          <div class="muted review-response-text">${initialResponse}</div>
         </div>
         <div class="actions">
           <button onclick="approve(this)">Approve Reply</button>
@@ -3252,23 +3252,32 @@ async function renderGoogleReviewsSummary(summary = {}, reviews = []){
     ${cards}
   `;
 
-  const regenerateButtons = container.querySelectorAll('.review-regenerate');
-  regenerateButtons.forEach(button => {
-    button.addEventListener('click', event => {
-      const target = event.currentTarget;
-      const variants = JSON.parse(target.dataset.reviewVariants || '[]');
-      const card = target.closest('.review-card');
-      const responseText = card && card.querySelector('.review-response-text');
-      const currentIndex = Number(target.dataset.reviewIndex || 0);
-      const nextIndex = variants.length ? (currentIndex + 1) % variants.length : 0;
+  const reviewCards = container.querySelectorAll('.review-card');
+  reviewCards.forEach(card => {
+    const responseText = card.querySelector('.review-response-text');
+    const button = card.querySelector('.review-regenerate');
+    if (!responseText || !button) return;
 
-      if (responseText && variants.length) {
-        responseText.innerText = variants[nextIndex];
+    const variants = Array.isArray(JSON.parse(button.dataset.reviewVariants || '[]'))
+      ? JSON.parse(button.dataset.reviewVariants || '[]')
+      : [responseText.innerText.trim()];
+
+    responseText._reviewVariants = variants;
+    button._reviewVariants = variants;
+    button._reviewIndex = 0;
+    button.onclick = () => {
+      const currentIndex = Number(button._reviewIndex || 0);
+      const nextVariant = typeof getNextReviewVariant === 'function'
+        ? getNextReviewVariant(currentIndex, variants)
+        : { index: 0, text: variants[0] || '' };
+
+      if (nextVariant.text && responseText) {
+        responseText.innerText = nextVariant.text;
       }
 
-      target.dataset.reviewIndex = String(nextIndex);
-      target.innerText = nextIndex === 0 ? 'Regenerate' : 'Try Another';
-    });
+      button._reviewIndex = nextVariant.index;
+      button.innerText = nextVariant.index === 0 ? 'Regenerate' : 'Try Another';
+    };
   });
 }
 
