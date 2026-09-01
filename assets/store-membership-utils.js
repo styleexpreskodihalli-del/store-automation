@@ -117,28 +117,71 @@
     return raw;
   }
 
+  const REVIEW_KEYWORDS_BY_CATEGORY = {
+    'unisex salon': [
+      'unisex salon in {city}',
+      'hair salon in {city}',
+      'best salon in {city}'
+    ],
+    'hair salon': [
+      'hair salon in {city}',
+      'best hair salon in {city}',
+      'haircut and styling in {city}'
+    ],
+    'beauty salon': [
+      'beauty salon in {city}',
+      'best beauty salon in {city}',
+      'salon and spa in {city}'
+    ],
+    spa: [
+      'spa in {city}',
+      'best spa in {city}',
+      'massage and spa in {city}'
+    ],
+    salon: [
+      'salon in {city}',
+      'best salon in {city}',
+      'hair and beauty salon in {city}'
+    ],
+    default: [
+      'salon in {city}',
+      'best salon in {city}',
+      'beauty services in {city}'
+    ]
+  };
+
+  function getReviewKeywordSet(businessType = '', city = '') {
+    const normalized = String(businessType || '').trim().toLowerCase();
+    const lookup = REVIEW_KEYWORDS_BY_CATEGORY[normalized] || REVIEW_KEYWORDS_BY_CATEGORY.default;
+    const targetCity = String(city || 'Bengaluru').trim() || 'Bengaluru';
+
+    return lookup.map((keyword) => keyword.replace('{city}', targetCity));
+  }
+
   function buildReviewResponseText(businessContext = {}, reviewText = '') {
     const businessName = String(businessContext.businessName || businessContext.name || 'Your business').trim();
     const businessType = String(businessContext.businessType || '').trim();
     const city = String(businessContext.city || '').trim();
-    const keywords = Array.isArray(businessContext.keywords) ? businessContext.keywords.filter(Boolean) : [];
+    const keywordSet = Array.isArray(businessContext.keywords) && businessContext.keywords.length
+      ? businessContext.keywords
+      : getReviewKeywordSet(businessType, city);
     const reviewSummary = String(reviewText || '').trim();
 
-    const keywordText = keywords.length
-      ? ` ${keywords.slice(0, 3).join(' • ')}`
-      : '';
-
-    const categoryText = businessType
-      ? `We’re glad to help you enjoy your ${businessType} experience with us.`
-      : 'We’re glad to help you enjoy your salon experience with us.';
+    const category = businessType || 'salon';
+    const normalizedCategory = category.toLowerCase();
+    const categoryText = normalizedCategory.includes('spa')
+      ? `We’re glad to help you enjoy your spa experience with us.`
+      : normalizedCategory.includes('beauty')
+        ? `We’re glad to help you enjoy your beauty salon experience with us.`
+        : `We’re glad to help you enjoy your ${category} experience with us.`;
 
     const cityText = city ? ` Thank you for choosing ${businessName} in ${city}.` : ` Thank you for choosing ${businessName}.`;
-
     const reviewFlavor = reviewSummary
-      ? `We’re so happy to hear your feedback about ${reviewSummary.toLowerCase().includes('hair') ? 'our hair services' : 'our salon services'} and we appreciate the time you took to share it.`
+      ? `We’re so happy to hear your feedback about ${reviewSummary.toLowerCase().includes('hair') ? 'our hair services' : reviewSummary.toLowerCase().includes('spa') ? 'our spa services' : 'our salon services'} and we appreciate the time you took to share it.`
       : 'We appreciate the time you took to share your feedback with us.';
+    const keywordText = keywordSet.slice(0, 3).join(' • ');
 
-    return `Thank you for choosing ${businessName}${cityText}${categoryText} ${reviewFlavor}${keywordText}`;
+    return `Thank you for choosing ${businessName}${cityText} ${categoryText} ${reviewFlavor} ${keywordText}`;
   }
 
   global.pickLatestMembership = pickLatestMembership;
@@ -159,7 +202,9 @@
       mergeStoreCollections,
       filterStoresForEmail,
       getSafeStoreDisplayName,
-      buildReviewResponseText
+      buildReviewResponseText,
+      getReviewKeywordSet,
+      REVIEW_KEYWORDS_BY_CATEGORY
     };
   }
 })(typeof window !== 'undefined' ? window : globalThis);

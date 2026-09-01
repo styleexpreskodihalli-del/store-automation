@@ -3198,11 +3198,13 @@ async function renderGoogleReviewsSummary(summary = {}, reviews = []){
   const businessName = activeBusiness?.business_name || activeBusiness?.name || 'Your business';
   const businessType = activeBusiness?.business_type || 'unisex salon';
   const city = activeBusiness?.city || 'Bengaluru';
-  const keywords = [
-    `unisex salon in ${city}`,
-    `hair salon in ${city}`,
-    `best salon in ${city}`
-  ];
+  const keywords = typeof getReviewKeywordSet === 'function'
+    ? getReviewKeywordSet(businessType, city)
+    : [
+        `unisex salon in ${city}`,
+        `hair salon in ${city}`,
+        `best salon in ${city}`
+      ];
 
   const cards = reviews.map(review => {
     const starLabel = review.rating ? `${review.rating}★` : 'Review';
