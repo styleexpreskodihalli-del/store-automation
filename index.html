@@ -3238,7 +3238,7 @@ async function renderGoogleReviewsSummary(summary = {}, reviews = []){
         </div>
         <div class="actions">
           <button onclick="approve(this)">Approve Reply</button>
-          <button class="secondary review-regenerate" data-review-index="0" data-review-variants='${JSON.stringify(reviewVariants).replace(/'/g, '&apos;')}' onclick="regenerateReviewReply(this)">Regenerate</button>
+          <button class="secondary review-regenerate" data-review-index="0" onclick='regenerateReviewReply(this, ${JSON.stringify(reviewVariants)})'>Regenerate</button>
         </div>
       </div>
     `;
@@ -3253,31 +3253,17 @@ async function renderGoogleReviewsSummary(summary = {}, reviews = []){
   `;
 }
 
-function regenerateReviewReply(button) {
+function regenerateReviewReply(button, variants = []) {
   if (!button) return;
 
   const card = button.closest('.review-card');
   const responseText = card && card.querySelector('.review-response-text');
-  if (!responseText) return;
-
-  const variants = [];
-  try {
-    const raw = String(button.dataset.reviewVariants || '[]');
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) {
-      variants.push(...parsed);
-    }
-  } catch (error) {
-    // ignore malformed JSON and keep the current response text unchanged
-  }
+  if (!responseText || !Array.isArray(variants) || !variants.length) return;
 
   const currentIndex = Number(button.dataset.reviewIndex || 0);
-  const nextIndex = variants.length ? (currentIndex + 1) % variants.length : 0;
+  const nextIndex = (currentIndex + 1) % variants.length;
 
-  if (variants.length) {
-    responseText.textContent = variants[nextIndex];
-  }
-
+  responseText.textContent = variants[nextIndex];
   button.dataset.reviewIndex = String(nextIndex);
   button.textContent = nextIndex === 0 ? 'Regenerate' : 'Try Another';
 }
