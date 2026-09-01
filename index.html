@@ -1798,7 +1798,7 @@ window.supabaseClient = supabaseClient;
     </div>
 
     <div class="sub">
-      STall Partners • Flow Salon
+      STall Partners • Your Store
     </div>
 
   </div>
@@ -1825,7 +1825,7 @@ window.supabaseClient = supabaseClient;
           font-size:clamp(24px,4vw,34px);
           letter-spacing:-.8px;
         ">
-          Good morning, Flow Salon <span class="greeting-emoji">👋</span>
+          Good morning, Your Store <span class="greeting-emoji">👋</span>
         </h1>
 
         <div class="muted" style="font-size:14px">
@@ -2320,7 +2320,7 @@ Create Store
 <div class="row">
 <div>
 <div class="badge">MY SALON</div>
-<h2 id="workspaceSalonName">Flow Salon</h2>
+<h2 id="workspaceSalonName">Your Store</h2>
 <div class="muted" id="workspaceSalonCode">SALON-001</div>
 </div>
 <span class="badge">ACTIVE</span>
@@ -2676,7 +2676,7 @@ Discover Google Business Profile
   <div class="stall-mobile-account-info">
     <span class="online"></span>
     <div>
-      <div class="stall-mobile-account-name">Flow Salon</div>
+      <div class="stall-mobile-account-name">Your Store</div>
       <div class="stall-mobile-account-role">Owner</div>
     </div>
   </div>
@@ -2696,7 +2696,7 @@ Discover Google Business Profile
     <div class="stall-account-status">
       <span class="stall-online-dot"></span>
       <div>
-        <div class="stall-account-name">Flow Salon</div>
+        <div class="stall-account-name">Your Store</div>
         <div class="stall-account-role">Owner</div>
       </div>
     </div>
@@ -3072,22 +3072,67 @@ function clearSalonForm(){
   localStorage.removeItem('activeBusiness');
 }
 
-function renderSalons(){
-  const base={
-    id:'SALON-001',
-    name:'Flow Salon',
-    owner:'Flow Salon Owner',
-    email:'owner@flowsalon.com',
-    location:'Thubarahalli, Whitefield, Bengaluru',
-    status:'Active',
-    automation:'On'
-  };
+async function renderSalons(){
+  const { data: sessionData } = await supabaseClient.auth.getSession();
+  const email = (sessionData?.session?.user?.email || localStorage.getItem('storeUser') || '').trim();
 
-  const extra=JSON.parse(
-    localStorage.getItem('storeSalons') || '[]'
-  );
+  let salons = [];
 
-  const salons=[base].concat(extra);
+  try {
+    const raw = JSON.parse(localStorage.getItem('storeSalons') || '[]');
+    salons = Array.isArray(raw) ? raw : [];
+  } catch (error) {
+    console.warn('Invalid storeSalons payload:', error);
+    salons = [];
+  }
+
+  if (email) {
+    try {
+      const { data, error } = await supabaseClient
+        .from('salon_members')
+        .select(`
+          id,
+          user_id,
+          role,
+          created_at,
+          salons (
+            id,
+            salon_code,
+            name,
+            owner_name,
+            owner_email,
+            phone,
+            whatsapp,
+            address,
+            website,
+            status,
+            automation_enabled
+          )
+        `)
+        .eq('user_id', sessionData?.session?.user?.id || localStorage.getItem('storeUserId') || '')
+        .order('created_at', { ascending: false });
+
+      if (!error && Array.isArray(data)) {
+        const matching = data.filter(row => row?.salons?.id && row.salons.owner_email && row.salons.owner_email.toLowerCase() === email.toLowerCase());
+        const mapped = matching.map(row => ({
+          id: row.salons.id,
+          salon_code: row.salons.salon_code || '',
+          name: row.salons.name || 'Untitled store',
+          owner: row.salons.owner_name || 'Salon Owner',
+          email: row.salons.owner_email || email,
+          location: row.salons.address || 'Location not set',
+          status: row.salons.status || 'Active',
+          automation: row.salons.automation_enabled ? 'On' : 'Off'
+        }));
+
+        if (mapped.length) {
+          salons = mapped.concat(salons.filter(item => !mapped.some(match => match.id === item.id)));
+        }
+      }
+    } catch (error) {
+      console.error('User salon portfolio refresh failed:', error);
+    }
+  }
 
   const list=document.getElementById('salonList');
   const count=document.getElementById('salonCount');
@@ -3101,17 +3146,33 @@ function renderSalons(){
   if(list){
     list.innerHTML=salons.map(function(x){
       return '<div class="item">' +
-        '<b>' + x.id + ' — ' + x.name + '</b>' +
+        '<b>' + (x.salon_code || x.id) + ' — ' + x.name + '</b>' +
         '<div class="muted">' +
-        x.owner + ' • ' +
+        (x.owner || 'Salon Owner') + ' • ' +
         (x.location || 'Location not set') +
         '</div>' +
         '<div class="actions">' +
-        '<span class="badge">' + x.status + '</span>' +
-        '<span class="badge">' + x.automation + ' Automation</span>' +
+        '<span class="badge">' + (x.status || 'Active') + '</span>' +
+        '<span class="badge">' + ((x.automation || 'On') + ' Automation') + '</span>' +
         '<button class="secondary" onclick="toast(\'Opening workspace\')">Open Workspace</button>' +
         '</div></div>';
     }).join('');
+  }
+
+  if (email && salons.length) {
+    const preferred = salons[0];
+    const accountName = document.querySelector('.stall-account-name');
+    const mobileAccountName = document.querySelector('.stall-mobile-account-name');
+    const workspaceName = document.getElementById('workspaceSalonName');
+    const workspaceCode = document.getElementById('workspaceSalonCode');
+    const safeName = typeof getSafeStoreDisplayName === 'function'
+      ? getSafeStoreDisplayName(preferred.name, 'My Salon')
+      : (preferred.name || 'My Salon');
+
+    if (accountName) accountName.innerText = safeName;
+    if (mobileAccountName) mobileAccountName.innerText = safeName;
+    if (workspaceName) workspaceName.innerText = safeName;
+    if (workspaceCode) workspaceCode.innerText = preferred.salon_code || preferred.id || 'SALON';
   }
 }
 
@@ -3165,13 +3226,89 @@ async function renderGoogleReviewsSummary(summary = {}, reviews = []){
   `;
 }
 
+async function resolveActiveBusinessContext(){
+  try {
+    const activeBusinessRaw = localStorage.getItem('activeBusiness');
+    if(activeBusinessRaw){
+      const parsed = JSON.parse(activeBusinessRaw);
+      if(parsed && (parsed.id || parsed.google_place_id)){
+        return parsed;
+      }
+    }
+
+    const activeSalonRaw = localStorage.getItem('activeSalon');
+    if(activeSalonRaw){
+      const parsed = JSON.parse(activeSalonRaw);
+      if(parsed && parsed.business_id){
+        const businessContext = {
+          id: parsed.business_id,
+          business_name: parsed.name || null,
+          google_place_id: parsed.google_place_id || null
+        };
+        localStorage.setItem('activeBusiness', JSON.stringify(businessContext));
+        return businessContext;
+      }
+    }
+
+    const { data: sessionData } = await supabaseClient.auth.getSession();
+    if(!sessionData?.session){
+      return null;
+    }
+
+    const salonId = await getActiveSalonId();
+    if(salonId){
+      const { data: salonRow, error } = await supabaseClient
+        .from('salons')
+        .select('id,business_id,name,google_place_id')
+        .eq('id', salonId)
+        .single();
+
+      if(!error && salonRow?.business_id){
+        const businessContext = {
+          id: salonRow.business_id,
+          business_name: salonRow.name || null,
+          google_place_id: salonRow.google_place_id || null
+        };
+        localStorage.setItem('activeBusiness', JSON.stringify(businessContext));
+        return businessContext;
+      }
+    }
+
+    const { data: businessMemberships, error: businessError } = await supabaseClient
+      .from('business_users')
+      .select('business_id,businesses(id,business_name,google_place_id)')
+      .eq('user_id', sessionData.session.user.id)
+      .order('created_at', { ascending: false });
+
+    if(!businessError && Array.isArray(businessMemberships) && businessMemberships.length){
+      const first = businessMemberships[0];
+      const business = first.businesses || first;
+      const businessContext = {
+        id: business?.id || first.business_id,
+        business_name: business?.business_name || null,
+        google_place_id: business?.google_place_id || null
+      };
+
+      if(businessContext.id){
+        localStorage.setItem('activeBusiness', JSON.stringify(businessContext));
+        return businessContext;
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Active business resolution failed:', error);
+    return null;
+  }
+}
+
 async function loadGoogleReviewsForActiveBusiness(){
   const container = document.getElementById('googleReviewsList');
   if(!container) return;
 
-  const activeBusiness = JSON.parse(localStorage.getItem('activeBusiness') || '{}');
-  const businessId = activeBusiness.id;
-  const placeId = activeBusiness.google_place_id;
+  const activeBusiness = await resolveActiveBusinessContext();
+  const businessId = activeBusiness?.id;
+  const placeId = activeBusiness?.google_place_id;
 
   if(!businessId && !placeId){
     container.innerHTML = '<div class="muted">Map or select a store first to load live Google reviews.</div>';
@@ -3374,6 +3511,10 @@ async function restoreStoreSession(){
       'storeUser',
       data.session.user?.email || ''
     );
+    localStorage.setItem(
+      'storeUserId',
+      data.session.user?.id || ''
+    );
 
     await loadRealUser(
       data.session.user
@@ -3432,6 +3573,7 @@ async function storeLogin(){
 
   localStorage.setItem('storeLoggedIn','true');
   localStorage.setItem('storeUser',email);
+  localStorage.setItem('storeUserId', data.user.id);
 
   await loadRealUser(data.user);
 
@@ -3494,6 +3636,135 @@ async function storeGoogleLogin(mode = 'signin'){
 }
 
 
+async function resolveCurrentStore(){
+  try {
+    const { data: sessionData } = await supabaseClient.auth.getSession();
+    const userId = sessionData?.session?.user?.id || localStorage.getItem('storeUserId');
+    const currentEmail = (sessionData?.session?.user?.email || localStorage.getItem('storeUser') || '').trim().toLowerCase();
+
+    if(!userId){
+      return { salon: null, business: null };
+    }
+
+    const { data: salonMembershipRows, error: salonMembershipError } = await supabaseClient
+      .from('salon_members')
+      .select(`
+        id,
+        user_id,
+        salon_id,
+        role,
+        created_at,
+        salons (
+          id,
+          salon_code,
+          name,
+          owner_name,
+          owner_email,
+          phone,
+          whatsapp,
+          address,
+          website,
+          google_business_url,
+          brand_voice,
+          target_audience,
+          automation_enabled,
+          approval_required,
+          business_id,
+          created_at
+        )
+      `)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    const { data: businessMembershipRows, error: businessMembershipError } = await supabaseClient
+      .from('business_users')
+      .select(`
+        id,
+        user_id,
+        business_id,
+        role,
+        created_at,
+        businesses (
+          id,
+          business_name,
+          google_place_id,
+          address,
+          phone,
+          website,
+          status,
+          created_at
+        )
+      `)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    let salon = null;
+    if(!salonMembershipError && Array.isArray(salonMembershipRows) && salonMembershipRows.length){
+      const eligible = salonMembershipRows.filter(row => row?.salons && row.salons.id);
+      const emailMatch = eligible.find(row => String(row.salons.owner_email || '').trim().toLowerCase() === currentEmail);
+      const preferred = emailMatch || eligible[0];
+      salon = preferred?.salons || null;
+    }
+
+    if(!salon && currentEmail){
+      const { data: ownerSalons, error: ownerSalonError } = await supabaseClient
+        .from('salons')
+        .select('*')
+        .eq('owner_email', currentEmail)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if(!ownerSalonError && Array.isArray(ownerSalons) && ownerSalons.length){
+        salon = ownerSalons[0];
+      }
+    }
+
+    let business = null;
+    if(!businessMembershipError && Array.isArray(businessMembershipRows) && businessMembershipRows.length){
+      const visible = businessMembershipRows.filter(row => row?.businesses && row.businesses.id);
+      business = visible[0]?.businesses || null;
+    }
+
+    if(!business && salon?.business_id){
+      const { data: salonBusiness, error: salonBusinessError } = await supabaseClient
+        .from('businesses')
+        .select('*')
+        .eq('id', salon.business_id)
+        .single();
+
+      if(!salonBusinessError && salonBusiness){
+        business = salonBusiness;
+      }
+    }
+
+    if(salon){
+      localStorage.setItem('activeSalon', JSON.stringify(salon));
+    }
+
+    if(business){
+      localStorage.setItem('activeBusiness', JSON.stringify({
+        id: business.id,
+        business_name: business.business_name || salon?.name || null,
+        google_place_id: business.google_place_id || salon?.google_place_id || null,
+        address: business.address || null,
+        phone: business.phone || null,
+        website: business.website || null
+      }));
+    } else if(salon?.business_id){
+      localStorage.setItem('activeBusiness', JSON.stringify({
+        id: salon.business_id,
+        business_name: salon.name || null,
+        google_place_id: salon.google_place_id || null
+      }));
+    }
+
+    return { salon, business };
+  } catch(error) {
+    console.error('Store resolution failed:', error);
+    return { salon: null, business: null };
+  }
+}
+
 async function loadRealUser(user){
   const { data, error } = await supabaseClient
     .from('profiles')
@@ -3501,46 +3772,44 @@ async function loadRealUser(user){
     .eq('id', user.id)
     .single();
 
-  if(error){
+  if(error && error.code !== 'PGRST116'){
     console.error('Profile error:', error);
-    return;
   }
 
-  localStorage.setItem('storeRole', data.role);
-  localStorage.setItem('storeUserName', data.full_name || user.email);
+  const role = String((data && data.role) || '').trim().toLowerCase();
+  const normalizedRole = role || 'owner';
 
-  if(data.role === 'admin'){
+  localStorage.setItem('storeRole', normalizedRole);
+  localStorage.setItem('storeUserName', (data && data.full_name) || user.email);
+
+  if(role === 'admin' || normalizedRole === 'admin'){
     enableAdmin();
     show('admin', document.getElementById('adminNav'));
     return;
   }
 
-  if(data.role === 'salon_owner'){
+  const resolved = await resolveCurrentStore();
+  if(resolved?.salon || resolved?.business){
     await loadSalonWorkspace(user.id);
     await loadSalonWorkspaceData();
+    await renderSalons();
     show('home');
+    return;
+  }
+
+  if(role === 'salon_owner' || role === 'owner' || normalizedRole.includes('owner')){
+    await loadSalonWorkspace(user.id);
+    await loadSalonWorkspaceData();
+    await renderSalons();
+    show('home');
+    return;
   }
 }
 
 
 async function getActiveSalonId(){
-  const {data:sessionData}=await supabaseClient.auth.getSession();
-  if(!sessionData.session)return null;
-
-  const {data,error}=await supabaseClient
-    .from('salon_members')
-    .select('salon_id,created_at')
-    .eq('user_id',sessionData.session.user.id)
-    .order('created_at',{ascending:false})
-    .limit(1)
-    .single();
-
-  if(error){
-    console.error('Salon membership error:',error);
-    return null;
-  }
-
-  return data.salon_id;
+  const { salon } = await resolveCurrentStore();
+  return salon?.id || null;
 }
 
 
@@ -3551,26 +3820,12 @@ async function getActiveBusinessId(){
   );
 
   if(activeBusiness.id){
-    return activeBusiness.id;
+    const { business } = await resolveCurrentStore();
+    return business?.id || activeBusiness.id;
   }
 
-  const {data:sessionData}=await supabaseClient.auth.getSession();
-  if(!sessionData.session)return null;
-
-  const {data,error}=await supabaseClient
-    .from('business_users')
-    .select('business_id,created_at')
-    .eq('user_id',sessionData.session.user.id)
-    .order('created_at',{ascending:false})
-    .limit(1)
-    .single();
-
-  if(error){
-    console.error('Business membership error:',error);
-    return null;
-  }
-
-  return data.business_id;
+  const { business } = await resolveCurrentStore();
+  return business?.id || null;
 }
 
 
@@ -4490,20 +4745,52 @@ async function sendStoreGoogleInvitation(){
   }
 }
 
-async function loadSalonWorkspaceData(){
-  const salonId=await getActiveSalonId();
-  if(!salonId)return;
+async function syncActiveBusinessFromSalon(salon){
+  if(!salon) return;
 
-  const {data:salon,error}=await supabaseClient
-    .from('salons')
-    .select('*')
-    .eq('id',salonId)
-    .single();
-
-  if(error){
-    console.error('Salon profile error:',error);
+  const salonBusinessId = salon.business_id || null;
+  if(!salonBusinessId){
     return;
   }
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('businesses')
+      .select('id,business_name,google_place_id,address,phone,website,status')
+      .eq('id', salonBusinessId)
+      .single();
+
+    if(error || !data){
+      localStorage.setItem('activeBusiness', JSON.stringify({
+        id: salonBusinessId,
+        business_name: salon.name || salon.business_name || null,
+        google_place_id: salon.google_place_id || null
+      }));
+      return;
+    }
+
+    localStorage.setItem('activeBusiness', JSON.stringify({
+      id: data.id || salonBusinessId,
+      business_name: data.business_name || salon.name || null,
+      google_place_id: data.google_place_id || null,
+      address: data.address || null,
+      phone: data.phone || null,
+      website: data.website || null
+    }));
+  } catch (error) {
+    console.error('Business sync from salon failed:', error);
+  }
+}
+
+async function loadSalonWorkspaceData(){
+  const { salon } = await resolveCurrentStore();
+  if(!salon){
+    console.warn('No active salon resolved from Supabase');
+    return;
+  }
+
+  const salonId = salon.id;
+  await syncActiveBusinessFromSalon(salon);
 
   document.getElementById('salonWorkspace').style.display='block';
 
@@ -4676,52 +4963,28 @@ async function loadSalonOffers(salonId){
 }
 
 async function loadSalonWorkspace(userId){
-  const { data, error } = await supabaseClient
-    .from('salon_members')
-    .select(`
-      role,
-      salons (
-        id,
-        salon_code,
-        name,
-        owner_name,
-        owner_email,
-        phone,
-        whatsapp,
-        address,
-        website,
-        brand_voice,
-        target_audience,
-        automation_enabled,
-        approval_required
-      )
-    `)
-    .eq('user_id', userId)
-    .order('created_at',{ascending:false});
+  const { salon } = await resolveCurrentStore();
+  if(!salon) return;
 
-  if(error){
-    console.error('Salon access error:', error);
-    return;
+  const account = document.getElementById('accountLabel');
+  if(account){
+    account.innerText = 'Signed in as ' + (salon.owner_name || 'Salon Owner') + ' • ' + salon.name;
   }
 
-  if(data && data.length){
-    const salon = data[0].salons;
+  const accountName = document.querySelector('.stall-account-name');
+  const mobileAccountName = document.querySelector('.stall-mobile-account-name');
+  const workspaceName = document.getElementById('workspaceSalonName');
+  const workspaceCode = document.getElementById('workspaceSalonCode');
 
-    localStorage.setItem(
-      'activeSalon',
-      JSON.stringify(salon)
-    );
+  if (accountName) accountName.innerText = salon.name || 'My Salon';
+  if (mobileAccountName) mobileAccountName.innerText = salon.name || 'My Salon';
+  if (workspaceName) workspaceName.innerText = salon.name || 'My Salon';
+  if (workspaceCode) workspaceCode.innerText = salon.salon_code || salon.id || 'SALON';
 
-    const account = document.getElementById('accountLabel');
-
-    if(account){
-      account.innerText =
-        'Signed in as ' +
-        (salon.owner_name || 'Salon Owner') +
-        ' • ' +
-        salon.name;
-    }
-  }
+  const heroTitle = document.querySelector('.hero h1');
+  const brandSub = document.querySelector('.sub');
+  if (heroTitle) heroTitle.innerHTML = `Good morning, ${salon.name} <span class="greeting-emoji">👋</span>`;
+  if (brandSub) brandSub.innerText = `STall Partners • ${salon.name}`;
 }
 
 
@@ -4739,6 +5002,7 @@ async function logoutStore(){
 
   localStorage.removeItem('storeLoggedIn');
   localStorage.removeItem('storeUser');
+  localStorage.removeItem('storeUserId');
   localStorage.removeItem('storeRole');
   localStorage.removeItem('storeUserName');
 
