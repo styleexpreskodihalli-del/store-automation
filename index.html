@@ -3244,6 +3244,14 @@ async function renderGoogleReviewsSummary(summary = {}, reviews = []){
     `;
   }).join('');
 
+  container.innerHTML = `
+    <div class="item" style="margin-bottom:12px">
+      <b>Google Reviews</b>
+      <div class="muted">${rating ? `⭐ ${rating.toFixed(1)}` : 'No rating available'}${reviewCount ? ` • ${reviewCount} reviews` : ''}</div>
+    </div>
+    ${cards}
+  `;
+
   const regenerateButtons = container.querySelectorAll('.review-regenerate');
   regenerateButtons.forEach(button => {
     button.addEventListener('click', event => {
@@ -3252,7 +3260,7 @@ async function renderGoogleReviewsSummary(summary = {}, reviews = []){
       const card = target.closest('.review-card');
       const responseText = card && card.querySelector('.review-response-text');
       const currentIndex = Number(target.dataset.reviewIndex || 0);
-      const nextIndex = (currentIndex + 1) % variants.length;
+      const nextIndex = variants.length ? (currentIndex + 1) % variants.length : 0;
 
       if (responseText && variants.length) {
         responseText.innerText = variants[nextIndex];
@@ -3262,14 +3270,6 @@ async function renderGoogleReviewsSummary(summary = {}, reviews = []){
       target.innerText = nextIndex === 0 ? 'Regenerate' : 'Try Another';
     });
   });
-
-  container.innerHTML = `
-    <div class="item" style="margin-bottom:12px">
-      <b>Google Reviews</b>
-      <div class="muted">${rating ? `⭐ ${rating.toFixed(1)}` : 'No rating available'}${reviewCount ? ` • ${reviewCount} reviews` : ''}</div>
-    </div>
-    ${cards}
-  `;
 }
 
 async function resolveActiveBusinessContext(){
