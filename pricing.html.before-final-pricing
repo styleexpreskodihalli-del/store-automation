@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pricing | STore Automation</title>
+<meta name="description" content="Simple, powerful automation plans for local businesses. Basic ₹499, Growth ₹999 and Full Automate ₹2,499 per month.">
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<style>
+:root{
+  --green:#123b2a;--green2:#1c6044;--mint:#e9f6ef;--ink:#15231e;--muted:#68766f;
+  --line:#dfe8e3;--bg:#f5f8f6;--white:#fff;--shadow:0 18px 50px rgba(18,59,42,.10);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.6}
+a{color:inherit}
+.container{width:min(1120px,calc(100% - 32px));margin:auto}
+.site-header{background:rgba(255,255,255,.94);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10;backdrop-filter:blur(12px)}
+.header-inner{min-height:74px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+.brand{display:flex;align-items:center;gap:11px;text-decoration:none}
+.brand img{width:46px;height:46px;object-fit:contain}
+.brand-title{font-weight:900;letter-spacing:-.3px}
+.brand-sub{font-size:11px;color:var(--muted)}
+.nav{display:flex;align-items:center;gap:8px}
+.nav a{padding:9px 12px;border-radius:9px;text-decoration:none;font-size:14px;color:#405048;font-weight:650}
+.nav a:hover,.nav a.active{background:var(--mint);color:var(--green)}
+.nav .cta{background:var(--green);color:#fff}
+.hero{text-align:center;padding:76px 0 42px}
+.eyebrow{display:inline-flex;align-items:center;gap:7px;background:var(--mint);color:var(--green2);font-size:12px;font-weight:850;padding:7px 11px;border-radius:999px;letter-spacing:.2px}
+.hero h1{font-size:clamp(38px,6vw,64px);line-height:1.04;letter-spacing:-2.4px;margin:18px auto 15px;max-width:800px}
+.hero h1 span{color:var(--green2)}
+.hero p{max-width:670px;margin:0 auto;color:var(--muted);font-size:17px}
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;align-items:stretch;padding:18px 0 62px}
+.plan{position:relative;background:var(--white);border:1px solid var(--line);border-radius:22px;padding:28px;box-shadow:0 7px 25px rgba(18,59,42,.05);display:flex;flex-direction:column}
+.plan.featured{border:2px solid var(--green2);box-shadow:var(--shadow);transform:translateY(-8px)}
+.popular{position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:var(--green);color:#fff;font-size:11px;font-weight:900;padding:6px 13px;border-radius:999px;white-space:nowrap;letter-spacing:.4px}
+.plan-kicker{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:850}
+.plan h2{font-size:25px;margin:7px 0 5px;letter-spacing:-.7px}
+.plan .desc{font-size:13px;color:var(--muted);min-height:64px}
+.price{font-size:40px;font-weight:950;letter-spacing:-1.8px;margin:16px 0 3px;color:var(--green)}
+.price small{font-size:14px;font-weight:650;letter-spacing:0;color:var(--muted)}
+.plan ul{list-style:none;padding:0;margin:19px 0 24px;display:grid;gap:11px}
+.plan li{font-size:13px;color:#425049;display:flex;gap:9px}
+.plan li:before{content:"✓";font-weight:950;color:var(--green2)}
+.plan .button{margin-top:auto;display:block;text-align:center;text-decoration:none;padding:12px 16px;border-radius:11px;background:var(--green);color:#fff;font-weight:850;font-size:14px}
+.plan .button.alt{background:#fff;color:var(--green);border:1px solid #cbd9d2}
+.compare{text-align:center;padding:0 0 70px}
+.compare h2{font-size:30px;letter-spacing:-1px;margin-bottom:8px}
+.compare>p{color:var(--muted);margin:0 auto 28px;max-width:650px}
+.feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;text-align:left}
+.feature{background:#fff;border:1px solid var(--line);border-radius:15px;padding:18px}
+.feature-icon{font-size:20px}.feature h3{margin:7px 0 3px;font-size:15px}.feature p{margin:0;color:var(--muted);font-size:12px}
+.listing{background:var(--green);color:#fff;border-radius:24px;padding:32px;display:grid;grid-template-columns:1fr auto;gap:25px;align-items:center;margin:0 0 70px}
+.listing h2{margin:0 0 6px;font-size:25px}.listing p{margin:0;color:#c8d9d1;font-size:13px;max-width:700px}
+.listing .price{color:#fff;margin:0}.listing button{border:0;background:#fff;color:var(--green);padding:12px 18px;border-radius:11px;font-weight:900;cursor:pointer}
+#stall-payment-message{margin-top:8px;font-size:12px}
+.faq{padding:0 0 70px}.faq h2{text-align:center;font-size:30px}.faq-list{max-width:760px;margin:25px auto 0;display:grid;gap:10px}.faq-item{background:#fff;border:1px solid var(--line);border-radius:13px;padding:17px 19px}.faq-item strong{display:block;margin-bottom:4px}.faq-item p{margin:0;color:var(--muted);font-size:13px}
+.site-footer{background:#10201c;color:#d9e5df;padding:34px 0 28px}.footer-inner{display:flex;justify-content:space-between;gap:25px;align-items:flex-start}.footer-brand{font-weight:900;color:#fff}.footer-copy{font-size:12px;color:#9eb0a8;margin-top:4px}.footer-links{display:flex;flex-wrap:wrap;gap:14px;font-size:12px}.footer-links a{text-decoration:none;color:#c5d3cd}.footer-bottom{border-top:1px solid rgba(255,255,255,.1);margin-top:24px;padding-top:17px;font-size:11px;color:#91a39b}
+.back-mobile{display:none}
+@media(max-width:850px){
+  .nav a:not(.cta){display:none}.header-inner{min-height:66px}.brand img{width:40px;height:40px}
+  .hero{padding:52px 0 28px}.hero h1{letter-spacing:-1.6px}.hero p{font-size:15px}
+  .pricing-grid{grid-template-columns:1fr;gap:20px;padding-bottom:50px}.plan.featured{transform:none}
+  .plan .desc{min-height:auto}.feature-grid{grid-template-columns:1fr 1fr}.listing{grid-template-columns:1fr}.footer-inner{flex-direction:column}
+}
+@media(max-width:520px){
+  .container{width:min(100% - 24px,1120px)}.feature-grid{grid-template-columns:1fr}.hero h1{font-size:42px}.plan{padding:23px}.listing{padding:24px}.footer-links{gap:11px}
+}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="brand" href="/">
+      <img src="/assets/stall-logo.png" alt="STore Automation">
+      <div><div class="brand-title">STore Automation</div><div class="brand-sub">Powered by ST Shield</div></div>
+    </a>
+    <nav class="nav">
+      <a href="/">Home</a>
+      <a href="/about.html">About Us</a>
+      <a class="active" href="/pricing.html">Pricing</a>
+      <a href="/contact.html">Contact</a>
+      <a class="cta" href="#plans">View Plans</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero container">
+    <div class="eyebrow">● Simple pricing · Powerful automation</div>
+    <h1>Choose how much of your business you want to <span>automate.</span></h1>
+    <p>Start with the essentials, grow when you're ready, and automate more as your business scales.</p>
+  </section>
+
+  <section id="plans" class="container pricing-grid">
+    <article class="plan">
+      <div class="plan-kicker">Get Started</div>
+      <h2>Basic</h2>
+      <p class="desc">For businesses getting started with digital automation.</p>
+      <div class="price">₹499 <small>/ month</small></div>
+      <ul>
+        <li>Business Profile</li>
+        <li>Social Media Content Creation</li>
+        <li>Promotional Offers</li>
+        <li>Customer Lead Capture</li>
+        <li>Basic Campaign Management</li>
+        <li>Business Dashboard</li>
+        <li>Essential Automation</li>
+      </ul>
+      <a class="button alt" href="/contact.html">Start with Basic</a>
+    </article>
+
+    <article class="plan featured">
+      <div class="popular">MOST POPULAR</div>
+      <div class="plan-kicker">Grow Faster</div>
+      <h2>Growth</h2>
+      <p class="desc">For businesses ready to grow consistently and engage customers better.</p>
+      <div class="price">₹999 <small>/ month</small></div>
+      <ul>
+        <li>Everything in Basic</li>
+        <li>Social Media Scheduling</li>
+        <li>Advanced Campaigns</li>
+        <li>Google Review Management</li>
+        <li>Customer Engagement Tools</li>
+        <li>Automated Promotions</li>
+        <li>Enhanced Lead Management</li>
+        <li>Growth Analytics</li>
+      </ul>
+      <a class="button" href="/contact.html">Start Growing</a>
+    </article>
+
+    <article class="plan">
+      <div class="plan-kicker">Automate More</div>
+      <h2>Full Automate</h2>
+      <p class="desc">For businesses that want their marketing and customer operations working smarter.</p>
+      <div class="price">₹2,499 <small>/ month</small></div>
+      <ul>
+        <li>Everything in Growth</li>
+        <li>Advanced Business Automation</li>
+        <li>Automated Customer Follow-ups</li>
+        <li>Advanced Lead Management</li>
+        <li>Multi-location Support</li>
+        <li>Team Access</li>
+        <li>Advanced Analytics</li>
+        <li>Automated Campaign Workflows</li>
+        <li>Priority Support</li>
+      </ul>
+      <a class="button alt" href="/contact.html">Automate More</a>
+    </article>
+  </section>
+
+  <section class="container listing">
+    <div>
+      <h2>Want to get your business listed first?</h2>
+      <p>The STore Listing is a simple one-time onboarding option for businesses that want to establish their presence before moving into automation.</p>
+      <div id="stall-payment-message"></div>
+    </div>
+    <div>
+      <div class="price">₹99 <small style="color:#c8d9d1">one-time</small></div>
+      <button id="stall-listing-button" type="button" onclick="startSTallListingPayment()">Get Listed — ₹99</button>
+    </div>
+  </section>
+
+  <section class="container compare">
+    <h2>Built around your business</h2>
+    <p>Store Automation brings the repetitive digital work into one simple platform so you can spend more time serving customers.</p>
+    <div class="feature-grid">
+      <div class="feature"><div class="feature-icon">📱</div><h3>Social Media</h3><p>Create, manage and schedule content for your business.</p></div>
+      <div class="feature"><div class="feature-icon">🎯</div><h3>Offers & Promotions</h3><p>Keep your offers visible and your campaigns organised.</p></div>
+      <div class="feature"><div class="feature-icon">⭐</div><h3>Reviews</h3><p>Stay on top of customer feedback and online reputation.</p></div>
+      <div class="feature"><div class="feature-icon">👥</div><h3>Customer Engagement</h3><p>Turn genuine enquiries into meaningful conversations.</p></div>
+      <div class="feature"><div class="feature-icon">📊</div><h3>Business Insights</h3><p>Understand what is working and where to improve.</p></div>
+      <div class="feature"><div class="feature-icon">⚙️</div><h3>Automation</h3><p>Reduce repetitive digital tasks and stay consistent.</p></div>
+    </div>
+  </section>
+
+  <section class="container faq">
+    <h2>Frequently asked questions</h2>
+    <div class="faq-list">
+      <div class="faq-item"><strong>Can I start with Basic and upgrade later?</strong><p>Yes. Start with the plan that fits your current needs and move to a higher plan as your business grows.</p></div>
+      <div class="faq-item"><strong>Is the ₹99 listing a subscription?</strong><p>No. The ₹99 STore Listing is a one-time listing and onboarding payment.</p></div>
+      <div class="faq-item"><strong>Is annual billing available?</strong><p>Eligible annual subscriptions may be offered with a 10% discount. Applicable terms are shown before purchase.</p></div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <div><div class="footer-brand">STore Automation</div><div class="footer-copy">Your business. Your customers. Your automation.</div></div>
+    <div class="footer-links">
+      <a href="/about.html">About Us</a><a href="/pricing.html">Pricing</a><a href="/contact.html">Contact</a>
+      <a href="/privacy.html">Privacy Policy</a><a href="/terms.html">Terms</a><a href="/refund-policy.html">Refund Policy</a>
+    </div>
+  </div>
+  <div class="container footer-bottom">© 2026 STore Automation · Operated by Style Expres · Bengaluru, Karnataka, India</div>
+</footer>
+
+<script>
+async function startSTallListingPayment() {
+  const button = document.getElementById('stall-listing-button');
+  const message = document.getElementById('stall-payment-message');
+  const customerName = prompt('Enter your business/customer name:');
+  if (!customerName || !customerName.trim()) return;
+  const customerEmail = prompt('Enter your email address:');
+  if (!customerEmail || !customerEmail.trim()) return;
+  const customerPhone = prompt('Enter your phone number (optional):');
+  button.disabled = true; button.textContent = 'Preparing Payment...'; message.textContent = '';
+  try {
+    const response = await fetch('/api/razorpay-create-order.mjs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      customer_name:customerName.trim(),customer_email:customerEmail.trim(),customer_phone:customerPhone?customerPhone.trim():''
+    })});
+    const result = await response.json();
+    if(!response.ok || !result.success) throw new Error(result.error || 'Unable to initialise payment');
+    const options = {
+      key:result.key_id,amount:result.amount,currency:result.currency,name:'STore Automation',
+      description:'STore Listing — One-time ₹99',order_id:result.order_id,
+      prefill:{name:customerName.trim(),email:customerEmail.trim(),contact:customerPhone?customerPhone.trim():''},
+      notes:{product:'STall - Store Automation',plan:'listing_99'},theme:{color:'#123b2a'},
+      handler:async function(paymentResponse){
+        message.textContent='Verifying payment...';
+        try{
+          const verifyResponse=await fetch('/api/razorpay-verify-payment.mjs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+            razorpay_order_id:paymentResponse.razorpay_order_id,razorpay_payment_id:paymentResponse.razorpay_payment_id,razorpay_signature:paymentResponse.razorpay_signature
+          })});
+          const verifyResult=await verifyResponse.json();
+          if(!verifyResponse.ok || !verifyResult.success) throw new Error(verifyResult.error || 'Payment verification failed');
+          message.textContent='✓ Payment successful. Your STore listing payment has been recorded.';
+          button.textContent='Payment Successful';
+        }catch(error){
+          console.error(error); message.textContent='Payment received, but verification is still being completed. Please contact support if needed.';
+          button.disabled=false; button.textContent='Try Again — ₹99';
+        }
+      },
+      modal:{ondismiss:function(){button.disabled=false;button.textContent='Get Listed — ₹99';message.textContent='';}}
+    };
+    const razorpay=new Razorpay(options);
+    razorpay.on('payment.failed',function(){message.textContent='Payment was not completed. Please try again.';button.disabled=false;button.textContent='Try Again — ₹99';});
+    razorpay.open();
+  }catch(error){console.error(error);message.textContent=error.message || 'Unable to start payment.';button.disabled=false;button.textContent='Get Listed — ₹99';}
+}
+</script>
+</body>
+</html>

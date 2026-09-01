@@ -1636,22 +1636,6 @@ window.supabaseClient = supabaseClient;
 
 </style>
 
-
-<style id="stall-desktop-nav-final-v1">
-
-/* Desktop: hide the mobile-only navigation system */
-@media (min-width:900px){
-
-  #stallNavigation .stall-mobile-primary,
-  #stallNavigation .stall-mobile-account,
-  #stallNavigation .stall-mobile-logout{
-    display:none !important;
-  }
-
-}
-
-</style>
-
 </head>
 <body>
 <div id="forgotOverlay" style="display:none;position:fixed;inset:0;background:#10201c;color:#fff;z-index:10000;align-items:center;justify-content:center;padding:20px">
@@ -1683,96 +1667,10 @@ window.supabaseClient = supabaseClient;
     <div style="font-size:12px;font-weight:800;color:#17633f">STALL PARTNERS</div>
     <h1>STore Automation</h1>
     <p>Salon Marketing on Autopilot</p>
-    <div style="margin-top:8px">
-      <div style="font-size:18px;font-weight:900;color:#10201c">
-        Store Owner Access
-      </div>
-
-      <div style="margin-top:6px;color:#777;font-size:13px;line-height:1.5">
-        Manage your stores with your Google account.
-      </div>
-    </div>
-
-    <div style="margin-top:20px">
-
-      <div style="font-size:13px;font-weight:800;color:#333;margin-bottom:7px">
-        Already have a STall account?
-      </div>
-
-      <button
-        type="button"
-        onclick="storeGoogleLogin('signin')"
-        style="width:100%;font-weight:800">
-        Continue with Google
-      </button>
-
-    </div>
-
-    <div style="
-      display:flex;
-      align-items:center;
-      gap:10px;
-      margin:20px 0;
-      color:#999;
-      font-size:11px;
-      font-weight:700">
-      <span style="flex:1;height:1px;background:#ddd"></span>
-      OR
-      <span style="flex:1;height:1px;background:#ddd"></span>
-    </div>
-
-    <div>
-
-      <div style="font-size:13px;font-weight:800;color:#333;margin-bottom:7px">
-        New Store Owner?
-      </div>
-
-      <button
-        type="button"
-        class="demo"
-        onclick="storeGoogleLogin('signup')"
-        style="
-          width:100%;
-          font-weight:800;
-          border:1px solid #17633f;
-          color:#17633f;
-          background:#fff">
-        Sign Up with Google
-      </button>
-
-    </div>
-
-    <div style="
-      margin:22px 0 10px;
-      padding-top:14px;
-      border-top:1px solid #eee">
-
-      <div style="font-size:11px;color:#888;margin-bottom:7px">
-        Existing email/password login
-      </div>
-
-      <input
-        id="loginEmail"
-        type="email"
-        placeholder="Email">
-
-      <input
-        id="loginPassword"
-        type="password"
-        placeholder="Password">
-
-      <button onclick="storeLogin()">
-        Sign In with Email
-      </button>
-
-      <button
-        id="forgotPasswordLink"
-        class="demo"
-        onclick="showForgotPassword()">
-        Forgot Password?
-      </button>
-
-    </div>
+    <input id="loginEmail" type="email" placeholder="Email">
+    <input id="loginPassword" type="password" placeholder="Password">
+    <button onclick="storeLogin()">Sign In</button>
+    <button id="forgotPasswordLink" class="demo" onclick="showForgotPassword()">Forgot Password?</button>
 
     <button class="demo" onclick="flowDemo()">Use Flow Salon Demo</button><button class="demo" onclick="adminDemo()">Use STall Partners Admin Demo</button>
     <p id="loginError" style="text-align:center"></p>
@@ -2210,9 +2108,8 @@ window.supabaseClient = supabaseClient;
 
 <section id="reviews" class="screen">
 <div class="hero"><h2>⭐ Google Review Assistant</h2><div class="muted">AI drafts. Owner approves. Google publishes.</div></div>
-<div id="googleReviewsList" class="card">
-  <div class="muted">Loading Google reviews...</div>
-</div>
+<div class="card"><span class="badge">5★</span><h3>Priya S.</h3><div class="muted">“Loved the service and the staff were very friendly. Will definitely visit again!”</div><div class="item"><b>AI response</b><div class="muted">Thank you, Priya! We're delighted you enjoyed your experience with our team. We look forward to welcoming you back to Flow Salon soon.</div></div><div class="actions"><button onclick="approve(this)">Approve Reply</button><button class="secondary" onclick="toast('Response regenerated')">Regenerate</button></div></div>
+<div class="card"><span class="badge warn">2★</span><h3>Anita M.</h3><div class="muted">“I was not happy with the experience and felt the wait was too long.”</div><div class="item"><b>AI response</b><div class="muted">We're sorry your experience did not meet expectations. We take your feedback seriously and would like to understand what happened so we can improve.</div></div><div class="actions"><button onclick="approve(this)">Approve Reply</button><button class="secondary" onclick="toast('Response regenerated')">Regenerate</button></div></div>
 </section>
 
 <section id="leads" class="screen">
@@ -2231,77 +2128,59 @@ window.supabaseClient = supabaseClient;
 </div>
 
 <div class="card">
-<h2>Add Store</h2>
+<h2>Add Salon</h2>
+<div class="muted">Create Salon #002 without changing application code.</div>
 
-<div class="muted" style="margin-bottom:16px">
-Find your business on Google and let STore Automation automatically
-populate the store details.
-</div>
-
-<label>
-Country
-<input id="addStoreCountry"
-       value="India"
-       placeholder="India">
+<label>Salon name
+<input id="newSalonName" placeholder="Salon name">
 </label>
 
-<label>
-City
-<input id="addStoreCity"
-       placeholder="Bengaluru"
-       required>
+<label>Owner name
+<input id="newOwnerName" placeholder="Owner name">
 </label>
 
-<label>
-Area / Locality
-<input id="addStoreArea"
-       placeholder="Whitefield">
+<label>Owner email
+<input id="newOwnerEmail" type="email" placeholder="owner@example.com">
 </label>
 
-<label>
-Business Name
-<input id="addStoreQuery"
-       placeholder="Cut N Cute Studio">
+<label>Phone / WhatsApp
+<input id="newSalonPhone" placeholder="+91">
+</label>
+
+<label>Location
+<input id="newSalonLocation" placeholder="Area, City, State">
+</label>
+
+<label>Website
+<input id="newSalonWebsite" placeholder="https://">
+</label>
+
+<label>Google Business Profile URL
+<input id="newSalonGoogle" placeholder="https://maps.google.com/...">
+</label>
+
+<label>Instagram
+<input id="newSalonInstagram" placeholder="https://instagram.com/...">
+</label>
+
+<label>WhatsApp number
+<input id="newSalonWhatsapp" placeholder="+91">
+</label>
+
+<label>Services
+<textarea id="newSalonServices" rows="3" placeholder="Haircut, facial, hair spa, nails..."></textarea>
+</label>
+
+<label>Current offers
+<textarea id="newSalonOffers" rows="3" placeholder="Welcome offer; weekend offer..."></textarea>
 </label>
 
 <div class="actions">
-<button type="button"
-        onclick="discoverGoogleBusiness('add-store')">
-Search Google
-</button>
+<button onclick="createSalon()">Create Salon</button>
+<button class="secondary" onclick="clearSalonForm()">Clear</button>
 </div>
 
-<div id="addStoreMessage"
-     class="muted"
-     style="margin-top:10px"></div>
-
-<div id="addStoreLocationsPanel"
-     style="display:none;margin-top:16px"></div>
-
-<div id="storeOwnerPanel"
-     style="display:none;margin-top:18px;padding:16px;border:1px solid #ddd;border-radius:8px">
-
-<h3>Store Setup</h3>
-
-<div class="muted" style="margin-bottom:12px">
-The business information comes directly from Google.
-Create the store now. The store owner will register with their
-Google account and select the store they want to connect to STall.
-</div>
-
-<div class="actions">
-<button type="button"
-        onclick="createStoreFromGoogle()">
-Create Store
-</button>
-</div>
-
-<div id="createSalonMsg"
-     class="muted"
-     style="margin-top:10px"></div>
-
-</div>
-</div>
+<div id="createSalonMsg" class="muted" style="margin-top:10px"></div>
 </div>
 
 <div class="card">
@@ -2403,7 +2282,7 @@ Discover Google Business Profile
   <h4>STore Google Access</h4>
 
   <div id="googleStoreAccessStatus" class="muted">
-    Google Business Profile access verification is required.
+    Google Business Profile selected.
   </div>
 
   <div class="muted" style="margin-top:6px">
@@ -2727,186 +2606,6 @@ function enableAdmin(){
   renderSalons();
 }
 
-
-async function createStoreFromGoogle(){
-
-  const message =
-    document.getElementById('createSalonMsg');
-
-  /*
-   * Google Store creation does not require owner details.
-   * The owner will register later using Google.
-   */
-
-  const activeBusinessRaw =
-    localStorage.getItem('activeBusiness');
-
-  if(!activeBusinessRaw){
-    if(message){
-      message.innerText =
-        'Please select a Google business first.';
-    }
-    return;
-  }
-
-  let activeBusiness;
-
-  try {
-    activeBusiness =
-      JSON.parse(activeBusinessRaw);
-  } catch(error) {
-    console.error(
-      'Invalid active business:',
-      error
-    );
-
-    if(message){
-      message.innerText =
-        'Selected business information is invalid.';
-    }
-
-    return;
-  }
-
-  if(!activeBusiness?.id){
-    if(message){
-      message.innerText =
-        'Please select a Google business first.';
-    }
-    return;
-  }
-
-  if(message){
-    message.innerText =
-      'Creating store from Google Business...';
-  }
-
-  try {
-
-    const { data, error } =
-      await supabaseClient.auth.getSession();
-
-    if(error || !data.session){
-      if(message){
-        message.innerText =
-          'Your STall admin session has expired. Please log in again.';
-      }
-      return;
-    }
-
-    const response =
-      await fetch(
-        '/api/create-salon-owner',
-        {
-          method: 'POST',
-
-          headers: {
-            'Content-Type':
-              'application/json',
-
-            Authorization:
-              `Bearer ${data.session.access_token}`
-          },
-
-          body: JSON.stringify({
-            business_id:
-              activeBusiness.id
-          })
-        }
-      );
-
-    const result =
-      await response
-        .json()
-        .catch(() => ({}));
-
-    if(!response.ok){
-      console.error(
-        'Create store error:',
-        result
-      );
-
-      if(message){
-        message.innerText =
-          result.error ||
-          'Unable to create store.';
-      }
-
-      return;
-    }
-
-    console.log(
-      'Store created:',
-      result
-    );
-
-    if(result.already_exists){
-      if(message){
-        message.innerText =
-          `✓ Store already exists as ${result.salon_code}.`;
-      }
-    } else {
-      if(message){
-        message.innerText =
-          `✓ ${result.salon_code} created. Owner can register with Google.`;
-      }
-    }
-
-    /*
-     * Keep the selected business as the active store.
-     */
-    localStorage.setItem(
-      'activeBusiness',
-      JSON.stringify({
-        id:
-          result.business_id ||
-          activeBusiness.id,
-
-        business_name:
-          result.business_name ||
-          activeBusiness.business_name,
-
-        google_place_id:
-          result.google_place_id ||
-          activeBusiness.google_place_id
-      })
-    );
-
-    /*
-     * Hide owner form after successful creation.
-     */
-    const ownerPanel =
-      document.getElementById(
-        'storeOwnerPanel'
-      );
-
-    if(ownerPanel){
-      ownerPanel.style.display =
-        'none';
-    }
-
-    /*
-     * Refresh salon portfolio.
-     */
-    if(typeof renderSalons === 'function'){
-      await renderSalons();
-    }
-
-  } catch(error) {
-
-    console.error(
-      'Create store exception:',
-      error
-    );
-
-    if(message){
-      message.innerText =
-        'Unable to create store.';
-    }
-  }
-}
-
-
 async function createSalon(){
   const name =
     document.getElementById('newSalonName').value.trim();
@@ -3020,56 +2719,22 @@ async function createSalon(){
 }
 
 function clearSalonForm(){
-
   [
-    'addStoreCountry',
-    'addStoreCity',
-    'addStoreArea',
-    'addStoreQuery',
+    'newSalonName',
     'newOwnerName',
-    'newOwnerEmail'
+    'newOwnerEmail',
+    'newSalonPhone',
+    'newSalonLocation',
+    'newSalonWebsite',
+    'newSalonGoogle',
+    'newSalonInstagram',
+    'newSalonWhatsapp',
+    'newSalonServices',
+    'newSalonOffers'
   ].forEach(function(id){
-    const e = document.getElementById(id);
-    if(e) e.value = '';
+    const e=document.getElementById(id);
+    if(e)e.value='';
   });
-
-  const country =
-    document.getElementById('addStoreCountry');
-
-  if(country){
-    country.value = 'India';
-  }
-
-  const message =
-    document.getElementById('addStoreMessage');
-
-  if(message){
-    message.innerText = '';
-  }
-
-  const locations =
-    document.getElementById('addStoreLocationsPanel');
-
-  if(locations){
-    locations.innerHTML = '';
-    locations.style.display = 'none';
-  }
-
-  const ownerPanel =
-    document.getElementById('storeOwnerPanel');
-
-  if(ownerPanel){
-    ownerPanel.style.display = 'none';
-  }
-
-  const ownerMessage =
-    document.getElementById('createSalonMsg');
-
-  if(ownerMessage){
-    ownerMessage.innerText = '';
-  }
-
-  localStorage.removeItem('activeBusiness');
 }
 
 function renderSalons(){
@@ -3115,122 +2780,10 @@ function renderSalons(){
   }
 }
 
-async function renderGoogleReviewsSummary(summary = {}, reviews = []){
-  const container = document.getElementById('googleReviewsList');
-  if(!container) return;
-
-  const rating = Number(summary.rating ?? 0);
-  const reviewCount = Number(summary.review_count ?? 0);
-
-  if(!reviews.length){
-    container.innerHTML = `
-      <div class="item">
-        <b>Google Reviews</b>
-        <div class="muted">${rating ? `⭐ ${rating.toFixed(1)}` : 'No rating available'}${reviewCount ? ` • ${reviewCount} reviews` : ''}</div>
-      </div>
-      <div class="muted">No live Google reviews are available for this store yet.</div>
-    `;
-    return;
-  }
-
-  const cards = reviews.map(review => {
-    const starLabel = review.rating ? `${review.rating}★` : 'Review';
-    const text = review.text || 'Customer review';
-    const author = review.author_name || 'Customer';
-    const relativeTime = review.relative_time ? ` • ${review.relative_time}` : '';
-
-    return `
-      <div class="card" style="margin-top:12px">
-        <span class="badge">${starLabel}</span>
-        <h3>${author}</h3>
-        <div class="muted">“${text}”${relativeTime}</div>
-        <div class="item">
-          <b>AI response</b>
-          <div class="muted">Thank you for sharing your feedback. We appreciate the time you took to let us know how we’re doing.</div>
-        </div>
-        <div class="actions">
-          <button onclick="approve(this)">Approve Reply</button>
-          <button class="secondary" onclick="toast('Response regenerated')">Regenerate</button>
-        </div>
-      </div>
-    `;
-  }).join('');
-
-  container.innerHTML = `
-    <div class="item" style="margin-bottom:12px">
-      <b>Google Reviews</b>
-      <div class="muted">${rating ? `⭐ ${rating.toFixed(1)}` : 'No rating available'}${reviewCount ? ` • ${reviewCount} reviews` : ''}</div>
-    </div>
-    ${cards}
-  `;
-}
-
-async function loadGoogleReviewsForActiveBusiness(){
-  const container = document.getElementById('googleReviewsList');
-  if(!container) return;
-
-  const activeBusiness = JSON.parse(localStorage.getItem('activeBusiness') || '{}');
-  const businessId = activeBusiness.id;
-  const placeId = activeBusiness.google_place_id;
-
-  if(!businessId && !placeId){
-    container.innerHTML = '<div class="muted">Map or select a store first to load live Google reviews.</div>';
-    return;
-  }
-
-  container.innerHTML = '<div class="muted">Loading Google reviews...</div>';
-
-  try {
-    const { data, error } = await supabaseClient.auth.getSession();
-    if(error || !data.session){
-      container.innerHTML = '<div class="muted">Please log in to load live Google reviews.</div>';
-      return;
-    }
-
-    const params = new URLSearchParams();
-    if(businessId) params.set('business_id', businessId);
-    if(placeId) params.set('place_id', placeId);
-
-    const response = await fetch('/api/google-review-details?' + params.toString(), {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${data.session.access_token}`
-      }
-    });
-
-    const result = await response.json().catch(() => ({}));
-
-    if(!response.ok){
-      console.error('Google review loading error:', result);
-      container.innerHTML = '<div class="muted">Unable to load live Google reviews right now.</div>';
-      return;
-    }
-
-    await renderGoogleReviewsSummary(result.summary || {}, result.reviews || []);
-  } catch(error) {
-    console.error('Google reviews load exception:', error);
-    container.innerHTML = '<div class="muted">Unable to load live Google reviews right now.</div>';
-  }
-}
-
-function show(id,btn){
-  document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
-  if(btn)btn.classList.add('active');
-  if(id === 'reviews') {
-    loadGoogleReviewsForActiveBusiness();
-  }
-}
+function show(id,btn){document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));if(btn)btn.classList.add('active')}
 function approve(b){b.innerText='Approved ✓';b.disabled=true;b.style.opacity=.6;toast('Approved and queued for publishing')}
 function toast(t){let x=document.getElementById('toast');x.innerText=t;x.style.display='block';clearTimeout(window.tt);window.tt=setTimeout(()=>x.style.display='none',2200)}
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
-
-window.addEventListener('DOMContentLoaded', () => {
-  if(document.getElementById('reviews')){
-    loadGoogleReviewsForActiveBusiness();
-  }
-});
 </script>
 
 <script>
@@ -3439,61 +2992,6 @@ async function storeLogin(){
 }
 
 
-async function storeGoogleLogin(mode = 'signin'){
-
-  const error =
-    document.getElementById('loginError');
-
-  /*
-   * Remember why the owner entered the Google flow.
-   *
-   * signin = existing STall owner
-   * signup = new STall owner
-   *
-   * The next step will use this to decide whether
-   * to show connected stores or store registration.
-   */
-  localStorage.setItem(
-    'stallGoogleAuthMode',
-    mode === 'signup'
-      ? 'signup'
-      : 'signin'
-  );
-
-  if(error){
-    error.innerText =
-      mode === 'signup'
-        ? 'Opening Google signup...'
-        : 'Opening Google login...';
-  }
-
-  const { error: authError } =
-    await supabaseClient.auth.signInWithOAuth({
-      provider: 'google',
-
-      options: {
-        redirectTo:
-          window.location.origin
-      }
-    });
-
-  if(authError){
-
-    console.error(
-      'Google authentication error:',
-      authError
-    );
-
-    if(error){
-      error.innerText =
-        authError.message ||
-        'Unable to continue with Google.';
-    }
-
-  }
-}
-
-
 async function loadRealUser(user){
   const { data, error } = await supabaseClient
     .from('profiles')
@@ -3541,36 +3039,6 @@ async function getActiveSalonId(){
   }
 
   return data.salon_id;
-}
-
-
-
-async function getActiveBusinessId(){
-  const activeBusiness = JSON.parse(
-    localStorage.getItem('activeBusiness') || '{}'
-  );
-
-  if(activeBusiness.id){
-    return activeBusiness.id;
-  }
-
-  const {data:sessionData}=await supabaseClient.auth.getSession();
-  if(!sessionData.session)return null;
-
-  const {data,error}=await supabaseClient
-    .from('business_users')
-    .select('business_id,created_at')
-    .eq('user_id',sessionData.session.user.id)
-    .order('created_at',{ascending:false})
-    .limit(1)
-    .single();
-
-  if(error){
-    console.error('Business membership error:',error);
-    return null;
-  }
-
-  return data.business_id;
 }
 
 
@@ -3683,83 +3151,25 @@ async function finalizeGoogleBusinessConnection(){
     }
 
     /*
-     * Exact Place ID -> GBP location verification.
-     *
-     * The invitation button is enabled ONLY when the backend
-     * confirms both authorization and exact location verification.
+     * Exact Place ID match was persisted by the backend.
      */
-    const googleBusinessVerified =
-      result.google_business_connected === true &&
-      result.connection?.access_status === 'verified' &&
-      result.connection?.connection_status === 'location_selected';
-
-    const accessPanel =
-      document.getElementById(
-        'googleStoreAccessPanel'
-      );
-
-    const accessStatus =
-      document.getElementById(
-        'googleStoreAccessStatus'
-      );
-
-    const accessButton =
-      document.getElementById(
-        'sendStoreGoogleInvitationButton'
-      );
-
-    if(googleBusinessVerified){
-
+    if(
+      result.connection?.connection_status ===
+        'location_selected'
+    ){
       console.log(
         '✓ Google Business Profile location verified:',
         result.connection
       );
 
-      if(accessPanel){
-        accessPanel.style.display = 'block';
-      }
-
-      if(accessStatus){
-        accessStatus.innerText =
-          '✓ Google Business Profile verified. ' +
-          'STore can now request Manager access.';
-      }
-
-      if(accessButton){
-        accessButton.disabled = false;
-        accessButton.onclick =
-          sendStoreGoogleInvitation;
-        accessButton.innerText =
-          'Send STore Access Invitation';
-      }
-
       toast(
         '✓ Google Business Profile connected and verified.'
       );
-
     } else {
-
       console.warn(
-        'Google authorization succeeded, but exact GBP verification is incomplete.',
+        'Google authorization succeeded, but no exact GBP location was selected.',
         result
       );
-
-      if(accessPanel){
-        accessPanel.style.display = 'block';
-      }
-
-      if(accessStatus){
-        accessStatus.innerText =
-          'Google account connected, but the exact Google Business Profile ' +
-          'listing still needs verification.';
-      }
-
-      if(accessButton){
-        accessButton.disabled = true;
-        accessButton.onclick = null;
-        accessButton.innerText =
-          'Waiting for GBP Verification';
-      }
 
       toast(
         'Google connected. The Business Profile location still needs verification.'
@@ -3798,7 +3208,7 @@ async function connectGoogleBusiness(){
     }
 
     /*
-     * Get business_id from the active universal Business context.
+     * Get business_id from localStorage (set by selectGoogleBusinessLocation).
      */
     const activeBusiness = JSON.parse(
       localStorage.getItem('activeBusiness') || '{}'
@@ -3856,55 +3266,28 @@ function showGoogleDiscover(){
   }
 }
 
-async function discoverGoogleBusiness(mode = 'workspace'){
-
-  const isAddStore =
-    mode === 'add-store';
+async function discoverGoogleBusiness(){
 
   const status =
     document.getElementById('googleConnectionStatus');
 
   const message =
-    document.getElementById(
-      isAddStore
-        ? 'addStoreMessage'
-        : 'googleDiscoverMessage'
-    );
+    document.getElementById('googleDiscoverMessage');
 
   const panel =
-    document.getElementById(
-      isAddStore
-        ? 'addStoreLocationsPanel'
-        : 'googleLocationsPanel'
-    );
+    document.getElementById('googleLocationsPanel');
 
   const country =
-    document.getElementById(
-      isAddStore
-        ? 'addStoreCountry'
-        : 'googleSearchCountry'
-    )?.value.trim();
+    document.getElementById('googleSearchCountry')?.value.trim();
 
   const city =
-    document.getElementById(
-      isAddStore
-        ? 'addStoreCity'
-        : 'googleSearchCity'
-    )?.value.trim();
+    document.getElementById('googleSearchCity')?.value.trim();
 
   const area =
-    document.getElementById(
-      isAddStore
-        ? 'addStoreArea'
-        : 'googleSearchArea'
-    )?.value.trim();
+    document.getElementById('googleSearchArea')?.value.trim();
 
   const query =
-    document.getElementById(
-      isAddStore
-        ? 'addStoreQuery'
-        : 'googleSearchQuery'
-    )?.value.trim();
+    document.getElementById('googleSearchQuery')?.value.trim();
 
   if(!city && !query){
     if(message){
@@ -4086,8 +3469,7 @@ async function discoverGoogleBusiness(mode = 'workspace'){
         button.onclick =
           () =>
             selectGoogleBusinessLocation(
-              location,
-              isAddStore ? 'add-store' : 'workspace'
+              location
             );
 
         card.appendChild(button);
@@ -4109,12 +3491,8 @@ async function discoverGoogleBusiness(mode = 'workspace'){
 }
 
 async function selectGoogleBusinessLocation(
-  location,
-  mode = 'workspace'
+  location
 ){
-
-  const isAddStore =
-    mode === 'add-store';
   const status =
     document.getElementById(
       'googleConnectionStatus'
@@ -4227,11 +3605,11 @@ async function selectGoogleBusinessLocation(
 
     if(status){
       status.innerText =
-        '✓ Business profile mapped.';
+        '✓ Business profile mapped. Ready to connect Google.';
     }
 
     /*
-     * Store business_id locally for the next step.
+     * Store business_id in localStorage for next step (OAuth).
      */
     localStorage.setItem(
       'activeBusiness',
@@ -4241,51 +3619,6 @@ async function selectGoogleBusinessLocation(
         google_place_id: business.google_place_id
       })
     );
-
-    /*
-     * ADD STORE FLOW
-     *
-     * Google has supplied the business information.
-     * The only information we still need is the store owner's
-     * name and email.
-     */
-    if(isAddStore){
-
-      const ownerPanel =
-        document.getElementById(
-          'storeOwnerPanel'
-        );
-
-      const ownerMessage =
-        document.getElementById(
-          'createSalonMsg'
-        );
-
-      const addStorePanel =
-        document.getElementById(
-          'addStoreLocationsPanel'
-        );
-
-      if(addStorePanel){
-        addStorePanel.style.display =
-          'none';
-
-        addStorePanel.innerHTML =
-          '';
-      }
-
-      if(ownerPanel){
-        ownerPanel.style.display =
-          'block';
-      }
-
-      if(ownerMessage){
-        ownerMessage.innerText =
-          '✓ Business found. Enter the store owner details to continue.';
-      }
-
-      return;
-    }
 
     const panel =
       document.getElementById(
@@ -4298,11 +3631,7 @@ async function selectGoogleBusinessLocation(
     }
 
     /*
-     * Google connection has not yet been authorized.
-     *
-     * The button intentionally starts the OAuth flow.
-     * It must NOT send the STore manager invitation until
-     * the exact Google Place ID -> GBP location match succeeds.
+     * Show Google authorization button.
      */
     const accessPanel =
       document.getElementById(
@@ -4391,14 +3720,14 @@ async function sendStoreGoogleInvitation(){
       return;
     }
 
-    const businessId =
-      await getActiveBusinessId();
+    const salonId =
+      await getActiveSalonId();
 
-    if(!businessId){
+    if(!salonId){
 
       if(status){
         status.innerText =
-          'Unable to determine the active business.';
+          'Unable to determine the active salon.';
       }
 
       if(button){
@@ -4425,7 +3754,7 @@ async function sendStoreGoogleInvitation(){
           },
 
           body: JSON.stringify({
-            business_id: businessId
+            salon_id: salonId
           })
         }
       );
@@ -4781,18 +4110,7 @@ function flowDemo(){
 
 </script>
 
-
-<div id="store-legal-footer" style="margin-top:40px;padding:24px 16px;border-top:1px solid rgba(128,128,128,.25);text-align:center;font-size:13px;line-height:2">
-  <strong>STore Automation</strong> · Operated by Style Expres
-  <br>
-  <a href="/pricing.html">Pricing</a> ·
-  <a href="/terms.html">Terms & Conditions</a> ·
-  <a href="/privacy.html">Privacy Policy</a> ·
-  <a href="/shipping-policy.html">Shipping Policy</a> ·
-  <a href="/refund-policy.html">Cancellation & Refunds</a> ·
-  <a href="/contact.html">Contact Us</a>
-</div>
-\n</body></html>
+</body></html>
 <script>
 (function(){
   function initStallMobileNav(){

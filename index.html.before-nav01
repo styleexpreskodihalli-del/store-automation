@@ -1,0 +1,2659 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#10201c"><link rel="manifest" href="manifest.json">
+<title>STall – Store Automation</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,Arial;background:#f4f7f5;color:#17211e}
+header{background:#10201c;color:#fff;padding:18px 18px 16px;position:sticky;top:0;z-index:3}.brand{font-weight:850;font-size:20px}.sub{font-size:12px;color:#b9c8c1;margin-top:3px}
+main{max-width:760px;margin:auto;padding:16px 14px 92px}.hero{background:#fff;border:1px solid #e1e8e4;border-radius:16px;padding:17px;margin-bottom:12px}
+h1,h2,h3{margin:0 0 6px}.muted{color:#68756f;font-size:13px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.metric{background:#fff;border:1px solid #e1e8e4;border-radius:13px;padding:14px}.num{font-size:25px;font-weight:850;margin-top:5px}
+.card{background:#fff;border:1px solid #e1e8e4;border-radius:14px;padding:15px;margin-top:12px}.item{padding:13px 0;border-bottom:1px solid #edf0ee}.item:last-child{border-bottom:0}
+button{border:0;border-radius:9px;padding:10px 13px;background:#10201c;color:white;font-weight:750;cursor:pointer}.secondary{background:#fff;color:#10201c;border:1px solid #d8e0dc}.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.badge{display:inline-block;font-size:10px;font-weight:800;padding:5px 8px;border-radius:99px;background:#e8f6ef;color:#17633f}.warn{background:#fff1d9;color:#875d15}
+nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #dfe6e2;display:grid;grid-template-columns:repeat(5,1fr);z-index:4}nav button{background:white;color:#50605a;border-radius:0;padding:10px 4px;font-size:11px}nav button.active{color:#10201c;font-weight:900}
+.screen{display:none}.screen.active{display:block}textarea,input,select{width:100%;padding:10px;border:1px solid #d8e0dc;border-radius:8px;margin-top:6px;font:inherit}label{font-size:12px;font-weight:750;display:block;margin-top:12px}
+.toast{position:fixed;left:50%;bottom:75px;transform:translateX(-50%);background:#10201c;color:#fff;padding:11px 14px;border-radius:9px;display:none;font-size:12px}
+</style>
+
+
+
+<style id="stall-shell-v1">
+
+.stall-brand-block{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+}
+
+.stall-logo{
+  width:74px;
+  height:74px;
+  object-fit:contain;
+  display:block;
+  margin-bottom:10px;
+  filter:drop-shadow(0 5px 12px rgba(0,0,0,.25));
+}
+
+.stall-brand-name{
+  color:#fff;
+  font-size:23px;
+  line-height:1.05;
+  font-weight:950;
+  letter-spacing:-.5px;
+}
+
+.stall-brand-product{
+  color:#d7b86b;
+  font-size:11px;
+  font-weight:750;
+  letter-spacing:.2px;
+  margin-top:4px;
+}
+
+.stall-brand-block .sub{
+  margin-top:9px;
+  font-size:10px;
+  color:#aebdb6;
+}
+
+@media (min-width:900px){
+
+  #stallHeader{
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    min-height:105px;
+  }
+
+  .stall-brand-block{
+    width:100%;
+  }
+
+}
+
+@media (max-width:899px){
+
+  #stallHeader{
+    padding:10px 15px;
+  }
+
+  .stall-brand-block{
+    flex-direction:row;
+    align-items:center;
+    text-align:left;
+    gap:9px;
+  }
+
+  .stall-logo{
+    width:43px;
+    height:43px;
+    margin:0;
+  }
+
+  .stall-brand-name{
+    font-size:18px;
+  }
+
+  .stall-brand-product{
+    font-size:10px;
+    margin-top:2px;
+  }
+
+  .stall-brand-block .sub{
+    display:none;
+  }
+
+}
+
+</style>
+
+<style id="stall-design-system">
+:root{
+  --stall-dark:#10201c;
+  --stall-dark-2:#172a24;
+  --stall-green:#17633f;
+  --stall-green-soft:#e8f6ef;
+  --stall-gold:#c9a45c;
+  --stall-gold-soft:#f8f1df;
+  --stall-bg:#f5f7f6;
+  --stall-card:#ffffff;
+  --stall-border:#e1e8e4;
+  --stall-text:#17211e;
+  --stall-muted:#68756f;
+  --stall-danger:#b94a48;
+  --stall-warning:#875d15;
+  --stall-radius:16px;
+  --stall-shadow:0 8px 30px rgba(16,32,28,.06);
+}
+
+html{
+  background:var(--stall-bg);
+}
+
+body{
+  background:var(--stall-bg);
+  color:var(--stall-text);
+  font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,
+    "Segoe UI",Arial,sans-serif;
+  line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+}
+
+header{
+  background:linear-gradient(
+    135deg,
+    var(--stall-dark),
+    var(--stall-dark-2)
+  );
+  padding:18px 22px;
+  box-shadow:0 2px 16px rgba(0,0,0,.08);
+}
+
+.brand{
+  font-size:21px;
+  letter-spacing:-.3px;
+  font-weight:900;
+}
+
+.sub{
+  color:#b9c8c1;
+  font-size:12px;
+  margin-top:4px;
+}
+
+main{
+  max-width:1180px;
+  padding:24px 20px 100px;
+}
+
+.hero,
+.card,
+.metric{
+  border:1px solid var(--stall-border);
+  background:var(--stall-card);
+  box-shadow:var(--stall-shadow);
+}
+
+.hero{
+  border-radius:var(--stall-radius);
+  padding:22px;
+}
+
+.card{
+  border-radius:var(--stall-radius);
+  padding:18px;
+}
+
+.metric{
+  border-radius:14px;
+  padding:17px;
+  transition:
+    transform .18s ease,
+    box-shadow .18s ease;
+}
+
+.metric:hover{
+  transform:translateY(-2px);
+  box-shadow:0 12px 34px rgba(16,32,28,.09);
+}
+
+.num{
+  font-size:28px;
+  font-weight:900;
+  letter-spacing:-.5px;
+}
+
+.muted{
+  color:var(--stall-muted);
+}
+
+.badge{
+  background:var(--stall-green-soft);
+  color:var(--stall-green);
+  letter-spacing:.3px;
+}
+
+.warn{
+  background:var(--stall-gold-soft);
+  color:var(--stall-warning);
+}
+
+button{
+  background:var(--stall-dark);
+  border-radius:10px;
+  padding:11px 15px;
+  transition:
+    transform .15s ease,
+    opacity .15s ease,
+    box-shadow .15s ease;
+}
+
+button:hover{
+  transform:translateY(-1px);
+  box-shadow:0 5px 16px rgba(16,32,28,.12);
+}
+
+button:active{
+  transform:translateY(0);
+}
+
+.secondary{
+  background:#fff;
+  color:var(--stall-dark);
+  border:1px solid var(--stall-border);
+}
+
+nav{
+  background:rgba(255,255,255,.97);
+  border-top:1px solid var(--stall-border);
+  box-shadow:0 -4px 20px rgba(16,32,28,.05);
+  backdrop-filter:blur(12px);
+}
+
+nav button{
+  color:#66736d;
+  box-shadow:none;
+}
+
+nav button:hover{
+  box-shadow:none;
+}
+
+nav button.active{
+  color:var(--stall-green);
+}
+
+.item{
+  border-bottom:1px solid #edf0ee;
+}
+
+input,
+textarea,
+select{
+  background:#fff;
+  color:var(--stall-text);
+  border:1px solid #d8e0dc;
+  outline:none;
+  transition:border-color .15s ease,box-shadow .15s ease;
+}
+
+input:focus,
+textarea:focus,
+select:focus{
+  border-color:var(--stall-green);
+  box-shadow:0 0 0 3px rgba(23,99,63,.10);
+}
+
+.toast{
+  background:var(--stall-dark);
+  box-shadow:0 8px 30px rgba(0,0,0,.18);
+}
+
+@media (min-width:900px){
+
+  body{
+    padding-left:230px;
+  }
+
+  header{
+    position:fixed;
+    left:0;
+    top:0;
+    bottom:0;
+    width:230px;
+    padding:28px 18px;
+    z-index:10;
+  }
+
+  header .brand{
+    font-size:23px;
+  }
+
+  header .sub{
+    margin-top:7px;
+  }
+
+  main{
+    margin:0;
+    max-width:none;
+    min-height:100vh;
+    padding:32px 34px 50px;
+  }
+
+  nav{
+    position:fixed;
+    left:0;
+    top:105px;
+    bottom:auto;
+    width:230px;
+    display:flex;
+    flex-direction:column;
+    border:0;
+    background:transparent;
+    box-shadow:none;
+    padding:12px;
+    gap:4px;
+  }
+
+  nav button{
+    width:100%;
+    text-align:left;
+    border-radius:10px;
+    padding:11px 14px;
+    background:transparent;
+    font-size:13px;
+  }
+
+  nav button.active{
+    background:var(--stall-green-soft);
+  }
+
+  nav button br{
+    display:none;
+  }
+}
+
+@media (max-width:899px){
+
+  header{
+    position:sticky;
+    top:0;
+  }
+
+  main{
+    padding-top:18px;
+  }
+
+}
+
+@media (max-width:600px){
+
+  main{
+    padding-left:14px;
+    padding-right:14px;
+  }
+
+  .hero{
+    padding:18px;
+  }
+
+  .card{
+    padding:15px;
+  }
+
+  .grid{
+    gap:8px;
+  }
+
+  .metric{
+    padding:13px;
+  }
+
+  .num{
+    font-size:23px;
+  }
+
+}
+</style>
+
+<style>
+#loginOverlay{position:fixed;inset:0;background:#10201c;color:#fff;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}
+.loginBox{width:min(420px,100%);background:#fff;color:#17211e;border-radius:18px;padding:26px;box-shadow:0 20px 60px #0008}
+.loginBox h1{margin:10px 0 4px}.loginBox p{color:#68756f;font-size:13px}
+.loginBox input{width:100%;padding:12px;margin:7px 0 12px;border:1px solid #d8e0dc;border-radius:8px}
+.loginBox button{width:100%;padding:12px;margin-top:8px;border:0;border-radius:9px;background:#10201c;color:white;font-weight:700}
+.loginBox button.demo{background:white;color:#10201c;border:1px solid #d8e0dc}
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+const SUPABASE_URL = "https://opgnylgfzfaowjhwzceq.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_4n71N9A3iwsztdsI4wEBTw_12gL65YN";
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY
+);
+
+// TEMP DEBUG: expose Supabase client for GBP location testing
+window.supabaseClient = supabaseClient;
+
+</script>
+</head>
+<body>
+<div id="forgotOverlay" style="display:none;position:fixed;inset:0;background:#10201c;color:#fff;z-index:10000;align-items:center;justify-content:center;padding:20px">
+  <div class="loginBox">
+    <div style="font-size:12px;font-weight:800;color:#17633f">STALL PARTNERS</div>
+    <h1>Forgot Password?</h1>
+    <p>Enter your account email and we'll send you a secure password reset link.</p>
+    <input id="forgotEmail" type="email" placeholder="Email address">
+    <button onclick="sendPasswordReset()">Send Reset Link</button>
+    <button class="demo" onclick="closeForgotPassword()">Back to Login</button>
+    <p id="forgotMessage" style="text-align:center"></p>
+  </div>
+</div>
+
+<div id="resetOverlay" style="display:none;position:fixed;inset:0;background:#10201c;color:#fff;z-index:10001;align-items:center;justify-content:center;padding:20px">
+  <div class="loginBox">
+    <div style="font-size:12px;font-weight:800;color:#17633f">STALL PARTNERS</div>
+    <h1>Set New Password</h1>
+    <p>Choose a new password for your STore Automation account.</p>
+    <input id="newPassword" type="password" placeholder="New password">
+    <input id="confirmPassword" type="password" placeholder="Confirm new password">
+    <button onclick="updatePassword()">Update Password</button>
+    <p id="resetMessage" style="text-align:center"></p>
+  </div>
+</div>
+
+<div id="loginOverlay" style="display:none;">
+  <div class="loginBox">
+    <div style="font-size:12px;font-weight:800;color:#17633f">STALL PARTNERS</div>
+    <h1>STore Automation</h1>
+    <p>Salon Marketing on Autopilot</p>
+    <input id="loginEmail" type="email" placeholder="Email">
+    <input id="loginPassword" type="password" placeholder="Password">
+    <button onclick="storeLogin()">Sign In</button>
+    <button id="forgotPasswordLink" class="demo" onclick="showForgotPassword()">Forgot Password?</button>
+    
+    <button class="demo" onclick="flowDemo()">Use Flow Salon Demo</button><button class="demo" onclick="adminDemo()">Use STall Partners Admin Demo</button>
+    <p id="loginError" style="text-align:center"></p>
+  </div>
+</div>
+
+<header id="stallHeader">
+
+  <div class="stall-brand-block">
+
+    <img
+      src="assets/stall-logo.png"
+      alt="STall"
+      class="stall-logo"
+    >
+
+    <div class="stall-brand-name">
+      STall
+    </div>
+
+    <div class="stall-brand-product">
+      Store Automation
+    </div>
+
+    <div class="sub">
+      STall Partners • Flow Salon
+    </div>
+
+  </div>
+
+</header>
+<main>
+<section id="home" class="screen active">
+
+  <div class="hero" style="position:relative;overflow:hidden">
+
+    <div style="
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:16px;
+      flex-wrap:wrap;
+    ">
+
+      <div>
+        <div class="badge">● STALL IS ACTIVE</div>
+
+        <h1 style="
+          margin-top:10px;
+          font-size:clamp(24px,4vw,34px);
+          letter-spacing:-.8px;
+        ">
+          Good morning, Flow Salon 👋
+        </h1>
+
+        <div class="muted" style="font-size:14px">
+          Here's what STall is handling for your business today.
+        </div>
+      </div>
+
+      <div style="
+        display:flex;
+        align-items:center;
+        gap:8px;
+        padding:9px 12px;
+        border:1px solid #e1e8e4;
+        border-radius:10px;
+        background:#fff;
+        font-size:12px;
+        font-weight:800;
+      ">
+        <span style="
+          width:8px;
+          height:8px;
+          border-radius:50%;
+          background:#17633f;
+          display:inline-block;
+        "></span>
+        Automation running
+      </div>
+
+    </div>
+
+    <div class="actions" style="margin-top:18px">
+      <button onclick="show('content')">
+        Review Today's Marketing
+      </button>
+
+      <button
+        class="secondary"
+        onclick="toast('All approved assets are queued for publishing')">
+        Approve All
+      </button>
+    </div>
+
+  </div>
+
+
+  <!-- KPI SUMMARY -->
+
+  <div
+    class="grid"
+    style="
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      margin-top:14px;
+    ">
+
+    <div class="metric">
+      <div class="muted">Leads</div>
+      <div class="num">12</div>
+      <div class="badge" style="margin-top:8px">
+        +3 today
+      </div>
+    </div>
+
+    <div class="metric">
+      <div class="muted">Bookings</div>
+      <div class="num">7</div>
+      <div class="badge" style="margin-top:8px">
+        2 new
+      </div>
+    </div>
+
+    <div class="metric">
+      <div class="muted">Reviews</div>
+      <div class="num">3</div>
+      <div class="badge warn" style="margin-top:8px">
+        Awaiting reply
+      </div>
+    </div>
+
+    <div class="metric">
+      <div class="muted">Marketing</div>
+      <div class="num">3</div>
+      <div class="badge" style="margin-top:8px">
+        Ready
+      </div>
+    </div>
+
+  </div>
+
+
+  <!-- NEEDS YOUR ATTENTION -->
+
+  <div class="card" style="margin-top:14px">
+
+    <div style="
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+    ">
+      <div>
+        <h2>⚡ Needs Your Attention</h2>
+        <div class="muted">
+          STall has prepared these items for your approval.
+        </div>
+      </div>
+
+      <span class="badge warn">3 ITEMS</span>
+    </div>
+
+
+    <div class="item">
+
+      <div style="
+        display:flex;
+        justify-content:space-between;
+        gap:12px;
+        align-items:flex-start;
+      ">
+
+        <div>
+          <b>⭐ Google Reviews</b>
+
+          <div class="muted">
+            3 responses are waiting for approval.
+          </div>
+        </div>
+
+        <button
+          class="secondary"
+          onclick="show('reviews')">
+          Review
+        </button>
+
+      </div>
+
+    </div>
+
+
+    <div class="item">
+
+      <div style="
+        display:flex;
+        justify-content:space-between;
+        gap:12px;
+        align-items:flex-start;
+      ">
+
+        <div>
+          <b>📣 Marketing Assets</b>
+
+          <div class="muted">
+            2 social assets are ready to publish.
+          </div>
+        </div>
+
+        <button
+          class="secondary"
+          onclick="show('content')">
+          Review
+        </button>
+
+      </div>
+
+    </div>
+
+
+    <div class="item">
+
+      <div style="
+        display:flex;
+        justify-content:space-between;
+        gap:12px;
+        align-items:flex-start;
+      ">
+
+        <div>
+          <b>👥 Lead Follow-up</b>
+
+          <div class="muted">
+            2 leads have not received a follow-up yet.
+          </div>
+        </div>
+
+        <button
+          class="secondary"
+          onclick="show('leads')">
+          Follow Up
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- STALL AUTOMATION -->
+
+  <div class="card" style="margin-top:14px">
+
+    <div>
+      <h2>🤖 STall is Working for You</h2>
+
+      <div class="muted">
+        Your automation engine is active in the background.
+      </div>
+    </div>
+
+
+    <div
+      class="grid"
+      style="
+        grid-template-columns:repeat(2,minmax(0,1fr));
+        margin-top:12px;
+      ">
+
+      <div class="metric">
+
+        <div style="
+          display:flex;
+          justify-content:space-between;
+          gap:8px;
+        ">
+          <b>Daily Marketing</b>
+          <span class="badge">ON</span>
+        </div>
+
+        <div class="muted" style="margin-top:7px">
+          Content is generated from your approved salon profile.
+        </div>
+
+      </div>
+
+
+      <div class="metric">
+
+        <div style="
+          display:flex;
+          justify-content:space-between;
+          gap:8px;
+        ">
+          <b>Review Monitoring</b>
+          <span class="badge">ON</span>
+        </div>
+
+        <div class="muted" style="margin-top:7px">
+          New Google reviews are monitored automatically.
+        </div>
+
+      </div>
+
+
+      <div class="metric">
+
+        <div style="
+          display:flex;
+          justify-content:space-between;
+          gap:8px;
+        ">
+          <b>Lead Follow-up</b>
+          <span class="badge">ON</span>
+        </div>
+
+        <div class="muted" style="margin-top:7px">
+          STall identifies leads that need attention.
+        </div>
+
+      </div>
+
+
+      <div class="metric">
+
+        <div style="
+          display:flex;
+          justify-content:space-between;
+          gap:8px;
+        ">
+          <b>Booking Reminders</b>
+          <span class="badge">ON</span>
+        </div>
+
+        <div class="muted" style="margin-top:7px">
+          Customer reminders are prepared automatically.
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- PERFORMANCE -->
+
+  <div class="card" style="margin-top:14px">
+
+    <div>
+      <h2>📊 This Week</h2>
+
+      <div class="muted">
+        A quick view of your business activity.
+      </div>
+    </div>
+
+
+    <div
+      class="grid"
+      style="
+        grid-template-columns:repeat(4,minmax(0,1fr));
+        margin-top:12px;
+      ">
+
+      <div class="metric">
+        <div class="muted">Bookings</div>
+        <div class="num">42</div>
+      </div>
+
+      <div class="metric">
+        <div class="muted">New Leads</div>
+        <div class="num">31</div>
+      </div>
+
+      <div class="metric">
+        <div class="muted">Reviews</div>
+        <div class="num">18</div>
+      </div>
+
+      <div class="metric">
+        <div class="muted">Marketing</div>
+        <div class="num">11</div>
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- QUICK ACTIONS -->
+
+  <div class="card" style="margin-top:14px">
+
+    <h2>Quick Actions</h2>
+
+    <div class="muted">
+      Jump directly to the areas that need you.
+    </div>
+
+    <div class="actions">
+
+      <button onclick="show('content')">
+        📣 Marketing
+      </button>
+
+      <button onclick="show('reviews')">
+        ⭐ Reviews
+      </button>
+
+      <button onclick="show('leads')">
+        👥 Leads
+      </button>
+
+      <button
+        class="secondary"
+        onclick="show('more')">
+        🏢 Business
+      </button>
+
+    </div>
+
+  </div>
+
+</section>
+
+</section>
+
+<section id="content" class="screen">
+<div class="hero"><h2>Today's Marketing</h2><div class="muted">AI-generated from Flow Salon's approved profile.</div></div>
+<div class="card"><span class="badge">READY</span><h3>Weekend Glow-Up — Social Post</h3><div class="muted">Promote weekend appointments with a strong booking CTA.</div><div class="actions"><button onclick="approve(this)">Approve</button><button class="secondary" onclick="toast('Editor opened')">Edit</button><button class="secondary" onclick="toast('Asset regenerated')">Regenerate</button></div></div>
+<div class="card"><span class="badge">READY</span><h3>New Customer Welcome — Offer</h3><div class="muted">Uses only approved salon services; owner confirms pricing before publishing.</div><div class="actions"><button onclick="approve(this)">Approve</button><button class="secondary" onclick="toast('Offer editor opened')">Edit</button></div></div>
+<div class="card"><span class="badge warn">DRAFT</span><h3>WhatsApp Reactivation</h3><div class="muted">A concise message for customers who have not visited recently.</div><div class="actions"><button onclick="approve(this)">Approve</button><button class="secondary" onclick="toast('Message editor opened')">Edit</button></div></div>
+</section>
+
+<section id="reviews" class="screen">
+<div class="hero"><h2>⭐ Google Review Assistant</h2><div class="muted">AI drafts. Owner approves. Google publishes.</div></div>
+<div class="card"><span class="badge">5★</span><h3>Priya S.</h3><div class="muted">“Loved the service and the staff were very friendly. Will definitely visit again!”</div><div class="item"><b>AI response</b><div class="muted">Thank you, Priya! We're delighted you enjoyed your experience with our team. We look forward to welcoming you back to Flow Salon soon.</div></div><div class="actions"><button onclick="approve(this)">Approve Reply</button><button class="secondary" onclick="toast('Response regenerated')">Regenerate</button></div></div>
+<div class="card"><span class="badge warn">2★</span><h3>Anita M.</h3><div class="muted">“I was not happy with the experience and felt the wait was too long.”</div><div class="item"><b>AI response</b><div class="muted">We're sorry your experience did not meet expectations. We take your feedback seriously and would like to understand what happened so we can improve.</div></div><div class="actions"><button onclick="approve(this)">Approve Reply</button><button class="secondary" onclick="toast('Response regenerated')">Regenerate</button></div></div>
+</section>
+
+<section id="leads" class="screen">
+<div class="hero"><h2>Leads & Bookings</h2><div class="muted">Track the journey from campaign to appointment.</div></div>
+<div class="card"><div class="item"><b>Priya • Instagram</b><div class="muted">Weekend Glow-Up • Interested</div><div class="actions"><button onclick="toast('WhatsApp follow-up queued')">Follow up</button></div></div>
+<div class="item"><b>Rahul • Google</b><div class="muted">New Customer Welcome • New lead</div><div class="actions"><button onclick="toast('Offer sent')">Send Offer</button></div></div>
+<div class="item"><b>Anita • WhatsApp</b><div class="muted">Bring-a-Friend • Booked</div></div></div>
+</section>
+
+
+<section id="admin" class="screen">
+<div class="hero">
+<div class="badge">STALL PARTNERS ADMIN</div>
+<h1>Salon Management</h1>
+<div class="muted">Create and manage salons on STore Automation.</div>
+</div>
+
+<div class="card">
+<h2>Add Salon</h2>
+<div class="muted">Create Salon #002 without changing application code.</div>
+
+<label>Salon name
+<input id="newSalonName" placeholder="Salon name">
+</label>
+
+<label>Owner name
+<input id="newOwnerName" placeholder="Owner name">
+</label>
+
+<label>Owner email
+<input id="newOwnerEmail" type="email" placeholder="owner@example.com">
+</label>
+
+<label>Phone / WhatsApp
+<input id="newSalonPhone" placeholder="+91">
+</label>
+
+<label>Location
+<input id="newSalonLocation" placeholder="Area, City, State">
+</label>
+
+<label>Website
+<input id="newSalonWebsite" placeholder="https://">
+</label>
+
+<label>Google Business Profile URL
+<input id="newSalonGoogle" placeholder="https://maps.google.com/...">
+</label>
+
+<label>Instagram
+<input id="newSalonInstagram" placeholder="https://instagram.com/...">
+</label>
+
+<label>WhatsApp number
+<input id="newSalonWhatsapp" placeholder="+91">
+</label>
+
+<label>Services
+<textarea id="newSalonServices" rows="3" placeholder="Haircut, facial, hair spa, nails..."></textarea>
+</label>
+
+<label>Current offers
+<textarea id="newSalonOffers" rows="3" placeholder="Welcome offer; weekend offer..."></textarea>
+</label>
+
+<div class="actions">
+<button onclick="createSalon()">Create Salon</button>
+<button class="secondary" onclick="clearSalonForm()">Clear</button>
+</div>
+
+<div id="createSalonMsg" class="muted" style="margin-top:10px"></div>
+</div>
+
+<div class="card">
+<div class="row">
+<div>
+<h2>Salon Portfolio</h2>
+<div class="muted">Pilot salon database</div>
+</div>
+<span class="badge" id="salonCount">1 SALON</span>
+</div>
+<div id="salonList"></div>
+</div>
+</section>
+<section id="more" class="screen">
+<div id="salonWorkspace" class="card" style="display:none">
+<div class="row">
+<div>
+<div class="badge">MY SALON</div>
+<h2 id="workspaceSalonName">Flow Salon</h2>
+<div class="muted" id="workspaceSalonCode">SALON-001</div>
+</div>
+<span class="badge">ACTIVE</span>
+</div>
+
+<h3>Salon Profile</h3>
+<label>Salon Name<input id="profileName"></label>
+<label>Owner Name<input id="profileOwner"></label>
+<label>Phone<input id="profilePhone"></label>
+<label>WhatsApp<input id="profileWhatsapp"></label>
+<label>Address<textarea id="profileAddress" rows="3"></textarea></label>
+<label>Website<input id="profileWebsite"></label>
+<label>Google Business Profile
+<input id="profileGoogle">
+</label>
+
+<div style="margin-top:10px">
+<button type="button" onclick="connectGoogleBusiness()">
+Connect Google Business
+</button>
+<button type="button" class="secondary" onclick="showGoogleDiscover()">
+Discover Google Business Profile
+</button>
+<span id="googleConnectionStatus" class="muted"></span>
+</div>
+
+<div id="googleDiscoverPanel"
+     style="display:none;margin-top:12px;padding:14px;border:1px solid #ddd;border-radius:8px">
+
+  <h4>Find Google Business Profile</h4>
+
+  <div class="muted" style="margin-bottom:10px">
+    Search only within the location you select.
+  </div>
+
+  <label>
+    Country
+    <input id="googleSearchCountry"
+           value="India"
+           placeholder="India">
+  </label>
+
+  <label>
+    City
+    <input id="googleSearchCity"
+           placeholder="Bengaluru"
+           required>
+  </label>
+
+  <label>
+    Area / Locality
+    <input id="googleSearchArea"
+           placeholder="Whitefield">
+  </label>
+
+  <label>
+    Business Name
+    <input id="googleSearchQuery"
+           placeholder="Cut N Cute Studio Salon">
+  </label>
+
+  <div class="actions">
+    <button type="button"
+            onclick="discoverGoogleBusiness()">
+      Search Google
+    </button>
+  </div>
+
+  <div id="googleDiscoverMessage"
+       class="muted"
+       style="margin-top:8px"></div>
+
+  <div id="googleLocationsPanel"
+       style="display:none;margin-top:12px"></div>
+
+</div>
+<div id="googleStoreAccessPanel"
+     style="display:none;margin-top:12px;padding:14px;border:1px solid #ddd;border-radius:8px">
+
+  <h4>STore Google Access</h4>
+
+  <div id="googleStoreAccessStatus" class="muted">
+    Google Business Profile selected.
+  </div>
+
+  <div class="muted" style="margin-top:6px">
+    STore will request Manager access to this specific Google Business Profile.
+    The business owner must accept the invitation before STore can manage it.
+  </div>
+
+  <div class="actions" style="margin-top:10px">
+    <button type="button"
+            id="sendStoreGoogleInvitationButton"
+            onclick="sendStoreGoogleInvitation()">
+      Send STore Access Invitation
+    </button>
+  </div>
+
+</div>
+<label>Instagram<input id="profileInstagram"></label>
+<label>Facebook<input id="profileFacebook"></label>
+<label>Brand Voice<input id="profileBrandVoice"></label>
+<label>Target Audience<textarea id="profileAudience" rows="3"></textarea></label>
+
+<div class="actions">
+<button onclick="saveSalonProfile()">Save Salon Profile</button>
+</div>
+<div id="profileMessage" class="muted"></div>
+
+<hr>
+
+<h3>Services & Pricing</h3>
+<label>Service Name<input id="serviceName" placeholder="Haircut"></label>
+<label>Category<input id="serviceCategory" placeholder="Hair"></label>
+<label>Price<input id="servicePrice" type="number" placeholder="500"></label>
+<label>Duration (minutes)<input id="serviceDuration" type="number" placeholder="45"></label>
+
+<div class="actions">
+<button onclick="addSalonService()">Add Service</button>
+</div>
+
+<div id="serviceMessage" class="muted"></div>
+<div id="serviceList"></div>
+
+<hr>
+
+<h3>Offers</h3>
+<label>Offer Title<input id="offerTitle" placeholder="Weekend Hair Spa Offer"></label>
+<label>Description<textarea id="offerDescription" rows="3"></textarea></label>
+<label>Discount / Offer<input id="offerDiscount" placeholder="20% OFF"></label>
+<label>Start Date<input id="offerStart" type="date"></label>
+<label>End Date<input id="offerEnd" type="date"></label>
+
+<div class="actions">
+<button onclick="addSalonOffer()">Create Offer</button>
+</div>
+
+<div id="offerMessage" class="muted"></div>
+<div id="offerList"></div>
+</div>
+
+<div class="hero"><h2>STore Automation</h2><div class="muted">One app for salon marketing.</div></div>
+<div class="card"><h3>Automation</h3><div class="item">Daily content generation <span class="badge">ON</span></div><div class="item">Offer engine <span class="badge">ON</span></div><div class="item">Google review assistant <span class="badge">ON</span></div><div class="item">Approval workflow <span class="badge">ON</span></div><div class="item">Auto-publish <span class="badge warn">CONNECT ACCOUNTS</span></div></div>
+<div class="card"><h3>Salon profile</h3><label>Salon name<input value="Flow Salon"></label><label>Location<input value="Thubarahalli, Whitefield, Bengaluru"></label><label>Booking URL<input value="https://www.flowunisexsalon.com/home/"></label><div class="actions"><button onclick="toast('Profile saved')">Save</button></div></div>
+</section>
+</main>
+<nav>
+<button id="adminNav" style="display:none" onclick="show('admin',this)">◆<br>Admin</button><button onclick="logoutStore()">↪<br>Logout</button><button class="active" onclick="show('home',this)">⌂<br>Home</button><button onclick="show('content',this)">✦<br>Marketing</button><button onclick="show('reviews',this)">★<br>Reviews</button><button onclick="show('leads',this)">●<br>Leads</button><button onclick="show('more',this)">☰<br>More</button>
+</nav><div id="toast" class="toast"></div>
+<script>
+
+function adminDemo(){
+  localStorage.setItem('storeLoggedIn','true');
+  localStorage.setItem('storeUser','STall Partners Admin');
+  localStorage.setItem('storeRole','admin');
+  document.getElementById('loginOverlay').style.display='none';
+  enableAdmin();
+  show('admin',document.getElementById('adminNav'));
+}
+
+function enableAdmin(){
+  const n=document.getElementById('adminNav');
+  if(n)n.style.display='block';
+  renderSalons();
+}
+
+async function createSalon(){
+  const name =
+    document.getElementById('newSalonName').value.trim();
+
+  const owner =
+    document.getElementById('newOwnerName').value.trim();
+
+  const email =
+    document.getElementById('newOwnerEmail').value.trim();
+
+  const message =
+    document.getElementById('createSalonMsg');
+
+  if(!name || !owner || !email){
+    message.innerText =
+      'Salon name, owner name and email are required.';
+    return;
+  }
+
+  message.innerText =
+    'Creating salon and inviting owner...';
+
+  try {
+    const { data, error } =
+      await supabaseClient.auth.getSession();
+
+    if(error || !data.session){
+      message.innerText =
+        'Your STall admin session has expired. Please log in again.';
+      return;
+    }
+
+    const response =
+      await fetch('/api/create-salon-owner', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization:
+            `Bearer ${data.session.access_token}`
+        },
+        body: JSON.stringify({
+          name,
+          owner_name: owner,
+          owner_email: email,
+
+          phone:
+            document.getElementById(
+              'newSalonPhone'
+            ).value.trim(),
+
+          whatsapp:
+            document.getElementById(
+              'newSalonWhatsapp'
+            ).value.trim(),
+
+          address:
+            document.getElementById(
+              'newSalonLocation'
+            ).value.trim(),
+
+          website:
+            document.getElementById(
+              'newSalonWebsite'
+            ).value.trim(),
+
+          google_business_url:
+            document.getElementById(
+              'newSalonGoogle'
+            ).value.trim(),
+
+          instagram_url:
+            document.getElementById(
+              'newSalonInstagram'
+            ).value.trim()
+        })
+      });
+
+    const result =
+      await response.json().catch(() => ({}));
+
+    if(!response.ok){
+      console.error(
+        'Create salon owner error:',
+        result
+      );
+
+      message.innerText =
+        result.error ||
+        'Unable to create salon and owner account.';
+
+      return;
+    }
+
+    message.innerText =
+      `${result.salon_code} created successfully. ` +
+      `Owner invitation sent to ${result.owner_email}.`;
+
+    clearSalonForm();
+
+    renderSalons();
+
+  } catch(error) {
+    console.error(
+      'Create salon exception:',
+      error
+    );
+
+    message.innerText =
+      'Unable to create salon and owner account.';
+  }
+}
+
+function clearSalonForm(){
+  [
+    'newSalonName',
+    'newOwnerName',
+    'newOwnerEmail',
+    'newSalonPhone',
+    'newSalonLocation',
+    'newSalonWebsite',
+    'newSalonGoogle',
+    'newSalonInstagram',
+    'newSalonWhatsapp',
+    'newSalonServices',
+    'newSalonOffers'
+  ].forEach(function(id){
+    const e=document.getElementById(id);
+    if(e)e.value='';
+  });
+}
+
+function renderSalons(){
+  const base={
+    id:'SALON-001',
+    name:'Flow Salon',
+    owner:'Flow Salon Owner',
+    email:'owner@flowsalon.com',
+    location:'Thubarahalli, Whitefield, Bengaluru',
+    status:'Active',
+    automation:'On'
+  };
+
+  const extra=JSON.parse(
+    localStorage.getItem('storeSalons') || '[]'
+  );
+
+  const salons=[base].concat(extra);
+
+  const list=document.getElementById('salonList');
+  const count=document.getElementById('salonCount');
+
+  if(count){
+    count.innerText =
+      salons.length + ' SALON' +
+      (salons.length===1 ? '' : 'S');
+  }
+
+  if(list){
+    list.innerHTML=salons.map(function(x){
+      return '<div class="item">' +
+        '<b>' + x.id + ' — ' + x.name + '</b>' +
+        '<div class="muted">' +
+        x.owner + ' • ' +
+        (x.location || 'Location not set') +
+        '</div>' +
+        '<div class="actions">' +
+        '<span class="badge">' + x.status + '</span>' +
+        '<span class="badge">' + x.automation + ' Automation</span>' +
+        '<button class="secondary" onclick="toast(\'Opening workspace\')">Open Workspace</button>' +
+        '</div></div>';
+    }).join('');
+  }
+}
+
+function show(id,btn){document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));if(btn)btn.classList.add('active')}
+function approve(b){b.innerText='Approved ✓';b.disabled=true;b.style.opacity=.6;toast('Approved and queued for publishing')}
+function toast(t){let x=document.getElementById('toast');x.innerText=t;x.style.display='block';clearTimeout(window.tt);window.tt=setTimeout(()=>x.style.display='none',2200)}
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+</script>
+
+<script>
+
+
+function showForgotPassword(){
+  document.getElementById('loginOverlay').style.display='none';
+  document.getElementById('forgotOverlay').style.display='flex';
+
+  const loginEmail = document.getElementById('loginEmail').value.trim();
+  if(loginEmail){
+    document.getElementById('forgotEmail').value = loginEmail;
+  }
+}
+
+function closeForgotPassword(){
+  document.getElementById('forgotOverlay').style.display='none';
+  document.getElementById('loginOverlay').style.display='flex';
+}
+
+async function sendPasswordReset(){
+  const email = document.getElementById('forgotEmail').value.trim();
+  const message = document.getElementById('forgotMessage');
+
+  message.innerText = '';
+
+  if(!email){
+    message.innerText = 'Please enter your email address.';
+    return;
+  }
+
+  const { error } = await supabaseClient.auth.resetPasswordForEmail(
+    email,
+    {
+      redirectTo: 'https://store-automation.vercel.app'
+    }
+  );
+
+  if(error){
+    console.error('Password reset error:', error);
+    message.innerText = error.message;
+    return;
+  }
+
+  message.innerText =
+    'Reset link sent. Check your email and open the link to continue.';
+}
+
+function showResetPassword(){
+  document.getElementById('loginOverlay').style.display='none';
+  document.getElementById('forgotOverlay').style.display='none';
+  document.getElementById('resetOverlay').style.display='flex';
+}
+
+async function updatePassword(){
+  const password = document.getElementById('newPassword').value;
+  const confirm = document.getElementById('confirmPassword').value;
+  const message = document.getElementById('resetMessage');
+
+  message.innerText = '';
+
+  if(!password || password.length < 8){
+    message.innerText = 'Password must be at least 8 characters.';
+    return;
+  }
+
+  if(password !== confirm){
+    message.innerText = 'Passwords do not match.';
+    return;
+  }
+
+  const { error } = await supabaseClient.auth.updateUser({
+    password: password
+  });
+
+  if(error){
+    console.error('Password update error:', error);
+    message.innerText = error.message;
+    return;
+  }
+
+  message.innerText = 'Password updated successfully. Returning to login...';
+
+  setTimeout(async () => {
+    await supabaseClient.auth.signOut();
+    location.reload();
+  }, 1800);
+}
+
+supabaseClient.auth.onAuthStateChange(async (event, session) => {
+  if(event === 'PASSWORD_RECOVERY'){
+    showResetPassword();
+  }
+});
+
+/*
+ * Restore an existing Supabase session after a full-page
+ * navigation such as the Google OAuth callback redirect.
+ *
+ * The Supabase session survives the redirect, but the STore
+ * UI must explicitly restore the authenticated workspace.
+ */
+async function restoreStoreSession(){
+  try {
+    const { data, error } =
+      await supabaseClient.auth.getSession();
+
+    if(error){
+      console.error(
+        'Session restoration error:',
+        error
+      );
+      return;
+    }
+
+    if(!data.session){
+      const loginOverlay =
+        document.getElementById(
+          'loginOverlay'
+        );
+
+      if(loginOverlay){
+        loginOverlay.style.display =
+          'flex';
+      }
+
+      return;
+    }
+
+    console.log(
+      '✓ Existing STore session restored:',
+      data.session.user?.email
+    );
+
+    localStorage.setItem(
+      'storeLoggedIn',
+      'true'
+    );
+
+    localStorage.setItem(
+      'storeUser',
+      data.session.user?.email || ''
+    );
+
+    await loadRealUser(
+      data.session.user
+    );
+
+    const loginOverlay =
+      document.getElementById(
+        'loginOverlay'
+      );
+
+    if(loginOverlay){
+      loginOverlay.style.display =
+        'none';
+    }
+
+    /*
+     * Only finalize Google Business after the
+     * authenticated STore session has been restored.
+     */
+    await finalizeGoogleBusinessConnection();
+
+  } catch(error) {
+    console.error(
+      'Session restoration exception:',
+      error
+    );
+  }
+}
+
+
+restoreStoreSession();
+
+
+async function storeLogin(){
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const error = document.getElementById('loginError');
+
+  error.innerText = '';
+
+  if(!email || !password){
+    error.innerText = 'Please enter email and password.';
+    return;
+  }
+
+  const { data, error: authError } =
+    await supabaseClient.auth.signInWithPassword({
+      email,
+      password
+    });
+
+  if(authError){
+    error.innerText = authError.message;
+    return;
+  }
+
+  localStorage.setItem('storeLoggedIn','true');
+  localStorage.setItem('storeUser',email);
+
+  await loadRealUser(data.user);
+
+  document.getElementById('loginOverlay').style.display='none';
+}
+
+
+async function loadRealUser(user){
+  const { data, error } = await supabaseClient
+    .from('profiles')
+    .select('id, full_name, role')
+    .eq('id', user.id)
+    .single();
+
+  if(error){
+    console.error('Profile error:', error);
+    return;
+  }
+
+  localStorage.setItem('storeRole', data.role);
+  localStorage.setItem('storeUserName', data.full_name || user.email);
+
+  if(data.role === 'admin'){
+    enableAdmin();
+    show('admin', document.getElementById('adminNav'));
+    return;
+  }
+
+  if(data.role === 'salon_owner'){
+    await loadSalonWorkspace(user.id);
+    await loadSalonWorkspaceData();
+    show('home');
+  }
+}
+
+
+async function getActiveSalonId(){
+  const {data:sessionData}=await supabaseClient.auth.getSession();
+  if(!sessionData.session)return null;
+
+  const {data,error}=await supabaseClient
+    .from('salon_members')
+    .select('salon_id,created_at')
+    .eq('user_id',sessionData.session.user.id)
+    .order('created_at',{ascending:false})
+    .limit(1)
+    .single();
+
+  if(error){
+    console.error('Salon membership error:',error);
+    return null;
+  }
+
+  return data.salon_id;
+}
+
+
+
+/*
+ * Finalize the universal Google Business connection after OAuth.
+ *
+ * Google OAuth returns to:
+ *   /?google_connected=1&business_id=<UUID>
+ *
+ * The backend then:
+ *   1. Refreshes the Google access token if required.
+ *   2. Discovers accessible GBP accounts and locations.
+ *   3. Matches the exact universal-business Place ID.
+ *   4. Persists the GBP account/location mapping.
+ */
+async function finalizeGoogleBusinessConnection(){
+  try {
+    const params =
+      new URLSearchParams(window.location.search);
+
+    if(
+      params.get('google_connected') !== '1' ||
+      !params.get('business_id')
+    ){
+      return;
+    }
+
+    const businessId =
+      params.get('business_id');
+
+    console.log(
+      'Finalizing Google Business connection:',
+      businessId
+    );
+
+    const { data, error } =
+      await supabaseClient.auth.getSession();
+
+    if(error || !data.session){
+      console.error(
+        'Google Business finalization: no active Supabase session',
+        error
+      );
+
+      toast(
+        'Google connected, but your STore session needs to be refreshed.'
+      );
+
+      return;
+    }
+
+    const response =
+      await fetch(
+        '/api/google-business-locations?business_id=' +
+        encodeURIComponent(businessId),
+        {
+          method: 'GET',
+          headers: {
+            Authorization:
+              `Bearer ${data.session.access_token}`
+          }
+        }
+      );
+
+    const result =
+      await response.json().catch(
+        () => ({})
+      );
+
+    console.log(
+      'Google Business finalization result:',
+      result
+    );
+
+    if(!response.ok){
+      console.error(
+        'Google Business finalization failed:',
+        result
+      );
+
+      toast(
+        result.error ||
+        'Google connected, but the Business Profile location could not be verified.'
+      );
+
+      return;
+    }
+
+    /*
+     * Store the confirmed business context locally.
+     */
+    if(result.business){
+      localStorage.setItem(
+        'activeBusiness',
+        JSON.stringify({
+          id:
+            result.business.id ||
+            businessId,
+
+          business_name:
+            result.business.business_name ||
+            null,
+
+          google_place_id:
+            result.business.google_place_id ||
+            null
+        })
+      );
+    }
+
+    /*
+     * Exact Place ID match was persisted by the backend.
+     */
+    if(
+      result.connection?.connection_status ===
+        'location_selected'
+    ){
+      console.log(
+        '✓ Google Business Profile location verified:',
+        result.connection
+      );
+
+      toast(
+        '✓ Google Business Profile connected and verified.'
+      );
+    } else {
+      console.warn(
+        'Google authorization succeeded, but no exact GBP location was selected.',
+        result
+      );
+
+      toast(
+        'Google connected. The Business Profile location still needs verification.'
+      );
+    }
+
+    /*
+     * Remove OAuth parameters from the browser URL
+     * without reloading the page.
+     */
+    window.history.replaceState(
+      {},
+      document.title,
+      window.location.pathname
+    );
+
+  } catch(error) {
+    console.error(
+      'Google Business finalization exception:',
+      error
+    );
+
+    toast(
+      'Google connected, but Business Profile verification failed.'
+    );
+  }
+}
+
+async function connectGoogleBusiness(){
+  try {
+    const { data, error } = await supabaseClient.auth.getSession();
+
+    if(error || !data.session){
+      toast('Please log in again.');
+      return;
+    }
+
+    /*
+     * Get business_id from localStorage (set by selectGoogleBusinessLocation).
+     */
+    const activeBusiness = JSON.parse(
+      localStorage.getItem('activeBusiness') || '{}'
+    );
+
+    const businessId = activeBusiness.id;
+
+    if(!businessId){
+      toast('No business selected. Please search and map a business first.');
+      return;
+    }
+
+    const response = await fetch(
+      '/api/google-start?business_id=' + encodeURIComponent(businessId),
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${data.session.access_token}`
+        }
+      }
+    );
+
+    const result = await response.json().catch(() => ({}));
+
+    if(!response.ok){
+      console.error('Google start error:', result);
+      toast(result.error || 'Unable to start Google connection.');
+      return;
+    }
+
+    if(!result.authorizationUrl){
+      console.error('Google authorization URL was not returned.');
+      toast('Google authorization URL was not returned.');
+      return;
+    }
+
+    window.location.assign(result.authorizationUrl);
+
+  } catch(error) {
+    console.error('Google connection error:', error);
+    toast('Unable to start Google connection.');
+  }
+}
+
+
+function showGoogleDiscover(){
+  const panel =
+    document.getElementById('googleDiscoverPanel');
+
+  if(panel){
+    panel.style.display =
+      panel.style.display === 'none'
+        ? 'block'
+        : 'none';
+  }
+}
+
+async function discoverGoogleBusiness(){
+
+  const status =
+    document.getElementById('googleConnectionStatus');
+
+  const message =
+    document.getElementById('googleDiscoverMessage');
+
+  const panel =
+    document.getElementById('googleLocationsPanel');
+
+  const country =
+    document.getElementById('googleSearchCountry')?.value.trim();
+
+  const city =
+    document.getElementById('googleSearchCity')?.value.trim();
+
+  const area =
+    document.getElementById('googleSearchArea')?.value.trim();
+
+  const query =
+    document.getElementById('googleSearchQuery')?.value.trim();
+
+  if(!city && !query){
+    if(message){
+      message.innerText =
+        'Please enter a city or business name.';
+    }
+    return;
+  }
+
+  if(message){
+    message.innerText =
+      'Searching Google Maps...';
+  }
+
+  if(status){
+    status.innerText = '';
+  }
+
+  if(panel){
+    panel.style.display = 'none';
+    panel.innerHTML = '';
+  }
+
+  try {
+    const { data, error } =
+      await supabaseClient.auth.getSession();
+
+    if(error || !data.session){
+      if(message){
+        message.innerText =
+          'Please log in again.';
+      }
+      return;
+    }
+
+    const params = new URLSearchParams();
+
+    if(country) params.set('country', country);
+    if(city) params.set('city', city);
+    if(area) params.set('area', area);
+    if(query) params.set('query', query);
+
+    const response =
+      await fetch(
+        '/api/google-discover?' +
+        params.toString(),
+        {
+          method: 'GET',
+          headers: {
+            Authorization:
+              `Bearer ${data.session.access_token}`
+          }
+        }
+      );
+
+    const result =
+      await response.json().catch(() => ({}));
+
+    if(!response.ok){
+      console.error(
+        'Google Places discovery error:',
+        result
+      );
+
+      if(message){
+        message.innerText =
+          result.error ||
+          'Unable to search Google Maps.';
+      }
+
+      return;
+    }
+
+    const locations =
+      Array.isArray(result.locations)
+        ? result.locations
+        : [];
+
+    if(message){
+      message.innerText =
+        locations.length
+          ? `${locations.length} local result(s) found.`
+          : 'No matching businesses found.';
+    }
+
+    if(!locations.length){
+      if(panel){
+        panel.style.display = 'block';
+        panel.innerHTML =
+          '<div class="muted">' +
+          'No businesses were found in the selected location.' +
+          '</div>';
+      }
+      return;
+    }
+
+    if(panel){
+      panel.style.display = 'block';
+
+      const heading =
+        document.createElement('h4');
+
+      heading.innerText =
+        'Select the correct business';
+
+      panel.appendChild(heading);
+
+      locations.forEach(location => {
+
+        const card =
+          document.createElement('div');
+
+        card.style.marginBottom = '10px';
+        card.style.padding = '12px';
+        card.style.border = '1px solid #ddd';
+        card.style.borderRadius = '8px';
+
+        const title =
+          document.createElement('strong');
+
+        title.innerText =
+          location.location_name ||
+          'Unnamed business';
+
+        card.appendChild(title);
+
+        const details =
+          document.createElement('div');
+
+        details.className = 'muted';
+        details.style.marginTop = '5px';
+
+        details.innerText =
+          [
+            location.address,
+            location.phone,
+            location.website,
+            location.rating
+              ? `⭐ ${location.rating}`
+              : null,
+            location.user_rating_count
+              ? `${location.user_rating_count} reviews`
+              : null
+          ]
+          .filter(Boolean)
+          .join(' • ');
+
+        card.appendChild(details);
+
+        if(location.google_maps_url){
+          const mapsLink =
+            document.createElement('a');
+
+          mapsLink.href =
+            location.google_maps_url;
+
+          mapsLink.target = '_blank';
+          mapsLink.rel = 'noopener noreferrer';
+          mapsLink.innerText =
+            'View on Google Maps';
+
+          mapsLink.style.display =
+            'inline-block';
+
+          mapsLink.style.marginTop =
+            '6px';
+
+          card.appendChild(mapsLink);
+        }
+
+        const button =
+          document.createElement('button');
+
+        button.type = 'button';
+        button.style.marginTop = '8px';
+        button.innerText =
+          'MAP THIS LISTING';
+
+        button.onclick =
+          () =>
+            selectGoogleBusinessLocation(
+              location
+            );
+
+        card.appendChild(button);
+        panel.appendChild(card);
+      });
+    }
+
+  } catch(error) {
+    console.error(
+      'Google Places discovery exception:',
+      error
+    );
+
+    if(message){
+      message.innerText =
+        'Unable to search Google Maps.';
+    }
+  }
+}
+
+async function selectGoogleBusinessLocation(
+  location
+){
+  const status =
+    document.getElementById(
+      'googleConnectionStatus'
+    );
+
+  if(status){
+    status.innerText =
+      'Mapping business profile...';
+  }
+
+  try {
+    const { data, error } =
+      await supabaseClient.auth.getSession();
+
+    if(error || !data.session){
+      if(status) status.innerText =
+        'Please log in again.';
+      return;
+    }
+
+    /*
+     * Call /api/map-business to auto-create or reuse business.
+     * This endpoint populates all business data from Google Places.
+     */
+    const mapResponse =
+      await fetch(
+        '/api/map-business',
+        {
+          method: 'POST',
+
+          headers: {
+            'content-type':
+              'application/json',
+
+            Authorization:
+              `Bearer ${data.session.access_token}`
+          },
+
+          body: JSON.stringify({
+            place_id:
+              location.place_id,
+            business_name:
+              location.location_name,
+            phone:
+              location.phone,
+            website:
+              location.website,
+            address:
+              location.address,
+            city:
+              location.city,
+            state:
+              location.state,
+            country:
+              location.country,
+            postal_code:
+              location.postal_code,
+            latitude:
+              location.latitude,
+            longitude:
+              location.longitude,
+            google_maps_url:
+              location.google_maps_url,
+            google_rating:
+              location.rating,
+            google_review_count:
+              location.user_rating_count
+          })
+        }
+      );
+
+    const result =
+      await mapResponse.json().catch(() => ({}));
+
+    if(!mapResponse.ok){
+      console.error(
+        'Map business error:',
+        result
+      );
+
+      if(status) status.innerText =
+        result.error ||
+        'Unable to map business profile.';
+
+      return;
+    }
+
+    if(result.success === false){
+      /*
+       * Business exists and is claimed by another user.
+       */
+      console.warn(
+        'Business already claimed:',
+        result.business_id
+      );
+
+      if(status){
+        status.innerText =
+          'This business profile is already connected to another account. ' +
+          'Access approval is required.';
+      }
+
+      return;
+    }
+
+    /*
+     * Business successfully mapped/created and user is owner.
+     */
+    const business = result.business;
+
+    if(status){
+      status.innerText =
+        '✓ Business profile mapped. Ready to connect Google.';
+    }
+
+    /*
+     * Store business_id in localStorage for next step (OAuth).
+     */
+    localStorage.setItem(
+      'activeBusiness',
+      JSON.stringify({
+        id: business.id,
+        business_name: business.business_name,
+        google_place_id: business.google_place_id
+      })
+    );
+
+    const panel =
+      document.getElementById(
+        'googleLocationsPanel'
+      );
+
+    if(panel){
+      panel.style.display = 'none';
+      panel.innerHTML = '';
+    }
+
+    /*
+     * Show Google authorization button.
+     */
+    const accessPanel =
+      document.getElementById(
+        'googleStoreAccessPanel'
+      );
+
+    if(accessPanel){
+      accessPanel.style.display = 'block';
+    }
+
+    const accessStatus =
+      document.getElementById(
+        'googleStoreAccessStatus'
+      );
+
+    if(accessStatus){
+      accessStatus.innerText =
+        '✓ Business profile mapped. ' +
+        'Next: Connect your Google Account.';
+    }
+
+    const accessButton =
+      document.getElementById(
+        'sendStoreGoogleInvitationButton'
+      );
+
+    if(accessButton){
+      accessButton.disabled = false;
+      accessButton.onclick = connectGoogleBusiness;
+      accessButton.innerText =
+        'Connect Google Account';
+    }
+
+  } catch(error) {
+    console.error(
+      'Map business exception:',
+      error
+    );
+
+    if(status){
+      status.innerText =
+        'Unable to map business profile.';
+    }
+  }
+}
+
+
+async function sendStoreGoogleInvitation(){
+
+  const status =
+    document.getElementById('googleStoreAccessStatus');
+
+  const button =
+    document.getElementById(
+      'sendStoreGoogleInvitationButton'
+    );
+
+  if(status){
+    status.innerText =
+      'Sending STore Google access invitation...';
+  }
+
+  if(button){
+    button.disabled = true;
+    button.innerText = 'Sending...';
+  }
+
+  try {
+
+    const { data, error } =
+      await supabaseClient.auth.getSession();
+
+    if(error || !data.session){
+
+      if(status){
+        status.innerText =
+          'Please log in again.';
+      }
+
+      if(button){
+        button.disabled = false;
+        button.innerText =
+          'Send STore Access Invitation';
+      }
+
+      return;
+    }
+
+    const salonId =
+      await getActiveSalonId();
+
+    if(!salonId){
+
+      if(status){
+        status.innerText =
+          'Unable to determine the active salon.';
+      }
+
+      if(button){
+        button.disabled = false;
+        button.innerText =
+          'Send STore Access Invitation';
+      }
+
+      return;
+    }
+
+    const response =
+      await fetch(
+        '/api/google-invite-manager',
+        {
+          method: 'POST',
+
+          headers: {
+            'content-type':
+              'application/json',
+
+            Authorization:
+              `Bearer ${data.session.access_token}`
+          },
+
+          body: JSON.stringify({
+            salon_id: salonId
+          })
+        }
+      );
+
+    const result =
+      await response.json().catch(
+        () => ({})
+      );
+
+    if(!response.ok){
+
+      console.error(
+        'Google manager invitation error:',
+        result
+      );
+
+      if(status){
+        status.innerText =
+          result.error ||
+          'Unable to send STore access invitation.';
+      }
+
+      if(button){
+        button.disabled = false;
+        button.innerText =
+          'Send STore Access Invitation';
+      }
+
+      return;
+    }
+
+    if(status){
+      status.innerText =
+        `⏳ Invitation sent to ${
+          result.store_manager_email ||
+          'STore Google account'
+        }. Waiting for the owner to accept.`;
+    }
+
+    if(button){
+      button.disabled = true;
+      button.innerText = 'Invitation Sent';
+    }
+
+  } catch(error){
+
+    console.error(
+      'Google manager invitation exception:',
+      error
+    );
+
+    if(status){
+      status.innerText =
+        'Unable to send STore access invitation.';
+    }
+
+    if(button){
+      button.disabled = false;
+      button.innerText =
+        'Send STore Access Invitation';
+    }
+  }
+}
+
+async function loadSalonWorkspaceData(){
+  const salonId=await getActiveSalonId();
+  if(!salonId)return;
+
+  const {data:salon,error}=await supabaseClient
+    .from('salons')
+    .select('*')
+    .eq('id',salonId)
+    .single();
+
+  if(error){
+    console.error('Salon profile error:',error);
+    return;
+  }
+
+  document.getElementById('salonWorkspace').style.display='block';
+
+  document.getElementById('workspaceSalonName').innerText=salon.name||'';
+  document.getElementById('workspaceSalonCode').innerText=salon.salon_code||'';
+
+  document.getElementById('profileName').value=salon.name||'';
+  document.getElementById('profileOwner').value=salon.owner_name||'';
+  document.getElementById('profilePhone').value=salon.phone||'';
+  document.getElementById('profileWhatsapp').value=salon.whatsapp||'';
+  document.getElementById('profileAddress').value=salon.address||'';
+  document.getElementById('profileWebsite').value=salon.website||'';
+  document.getElementById('profileGoogle').value=salon.google_business_url||'';
+  document.getElementById('profileInstagram').value=salon.instagram_url||'';
+  document.getElementById('profileFacebook').value=salon.facebook_url||'';
+  document.getElementById('profileBrandVoice').value=salon.brand_voice||'';
+  document.getElementById('profileAudience').value=salon.target_audience||'';
+
+  await loadSalonServices(salonId);
+  await loadSalonOffers(salonId);
+}
+
+async function saveSalonProfile(){
+  const salonId=await getActiveSalonId();
+  if(!salonId)return;
+
+  const updateData={
+    name:document.getElementById('profileName').value.trim(),
+    owner_name:document.getElementById('profileOwner').value.trim(),
+    phone:document.getElementById('profilePhone').value.trim(),
+    whatsapp:document.getElementById('profileWhatsapp').value.trim(),
+    address:document.getElementById('profileAddress').value.trim(),
+    website:document.getElementById('profileWebsite').value.trim(),
+    google_business_url:document.getElementById('profileGoogle').value.trim(),
+    instagram_url:document.getElementById('profileInstagram').value.trim(),
+    facebook_url:document.getElementById('profileFacebook').value.trim(),
+    brand_voice:document.getElementById('profileBrandVoice').value.trim(),
+    target_audience:document.getElementById('profileAudience').value.trim(),
+    updated_at:new Date().toISOString()
+  };
+
+  const {error}=await supabaseClient
+    .from('salons')
+    .update(updateData)
+    .eq('id',salonId);
+
+  document.getElementById('profileMessage').innerText =
+    error ? 'Unable to save: '+error.message :
+    'Salon profile saved successfully.';
+}
+
+async function addSalonService(){
+  const salonId=await getActiveSalonId();
+  if(!salonId)return;
+
+  const name=document.getElementById('serviceName').value.trim();
+
+  if(!name){
+    document.getElementById('serviceMessage').innerText='Enter a service name.';
+    return;
+  }
+
+  const {error}=await supabaseClient
+    .from('services')
+    .insert({
+      salon_id:salonId,
+      name:name,
+      category:document.getElementById('serviceCategory').value.trim(),
+      price:Number(document.getElementById('servicePrice').value||0),
+      duration_minutes:Number(document.getElementById('serviceDuration').value||0),
+      active:true
+    });
+
+  document.getElementById('serviceMessage').innerText =
+    error ? error.message : 'Service added successfully.';
+
+  if(!error){
+    document.getElementById('serviceName').value='';
+    document.getElementById('serviceCategory').value='';
+    document.getElementById('servicePrice').value='';
+    document.getElementById('serviceDuration').value='';
+    await loadSalonServices(salonId);
+  }
+}
+
+async function loadSalonServices(salonId){
+  const {data,error}=await supabaseClient
+    .from('services')
+    .select('*')
+    .eq('salon_id',salonId)
+    .order('created_at',{ascending:false});
+
+  if(error){
+    console.error(error);
+    return;
+  }
+
+  document.getElementById('serviceList').innerHTML =
+    data.length
+      ? data.map(x =>
+          '<div class="item"><b>'+x.name+
+          '</b><div class="muted">'+
+          (x.category||'')+
+          (x.price?' • ₹'+x.price:'')+
+          (x.duration_minutes?' • '+x.duration_minutes+' min':'')+
+          '</div></div>'
+        ).join('')
+      : '<div class="muted">No services added yet.</div>';
+}
+
+async function addSalonOffer(){
+  const salonId=await getActiveSalonId();
+  if(!salonId)return;
+
+  const title=document.getElementById('offerTitle').value.trim();
+
+  if(!title){
+    document.getElementById('offerMessage').innerText='Enter an offer title.';
+    return;
+  }
+
+  const {error}=await supabaseClient
+    .from('offers')
+    .insert({
+      salon_id:salonId,
+      title:title,
+      description:document.getElementById('offerDescription').value.trim(),
+      discount_text:document.getElementById('offerDiscount').value.trim(),
+      start_date:document.getElementById('offerStart').value||null,
+      end_date:document.getElementById('offerEnd').value||null,
+      active:true
+    });
+
+  document.getElementById('offerMessage').innerText =
+    error ? error.message : 'Offer created successfully.';
+
+  if(!error){
+    document.getElementById('offerTitle').value='';
+    document.getElementById('offerDescription').value='';
+    document.getElementById('offerDiscount').value='';
+    document.getElementById('offerStart').value='';
+    document.getElementById('offerEnd').value='';
+    await loadSalonOffers(salonId);
+  }
+}
+
+async function loadSalonOffers(salonId){
+  const {data,error}=await supabaseClient
+    .from('offers')
+    .select('*')
+    .eq('salon_id',salonId)
+    .order('created_at',{ascending:false});
+
+  if(error){
+    console.error(error);
+    return;
+  }
+
+  document.getElementById('offerList').innerHTML =
+    data.length
+      ? data.map(x =>
+          '<div class="item"><b>'+x.title+
+          '</b><div class="muted">'+
+          (x.discount_text||'')+
+          (x.start_date?' • '+x.start_date:'')+
+          (x.end_date?' → '+x.end_date:'')+
+          '</div></div>'
+        ).join('')
+      : '<div class="muted">No offers created yet.</div>';
+}
+
+async function loadSalonWorkspace(userId){
+  const { data, error } = await supabaseClient
+    .from('salon_members')
+    .select(`
+      role,
+      salons (
+        id,
+        salon_code,
+        name,
+        owner_name,
+        owner_email,
+        phone,
+        whatsapp,
+        address,
+        website,
+        brand_voice,
+        target_audience,
+        automation_enabled,
+        approval_required
+      )
+    `)
+    .eq('user_id', userId)
+    .order('created_at',{ascending:false});
+
+  if(error){
+    console.error('Salon access error:', error);
+    return;
+  }
+
+  if(data && data.length){
+    const salon = data[0].salons;
+
+    localStorage.setItem(
+      'activeSalon',
+      JSON.stringify(salon)
+    );
+
+    const account = document.getElementById('accountLabel');
+
+    if(account){
+      account.innerText =
+        'Signed in as ' +
+        (salon.owner_name || 'Salon Owner') +
+        ' • ' +
+        salon.name;
+    }
+  }
+}
+
+
+
+async function logoutStore(){
+  try {
+    const { error } = await supabaseClient.auth.signOut();
+
+    if(error){
+      console.error('Logout error:', error);
+    }
+  } catch(error) {
+    console.error('Logout exception:', error);
+  }
+
+  localStorage.removeItem('storeLoggedIn');
+  localStorage.removeItem('storeUser');
+  localStorage.removeItem('storeRole');
+  localStorage.removeItem('storeUserName');
+
+  document.querySelectorAll('.screen').forEach(x => {
+    x.classList.remove('active');
+  });
+
+  const loginOverlay = document.getElementById('loginOverlay');
+  if(loginOverlay){
+    loginOverlay.style.display = 'flex';
+  }
+
+  const forgotOverlay = document.getElementById('forgotOverlay');
+  if(forgotOverlay){
+    forgotOverlay.style.display = 'none';
+  }
+
+  const resetOverlay = document.getElementById('resetOverlay');
+  if(resetOverlay){
+    resetOverlay.style.display = 'none';
+  }
+
+  const loginEmail = document.getElementById('loginEmail');
+  const loginPassword = document.getElementById('loginPassword');
+
+  if(loginEmail) loginEmail.value = '';
+  if(loginPassword) loginPassword.value = '';
+
+  const loginError = document.getElementById('loginError');
+  if(loginError) loginError.innerText = '';
+
+  toast('Logged out successfully');
+}
+
+function flowDemo(){
+  document.getElementById('loginError').innerText =
+    'Demo login has been replaced with real Supabase authentication. Please sign in with your account.';
+}
+
+
+</script>
+
+</body></html>

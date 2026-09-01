@@ -87,7 +87,6 @@ export default {
       }
 
       const {
-        business_id,
         name,
         owner_name,
         owner_email,
@@ -99,16 +98,10 @@ export default {
         instagram_url
       } = body;
 
-      const isGoogleStoreCreation =
-        Boolean(business_id?.trim());
-
       if (
-        !isGoogleStoreCreation &&
-        (
-          !owner_name?.trim() ||
-          !owner_email?.trim() ||
-          !name?.trim()
-        )
+        !name?.trim() ||
+        !owner_name?.trim() ||
+        !owner_email?.trim()
       ) {
         return json({
           error:
@@ -117,7 +110,7 @@ export default {
       }
 
       const email =
-        owner_email?.trim().toLowerCase() || null;
+        owner_email.trim().toLowerCase();
 
       /*
        * Generate the next SALON-XXX code.
@@ -163,223 +156,82 @@ export default {
         ).padStart(3, '0')}`;
 
       /*
-       * Resolve the universal business.
+       * Create the universal business.
        *
-       * Google flow:
-       *   business_id is supplied, so use the EXISTING business.
+       * This admin-created-owner flow creates a NEW business.
+       * Existing businesses are never matched by name.
        *
-       * Manual flow:
-       *   no business_id is supplied, so create a NEW business.
+       * Google listing identity is resolved separately through
+       * google_place_id in the business-mapping flow.
        */
-      let business;
-
-      if (business_id?.trim()) {
-
-        const businessLookupResponse =
-          await supabaseFetch(
-            `/rest/v1/businesses` +
-            `?id=eq.${encodeURIComponent(business_id.trim())}` +
-            `&select=id,business_name,business_type,phone,website,address,google_place_id,status` +
-            `&limit=1`
-          );
-
-        if (!businessLookupResponse.ok) {
-          console.error(
-            'Google business lookup failed:',
-            await businessLookupResponse.text()
-          );
-
-          return json({
-            error:
-              'Unable to verify the selected Google business'
-          }, 500);
-        }
-
-        const businesses =
-          await businessLookupResponse.json();
-
-        if (!businesses.length) {
-          return json({
-            error:
-              'Selected Google business could not be found'
-          }, 404);
-        }
-
-        business = businesses[0];
-
-      } else {
-
-        const businessResponse =
-          await supabaseFetch(
-            `/rest/v1/businesses`,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Prefer: 'return=representation'
-              },
-              body: JSON.stringify({
-                business_name: name.trim(),
-                business_type: 'salon',
-                phone: phone?.trim() || null,
-                website: website?.trim() || null,
-                address: address?.trim() || null,
-                status: 'active',
-                automation_enabled: true,
-                approval_required: true
-              })
-            }
-          );
-
-        if (!businessResponse.ok) {
-          console.error(
-            'Business creation failed:',
-            await businessResponse.text()
-          );
-
-          return json({
-            error: 'Unable to create business'
-          }, 500);
-        }
-
-        const createdBusinesses =
-          await businessResponse.json();
-
-        business =
-          Array.isArray(createdBusinesses)
-            ? createdBusinesses[0]
-            : createdBusinesses;
-
-        if (!business?.id) {
-          return json({
-            error:
-              'Business was created but no business ID was returned'
-          }, 500);
-        }
-      }
-
-      /*
-       * Prevent the same universal business from being
-       * added to the salon system more than once.
-       *
-       * This is especially important for the Google flow,
-       * where the business already exists before the salon
-       * is created.
-       */
-      const existingBusinessSalonResponse =
+      const businessResponse =
         await supabaseFetch(
-          `/rest/v1/salons` +
-          `?business_id=eq.${encodeURIComponent(business.id)}` +
-          `&select=id,salon_code,name,owner_name,owner_email,business_id` +
-          `&limit=1`
+          `/rest/v1/businesses`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Prefer: 'return=representation'
+            },
+            body: JSON.stringify({
+              business_name: name.trim(),
+              business_type: 'salon',
+              phone: phone?.trim() || null,
+              website: website?.trim() || null,
+              address: address?.trim() || null,
+              status: 'active',
+              automation_enabled: true,
+              approval_required: true
+            })
+          }
         );
 
-      if (!existingBusinessSalonResponse.ok) {
+      if (!businessResponse.ok) {
         console.error(
-          'Existing business salon lookup failed:',
-          await existingBusinessSalonResponse.text()
+          'Business creation failed:',
+          await businessResponse.text()
         );
 
         return json({
-          error:
-            'Unable to verify whether this store already exists'
+          error: 'Unable to create business'
         }, 500);
       }
 
-      const existingBusinessSalons =
-        await existingBusinessSalonResponse.json();
+      const createdBusinesses =
+        await businessResponse.json();
 
-      if (existingBusinessSalons.length) {
+      const business =
+        Array.isArray(createdBusinesses)
+          ? createdBusinesses[0]
+          : createdBusinesses;
 
-        const existingSalon =
-          existingBusinessSalons[0];
-
+      if (!business?.id) {
         return json({
-          success: true,
-          already_exists: true,
-
-          salon_id:
-            existingSalon.id,
-
-          salon_code:
-            existingSalon.salon_code,
-
-          salon_name:
-            existingSalon.name,
-
-          business_id:
-            business.id,
-
-          business_name:
-            business.business_name,
-
-          owner_name:
-            existingSalon.owner_name,
-
-          owner_email:
-            existingSalon.owner_email,
-
-          invitation_status:
-            'not_sent'
-        });
+          error:
+            'Business was created but no business ID was returned'
+        }, 500);
       }
 
       /*
        * Create the salon and explicitly link it to the business.
-       *
-       * Google flow uses the already-resolved business record.
-       * Manual flow continues using the submitted salon details.
        */
       const newSalon = {
         salon_code: salonCode,
         business_id: business.id,
-
-        name:
-          business.business_name ||
-          name?.trim() ||
-          'Store',
-
-        owner_name:
-          isGoogleStoreCreation
-            ? null
-            : owner_name.trim(),
-
-        owner_email:
-          isGoogleStoreCreation
-            ? null
-            : email,
-
-        phone:
-          business.phone ||
-          phone?.trim() ||
-          null,
-
-        whatsapp:
-          whatsapp?.trim() ||
-          null,
-
-        address:
-          business.address ||
-          address?.trim() ||
-          null,
-
-        website:
-          business.website ||
-          website?.trim() ||
-          null,
-
+        name: name.trim(),
+        owner_name: owner_name.trim(),
+        owner_email: email,
+        phone: phone?.trim() || null,
+        whatsapp: whatsapp?.trim() || null,
+        address: address?.trim() || null,
+        website: website?.trim() || null,
         google_business_url:
-          google_business_url?.trim() ||
-          null,
-
+          google_business_url?.trim() || null,
         instagram_url:
-          instagram_url?.trim() ||
-          null,
-
+          instagram_url?.trim() || null,
         automation_enabled: true,
         approval_required: true,
         status: 'active',
-
         updated_at:
           new Date().toISOString()
       };
@@ -417,35 +269,6 @@ export default {
       }
 
       const salon = createdSalons[0];
-
-      /*
-       * Google Store creation intentionally stops here.
-       *
-       * The store has been created against the existing
-       * Google Business record, but no owner is assigned yet.
-       *
-       * The owner will later register using Google and the
-       * authenticated Google identity will be connected to
-       * this Store.
-       */
-      if (isGoogleStoreCreation) {
-        return json({
-          success: true,
-          already_exists: false,
-          salon_id: salon.id,
-          business_id: business.id,
-          salon_code: salon.salon_code,
-          salon_name: salon.name,
-          business_name: business.business_name,
-          google_place_id:
-            business.google_place_id || null,
-          owner_name: null,
-          owner_email: null,
-          owner_user_id: null,
-          invitation_status: 'not_sent',
-          onboarding_status: 'owner_registration_pending'
-        });
-      }
 
       /*
        * Check whether the owner already has a STore account.

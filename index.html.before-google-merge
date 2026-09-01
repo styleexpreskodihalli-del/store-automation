@@ -1683,96 +1683,10 @@ window.supabaseClient = supabaseClient;
     <div style="font-size:12px;font-weight:800;color:#17633f">STALL PARTNERS</div>
     <h1>STore Automation</h1>
     <p>Salon Marketing on Autopilot</p>
-    <div style="margin-top:8px">
-      <div style="font-size:18px;font-weight:900;color:#10201c">
-        Store Owner Access
-      </div>
-
-      <div style="margin-top:6px;color:#777;font-size:13px;line-height:1.5">
-        Manage your stores with your Google account.
-      </div>
-    </div>
-
-    <div style="margin-top:20px">
-
-      <div style="font-size:13px;font-weight:800;color:#333;margin-bottom:7px">
-        Already have a STall account?
-      </div>
-
-      <button
-        type="button"
-        onclick="storeGoogleLogin('signin')"
-        style="width:100%;font-weight:800">
-        Continue with Google
-      </button>
-
-    </div>
-
-    <div style="
-      display:flex;
-      align-items:center;
-      gap:10px;
-      margin:20px 0;
-      color:#999;
-      font-size:11px;
-      font-weight:700">
-      <span style="flex:1;height:1px;background:#ddd"></span>
-      OR
-      <span style="flex:1;height:1px;background:#ddd"></span>
-    </div>
-
-    <div>
-
-      <div style="font-size:13px;font-weight:800;color:#333;margin-bottom:7px">
-        New Store Owner?
-      </div>
-
-      <button
-        type="button"
-        class="demo"
-        onclick="storeGoogleLogin('signup')"
-        style="
-          width:100%;
-          font-weight:800;
-          border:1px solid #17633f;
-          color:#17633f;
-          background:#fff">
-        Sign Up with Google
-      </button>
-
-    </div>
-
-    <div style="
-      margin:22px 0 10px;
-      padding-top:14px;
-      border-top:1px solid #eee">
-
-      <div style="font-size:11px;color:#888;margin-bottom:7px">
-        Existing email/password login
-      </div>
-
-      <input
-        id="loginEmail"
-        type="email"
-        placeholder="Email">
-
-      <input
-        id="loginPassword"
-        type="password"
-        placeholder="Password">
-
-      <button onclick="storeLogin()">
-        Sign In with Email
-      </button>
-
-      <button
-        id="forgotPasswordLink"
-        class="demo"
-        onclick="showForgotPassword()">
-        Forgot Password?
-      </button>
-
-    </div>
+    <input id="loginEmail" type="email" placeholder="Email">
+    <input id="loginPassword" type="password" placeholder="Password">
+    <button onclick="storeLogin()">Sign In</button>
+    <button id="forgotPasswordLink" class="demo" onclick="showForgotPassword()">Forgot Password?</button>
 
     <button class="demo" onclick="flowDemo()">Use Flow Salon Demo</button><button class="demo" onclick="adminDemo()">Use STall Partners Admin Demo</button>
     <p id="loginError" style="text-align:center"></p>
@@ -2210,9 +2124,8 @@ window.supabaseClient = supabaseClient;
 
 <section id="reviews" class="screen">
 <div class="hero"><h2>⭐ Google Review Assistant</h2><div class="muted">AI drafts. Owner approves. Google publishes.</div></div>
-<div id="googleReviewsList" class="card">
-  <div class="muted">Loading Google reviews...</div>
-</div>
+<div class="card"><span class="badge">5★</span><h3>Priya S.</h3><div class="muted">“Loved the service and the staff were very friendly. Will definitely visit again!”</div><div class="item"><b>AI response</b><div class="muted">Thank you, Priya! We're delighted you enjoyed your experience with our team. We look forward to welcoming you back to Flow Salon soon.</div></div><div class="actions"><button onclick="approve(this)">Approve Reply</button><button class="secondary" onclick="toast('Response regenerated')">Regenerate</button></div></div>
+<div class="card"><span class="badge warn">2★</span><h3>Anita M.</h3><div class="muted">“I was not happy with the experience and felt the wait was too long.”</div><div class="item"><b>AI response</b><div class="muted">We're sorry your experience did not meet expectations. We take your feedback seriously and would like to understand what happened so we can improve.</div></div><div class="actions"><button onclick="approve(this)">Approve Reply</button><button class="secondary" onclick="toast('Response regenerated')">Regenerate</button></div></div>
 </section>
 
 <section id="leads" class="screen">
@@ -2281,13 +2194,25 @@ Search Google
 <div id="storeOwnerPanel"
      style="display:none;margin-top:18px;padding:16px;border:1px solid #ddd;border-radius:8px">
 
-<h3>Store Setup</h3>
+<h3>Store Owner</h3>
 
 <div class="muted" style="margin-bottom:12px">
-The business information comes directly from Google.
-Create the store now. The store owner will register with their
-Google account and select the store they want to connect to STall.
+The business information comes from Google. We only need the store owner's
+details to complete the store setup.
 </div>
+
+<label>
+Owner Name
+<input id="newOwnerName"
+       placeholder="Owner name">
+</label>
+
+<label>
+Owner Email
+<input id="newOwnerEmail"
+       type="email"
+       placeholder="owner@example.com">
+</label>
 
 <div class="actions">
 <button type="button"
@@ -2733,10 +2658,19 @@ async function createStoreFromGoogle(){
   const message =
     document.getElementById('createSalonMsg');
 
-  /*
-   * Google Store creation does not require owner details.
-   * The owner will register later using Google.
-   */
+  const ownerName =
+    document.getElementById('newOwnerName')?.value.trim();
+
+  const ownerEmail =
+    document.getElementById('newOwnerEmail')?.value.trim();
+
+  if(!ownerName || !ownerEmail){
+    if(message){
+      message.innerText =
+        'Owner name and owner email are required.';
+    }
+    return;
+  }
 
   const activeBusinessRaw =
     localStorage.getItem('activeBusiness');
@@ -2778,7 +2712,7 @@ async function createStoreFromGoogle(){
 
   if(message){
     message.innerText =
-      'Creating store from Google Business...';
+      'Creating store and setting up owner access...';
   }
 
   try {
@@ -2796,7 +2730,7 @@ async function createStoreFromGoogle(){
 
     const response =
       await fetch(
-        '/api/create-salon-owner',
+        '/api/create-store-from-google',
         {
           method: 'POST',
 
@@ -2810,7 +2744,13 @@ async function createStoreFromGoogle(){
 
           body: JSON.stringify({
             business_id:
-              activeBusiness.id
+              activeBusiness.id,
+
+            owner_name:
+              ownerName,
+
+            owner_email:
+              ownerEmail
           })
         }
       );
@@ -2848,7 +2788,9 @@ async function createStoreFromGoogle(){
     } else {
       if(message){
         message.innerText =
-          `✓ ${result.salon_code} created. Owner can register with Google.`;
+          result.invitation_status === 'invitation_sent'
+            ? `✓ ${result.salon_code} created. Owner invitation sent to ${result.owner_email}.`
+            : `✓ ${result.salon_code} created and owner linked successfully.`;
       }
     }
 
@@ -2890,6 +2832,27 @@ async function createStoreFromGoogle(){
      */
     if(typeof renderSalons === 'function'){
       await renderSalons();
+    }
+
+    /*
+     * Clear owner fields only after success.
+     */
+    const ownerNameInput =
+      document.getElementById(
+        'newOwnerName'
+      );
+
+    const ownerEmailInput =
+      document.getElementById(
+        'newOwnerEmail'
+      );
+
+    if(ownerNameInput){
+      ownerNameInput.value = '';
+    }
+
+    if(ownerEmailInput){
+      ownerEmailInput.value = '';
     }
 
   } catch(error) {
@@ -3115,122 +3078,10 @@ function renderSalons(){
   }
 }
 
-async function renderGoogleReviewsSummary(summary = {}, reviews = []){
-  const container = document.getElementById('googleReviewsList');
-  if(!container) return;
-
-  const rating = Number(summary.rating ?? 0);
-  const reviewCount = Number(summary.review_count ?? 0);
-
-  if(!reviews.length){
-    container.innerHTML = `
-      <div class="item">
-        <b>Google Reviews</b>
-        <div class="muted">${rating ? `⭐ ${rating.toFixed(1)}` : 'No rating available'}${reviewCount ? ` • ${reviewCount} reviews` : ''}</div>
-      </div>
-      <div class="muted">No live Google reviews are available for this store yet.</div>
-    `;
-    return;
-  }
-
-  const cards = reviews.map(review => {
-    const starLabel = review.rating ? `${review.rating}★` : 'Review';
-    const text = review.text || 'Customer review';
-    const author = review.author_name || 'Customer';
-    const relativeTime = review.relative_time ? ` • ${review.relative_time}` : '';
-
-    return `
-      <div class="card" style="margin-top:12px">
-        <span class="badge">${starLabel}</span>
-        <h3>${author}</h3>
-        <div class="muted">“${text}”${relativeTime}</div>
-        <div class="item">
-          <b>AI response</b>
-          <div class="muted">Thank you for sharing your feedback. We appreciate the time you took to let us know how we’re doing.</div>
-        </div>
-        <div class="actions">
-          <button onclick="approve(this)">Approve Reply</button>
-          <button class="secondary" onclick="toast('Response regenerated')">Regenerate</button>
-        </div>
-      </div>
-    `;
-  }).join('');
-
-  container.innerHTML = `
-    <div class="item" style="margin-bottom:12px">
-      <b>Google Reviews</b>
-      <div class="muted">${rating ? `⭐ ${rating.toFixed(1)}` : 'No rating available'}${reviewCount ? ` • ${reviewCount} reviews` : ''}</div>
-    </div>
-    ${cards}
-  `;
-}
-
-async function loadGoogleReviewsForActiveBusiness(){
-  const container = document.getElementById('googleReviewsList');
-  if(!container) return;
-
-  const activeBusiness = JSON.parse(localStorage.getItem('activeBusiness') || '{}');
-  const businessId = activeBusiness.id;
-  const placeId = activeBusiness.google_place_id;
-
-  if(!businessId && !placeId){
-    container.innerHTML = '<div class="muted">Map or select a store first to load live Google reviews.</div>';
-    return;
-  }
-
-  container.innerHTML = '<div class="muted">Loading Google reviews...</div>';
-
-  try {
-    const { data, error } = await supabaseClient.auth.getSession();
-    if(error || !data.session){
-      container.innerHTML = '<div class="muted">Please log in to load live Google reviews.</div>';
-      return;
-    }
-
-    const params = new URLSearchParams();
-    if(businessId) params.set('business_id', businessId);
-    if(placeId) params.set('place_id', placeId);
-
-    const response = await fetch('/api/google-review-details?' + params.toString(), {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${data.session.access_token}`
-      }
-    });
-
-    const result = await response.json().catch(() => ({}));
-
-    if(!response.ok){
-      console.error('Google review loading error:', result);
-      container.innerHTML = '<div class="muted">Unable to load live Google reviews right now.</div>';
-      return;
-    }
-
-    await renderGoogleReviewsSummary(result.summary || {}, result.reviews || []);
-  } catch(error) {
-    console.error('Google reviews load exception:', error);
-    container.innerHTML = '<div class="muted">Unable to load live Google reviews right now.</div>';
-  }
-}
-
-function show(id,btn){
-  document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
-  if(btn)btn.classList.add('active');
-  if(id === 'reviews') {
-    loadGoogleReviewsForActiveBusiness();
-  }
-}
+function show(id,btn){document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));if(btn)btn.classList.add('active')}
 function approve(b){b.innerText='Approved ✓';b.disabled=true;b.style.opacity=.6;toast('Approved and queued for publishing')}
 function toast(t){let x=document.getElementById('toast');x.innerText=t;x.style.display='block';clearTimeout(window.tt);window.tt=setTimeout(()=>x.style.display='none',2200)}
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
-
-window.addEventListener('DOMContentLoaded', () => {
-  if(document.getElementById('reviews')){
-    loadGoogleReviewsForActiveBusiness();
-  }
-});
 </script>
 
 <script>
@@ -3436,61 +3287,6 @@ async function storeLogin(){
   await loadRealUser(data.user);
 
   document.getElementById('loginOverlay').style.display='none';
-}
-
-
-async function storeGoogleLogin(mode = 'signin'){
-
-  const error =
-    document.getElementById('loginError');
-
-  /*
-   * Remember why the owner entered the Google flow.
-   *
-   * signin = existing STall owner
-   * signup = new STall owner
-   *
-   * The next step will use this to decide whether
-   * to show connected stores or store registration.
-   */
-  localStorage.setItem(
-    'stallGoogleAuthMode',
-    mode === 'signup'
-      ? 'signup'
-      : 'signin'
-  );
-
-  if(error){
-    error.innerText =
-      mode === 'signup'
-        ? 'Opening Google signup...'
-        : 'Opening Google login...';
-  }
-
-  const { error: authError } =
-    await supabaseClient.auth.signInWithOAuth({
-      provider: 'google',
-
-      options: {
-        redirectTo:
-          window.location.origin
-      }
-    });
-
-  if(authError){
-
-    console.error(
-      'Google authentication error:',
-      authError
-    );
-
-    if(error){
-      error.innerText =
-        authError.message ||
-        'Unable to continue with Google.';
-    }
-
-  }
 }
 
 

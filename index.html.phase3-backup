@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#10201c"><link rel="manifest" href="manifest.json">
+<title>STore Automation</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,Arial;background:#f4f7f5;color:#17211e}
+header{background:#10201c;color:#fff;padding:18px 18px 16px;position:sticky;top:0;z-index:3}.brand{font-weight:850;font-size:20px}.sub{font-size:12px;color:#b9c8c1;margin-top:3px}
+main{max-width:760px;margin:auto;padding:16px 14px 92px}.hero{background:#fff;border:1px solid #e1e8e4;border-radius:16px;padding:17px;margin-bottom:12px}
+h1,h2,h3{margin:0 0 6px}.muted{color:#68756f;font-size:13px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.metric{background:#fff;border:1px solid #e1e8e4;border-radius:13px;padding:14px}.num{font-size:25px;font-weight:850;margin-top:5px}
+.card{background:#fff;border:1px solid #e1e8e4;border-radius:14px;padding:15px;margin-top:12px}.item{padding:13px 0;border-bottom:1px solid #edf0ee}.item:last-child{border-bottom:0}
+button{border:0;border-radius:9px;padding:10px 13px;background:#10201c;color:white;font-weight:750;cursor:pointer}.secondary{background:#fff;color:#10201c;border:1px solid #d8e0dc}.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.badge{display:inline-block;font-size:10px;font-weight:800;padding:5px 8px;border-radius:99px;background:#e8f6ef;color:#17633f}.warn{background:#fff1d9;color:#875d15}
+nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #dfe6e2;display:grid;grid-template-columns:repeat(5,1fr);z-index:4}nav button{background:white;color:#50605a;border-radius:0;padding:10px 4px;font-size:11px}nav button.active{color:#10201c;font-weight:900}
+.screen{display:none}.screen.active{display:block}textarea,input,select{width:100%;padding:10px;border:1px solid #d8e0dc;border-radius:8px;margin-top:6px;font:inherit}label{font-size:12px;font-weight:750;display:block;margin-top:12px}
+.toast{position:fixed;left:50%;bottom:75px;transform:translateX(-50%);background:#10201c;color:#fff;padding:11px 14px;border-radius:9px;display:none;font-size:12px}
+</style>
+
+<style>
+#loginOverlay{position:fixed;inset:0;background:#10201c;color:#fff;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}
+.loginBox{width:min(420px,100%);background:#fff;color:#17211e;border-radius:18px;padding:26px;box-shadow:0 20px 60px #0008}
+.loginBox h1{margin:10px 0 4px}.loginBox p{color:#68756f;font-size:13px}
+.loginBox input{width:100%;padding:12px;margin:7px 0 12px;border:1px solid #d8e0dc;border-radius:8px}
+.loginBox button{width:100%;padding:12px;margin-top:8px;border:0;border-radius:9px;background:#10201c;color:white;font-weight:700}
+.loginBox button.demo{background:white;color:#10201c;border:1px solid #d8e0dc}
+</style>
+
+</head>
+<body>
+<div id="loginOverlay">
+  <div class="loginBox">
+    <div style="font-size:12px;font-weight:800;color:#17633f">STALL PARTNERS</div>
+    <h1>STore Automation</h1>
+    <p>Salon Marketing on Autopilot</p>
+    <input id="loginEmail" type="email" placeholder="Email">
+    <input id="loginPassword" type="password" placeholder="Password">
+    <button onclick="storeLogin()">Sign In</button>
+    <button class="demo" onclick="flowDemo()">Use Flow Salon Demo</button>
+    <p id="loginError" style="text-align:center"></p>
+  </div>
+</div>
+
+<header><div class="brand">STore Automation</div><div class="sub">STall Partners • Flow Salon</div></header>
+<main>
+<section id="home" class="screen active">
+<div class="hero"><div class="badge">AUTOMATION ON</div><h1 style="margin-top:8px">Good morning, Flow Salon 👋</h1><div class="muted">Your marketing command centre.</div><div class="actions"><button onclick="show('content')">Review Today's Marketing</button><button class="secondary" onclick="toast('All approved assets are queued for publishing')">Approve All</button></div></div>
+<div class="grid"><div class="metric"><div class="muted">Today's assets</div><div class="num">3</div></div><div class="metric"><div class="muted">Reviews</div><div class="num">3</div></div><div class="metric"><div class="muted">Leads</div><div class="num">12</div></div><div class="metric"><div class="muted">Bookings</div><div class="num">7</div></div></div>
+<div class="card"><h2>Today's priorities</h2>
+<div class="item"><b>🎨 Instagram post</b><div class="muted">Weekend Glow-Up</div></div>
+<div class="item"><b>🎁 Offer</b><div class="muted">New Customer Welcome</div></div>
+<div class="item"><b>⭐ Google reviews</b><div class="muted">3 responses waiting for approval</div></div></div>
+</section>
+
+<section id="content" class="screen">
+<div class="hero"><h2>Today's Marketing</h2><div class="muted">AI-generated from Flow Salon's approved profile.</div></div>
+<div class="card"><span class="badge">READY</span><h3>Weekend Glow-Up — Social Post</h3><div class="muted">Promote weekend appointments with a strong booking CTA.</div><div class="actions"><button onclick="approve(this)">Approve</button><button class="secondary" onclick="toast('Editor opened')">Edit</button><button class="secondary" onclick="toast('Asset regenerated')">Regenerate</button></div></div>
+<div class="card"><span class="badge">READY</span><h3>New Customer Welcome — Offer</h3><div class="muted">Uses only approved salon services; owner confirms pricing before publishing.</div><div class="actions"><button onclick="approve(this)">Approve</button><button class="secondary" onclick="toast('Offer editor opened')">Edit</button></div></div>
+<div class="card"><span class="badge warn">DRAFT</span><h3>WhatsApp Reactivation</h3><div class="muted">A concise message for customers who have not visited recently.</div><div class="actions"><button onclick="approve(this)">Approve</button><button class="secondary" onclick="toast('Message editor opened')">Edit</button></div></div>
+</section>
+
+<section id="reviews" class="screen">
+<div class="hero"><h2>⭐ Google Review Assistant</h2><div class="muted">AI drafts. Owner approves. Google publishes.</div></div>
+<div class="card"><span class="badge">5★</span><h3>Priya S.</h3><div class="muted">“Loved the service and the staff were very friendly. Will definitely visit again!”</div><div class="item"><b>AI response</b><div class="muted">Thank you, Priya! We're delighted you enjoyed your experience with our team. We look forward to welcoming you back to Flow Salon soon.</div></div><div class="actions"><button onclick="approve(this)">Approve Reply</button><button class="secondary" onclick="toast('Response regenerated')">Regenerate</button></div></div>
+<div class="card"><span class="badge warn">2★</span><h3>Anita M.</h3><div class="muted">“I was not happy with the experience and felt the wait was too long.”</div><div class="item"><b>AI response</b><div class="muted">We're sorry your experience did not meet expectations. We take your feedback seriously and would like to understand what happened so we can improve.</div></div><div class="actions"><button onclick="approve(this)">Approve Reply</button><button class="secondary" onclick="toast('Response regenerated')">Regenerate</button></div></div>
+</section>
+
+<section id="leads" class="screen">
+<div class="hero"><h2>Leads & Bookings</h2><div class="muted">Track the journey from campaign to appointment.</div></div>
+<div class="card"><div class="item"><b>Priya • Instagram</b><div class="muted">Weekend Glow-Up • Interested</div><div class="actions"><button onclick="toast('WhatsApp follow-up queued')">Follow up</button></div></div>
+<div class="item"><b>Rahul • Google</b><div class="muted">New Customer Welcome • New lead</div><div class="actions"><button onclick="toast('Offer sent')">Send Offer</button></div></div>
+<div class="item"><b>Anita • WhatsApp</b><div class="muted">Bring-a-Friend • Booked</div></div></div>
+</section>
+
+<section id="more" class="screen">
+<div class="hero"><h2>STore Automation</h2><div class="muted">One app for salon marketing.</div></div>
+<div class="card"><h3>Automation</h3><div class="item">Daily content generation <span class="badge">ON</span></div><div class="item">Offer engine <span class="badge">ON</span></div><div class="item">Google review assistant <span class="badge">ON</span></div><div class="item">Approval workflow <span class="badge">ON</span></div><div class="item">Auto-publish <span class="badge warn">CONNECT ACCOUNTS</span></div></div>
+<div class="card"><h3>Salon profile</h3><label>Salon name<input value="Flow Salon"></label><label>Location<input value="Thubarahalli, Whitefield, Bengaluru"></label><label>Booking URL<input value="https://www.flowunisexsalon.com/home/"></label><div class="actions"><button onclick="toast('Profile saved')">Save</button></div></div>
+</section>
+</main>
+<nav>
+<button class="active" onclick="show('home',this)">⌂<br>Home</button><button onclick="show('content',this)">✦<br>Marketing</button><button onclick="show('reviews',this)">★<br>Reviews</button><button onclick="show('leads',this)">●<br>Leads</button><button onclick="show('more',this)">☰<br>More</button>
+</nav><div id="toast" class="toast"></div>
+<script>
+function show(id,btn){document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));if(btn)btn.classList.add('active')}
+function approve(b){b.innerText='Approved ✓';b.disabled=true;b.style.opacity=.6;toast('Approved and queued for publishing')}
+function toast(t){let x=document.getElementById('toast');x.innerText=t;x.style.display='block';clearTimeout(window.tt);window.tt=setTimeout(()=>x.style.display='none',2200)}
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+</script>
+
+<script>
+function storeLogin(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const password=document.getElementById('loginPassword').value;
+  if(!email || !password){
+    document.getElementById('loginError').innerText='Please enter email and password.';
+    return;
+  }
+  localStorage.setItem('storeLoggedIn','true');
+  localStorage.setItem('storeUser',email);
+  document.getElementById('loginOverlay').style.display='none';
+}
+function flowDemo(){
+  localStorage.setItem('storeLoggedIn','true');
+  localStorage.setItem('storeUser','Flow Salon Owner');
+  document.getElementById('loginOverlay').style.display='none';
+}
+if(localStorage.getItem('storeLoggedIn')==='true'){
+  window.addEventListener('DOMContentLoaded',()=>{
+    const x=document.getElementById('loginOverlay');
+    if(x)x.style.display='none';
+  });
+}
+</script>
+
+</body></html>
