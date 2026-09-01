@@ -1567,7 +1567,7 @@ async function startPayment(){
 
     const response =
       await fetch(
-        '/api/razorpay-create-order.mjs',
+        '/api/razorpay.mjs?action=create-order',
         {
           method:'POST',
 
@@ -1700,7 +1700,7 @@ async function startPayment(){
 
             const verifyResponse =
               await fetch(
-                '/api/razorpay-verify-payment.mjs',
+                '/api/razorpay.mjs?action=verify',
                 {
                   method:'POST',
 
