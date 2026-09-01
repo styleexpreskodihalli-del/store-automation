@@ -1825,7 +1825,7 @@ window.supabaseClient = supabaseClient;
           font-size:clamp(24px,4vw,34px);
           letter-spacing:-.8px;
         ">
-          Good morning, Your Store <span class="greeting-emoji">👋</span>
+          Good morning <span class="greeting-emoji">👋</span>
         </h1>
 
         <div class="muted" style="font-size:14px">
@@ -3642,8 +3642,33 @@ async function resolveCurrentStore(){
     const userId = sessionData?.session?.user?.id || localStorage.getItem('storeUserId');
     const currentEmail = (sessionData?.session?.user?.email || localStorage.getItem('storeUser') || '').trim().toLowerCase();
 
-    if(!userId){
-      return { salon: null, business: null };
+    function looksLikePlaceholderStoreName(name) {
+      const normalized = String(name || '').trim().toLowerCase();
+      return !normalized || ['flow salon', 'your store', 'my salon', 'stall partners', 'store automation'].includes(normalized);
+    }
+
+    function chooseBestSalon(rows) {
+      if(!Array.isArray(rows) || !rows.length) return null;
+
+      const eligible = rows.filter(row => row?.salons && row.salons.id);
+      if(!eligible.length) return null;
+
+      const validRows = eligible.filter(row => !looksLikePlaceholderStoreName(row.salons.name));
+      const candidates = validRows.length ? validRows : eligible;
+
+      const emailMatch = currentEmail
+        ? candidates.filter(row => String(row.salons.owner_email || '').trim().toLowerCase() === currentEmail)
+        : [];
+
+      const exactRoleMatch = candidates.filter(row => String(row.role || '').trim().toLowerCase() === 'owner' || String(row.role || '').trim().toLowerCase() === 'salon_owner');
+      const preferred = emailMatch.length
+        ? emailMatch
+        : exactRoleMatch.length
+          ? exactRoleMatch
+          : candidates;
+
+      preferred.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+      return preferred[0]?.salons || null;
     }
 
     const { data: salonMembershipRows, error: salonMembershipError } = await supabaseClient
@@ -3700,10 +3725,7 @@ async function resolveCurrentStore(){
 
     let salon = null;
     if(!salonMembershipError && Array.isArray(salonMembershipRows) && salonMembershipRows.length){
-      const eligible = salonMembershipRows.filter(row => row?.salons && row.salons.id);
-      const emailMatch = eligible.find(row => String(row.salons.owner_email || '').trim().toLowerCase() === currentEmail);
-      const preferred = emailMatch || eligible[0];
-      salon = preferred?.salons || null;
+      salon = chooseBestSalon(salonMembershipRows);
     }
 
     if(!salon && currentEmail){
@@ -3711,18 +3733,19 @@ async function resolveCurrentStore(){
         .from('salons')
         .select('*')
         .eq('owner_email', currentEmail)
-        .order('created_at', { ascending: false })
-        .limit(1);
+        .order('created_at', { ascending: false });
 
       if(!ownerSalonError && Array.isArray(ownerSalons) && ownerSalons.length){
-        salon = ownerSalons[0];
+        const candidate = ownerSalons.filter(row => !looksLikePlaceholderStoreName(row.name));
+        salon = (candidate.length ? candidate : ownerSalons)[0] || null;
       }
     }
 
     let business = null;
     if(!businessMembershipError && Array.isArray(businessMembershipRows) && businessMembershipRows.length){
       const visible = businessMembershipRows.filter(row => row?.businesses && row.businesses.id);
-      business = visible[0]?.businesses || null;
+      const valid = visible.filter(row => String(row.businesses.business_name || '').trim() && !looksLikePlaceholderStoreName(row.businesses.business_name));
+      business = (valid.length ? valid : visible)[0]?.businesses || null;
     }
 
     if(!business && salon?.business_id){
@@ -4983,8 +5006,11 @@ async function loadSalonWorkspace(userId){
 
   const heroTitle = document.querySelector('.hero h1');
   const brandSub = document.querySelector('.sub');
-  if (heroTitle) heroTitle.innerHTML = `Good morning, ${salon.name} <span class="greeting-emoji">👋</span>`;
-  if (brandSub) brandSub.innerText = `STall Partners • ${salon.name}`;
+  const displayName = typeof getSafeStoreDisplayName === 'function'
+    ? getSafeStoreDisplayName(salon.name, 'Your Store')
+    : (salon.name || 'Your Store');
+  if (heroTitle) heroTitle.innerHTML = `Good morning, ${displayName} <span class="greeting-emoji">👋</span>`;
+  if (brandSub) brandSub.innerText = `STall Partners • ${displayName}`;
 }
 
 
