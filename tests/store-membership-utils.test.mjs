@@ -11,7 +11,8 @@ const {
   filterStoresForEmail,
   mergeStoreCollections,
   getSafeStoreDisplayName,
-  buildReviewResponseText
+  buildReviewResponseText,
+  generateReviewResponseVariants
 } = storeMembershipUtils;
 
 test('pickLatestMembership prefers the newest membership row', () => {
@@ -207,4 +208,22 @@ test('buildReviewResponseText includes category-specific SEO keywords for salon 
   assert.match(response, /hair salon in Bengaluru/i);
   assert.match(response, /best salon in Whitefield/i);
   assert.match(response, /Thank you for choosing/i);
+});
+
+test('generateReviewResponseVariants creates multiple recovery and customer-specific options with business details', () => {
+  const variants = generateReviewResponseVariants({
+    businessName: 'Style Expres Unisex Salon',
+    businessType: 'unisex salon',
+    city: 'Whitefield',
+    phone: '+91 73381 45999',
+    website: 'https://styleexpres.in',
+    specialties: ['haircut', 'hair spa', 'facial']
+  }, 'The haircut was inconsistent and the staff seemed distracted.', 1);
+
+  assert.ok(Array.isArray(variants));
+  assert.ok(variants.length >= 3);
+  assert.match(variants[0], /Style Expres Unisex Salon/i);
+  assert.match(variants[1], /sorry|did not meet expectations|make it right/i);
+  assert.match(variants[1], /haircut|hair spa|facial/i);
+  assert.match(variants[1], /73381 45999|styleexpres\.in/i);
 });

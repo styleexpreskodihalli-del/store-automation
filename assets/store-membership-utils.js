@@ -184,6 +184,44 @@
     return `Thank you for choosing ${businessName}${cityText} ${categoryText} ${reviewFlavor} ${keywordText}`;
   }
 
+  function generateReviewResponseVariants(businessContext = {}, reviewText = '', rating = 0) {
+    const businessName = String(businessContext.businessName || businessContext.name || 'Your business').trim();
+    const businessType = String(businessContext.businessType || 'salon').trim();
+    const city = String(businessContext.city || 'Bengaluru').trim();
+    const phone = String(businessContext.phone || '').trim();
+    const website = String(businessContext.website || '').trim();
+    const specialties = Array.isArray(businessContext.specialties) && businessContext.specialties.length
+      ? businessContext.specialties
+      : ['haircut', 'styling', 'beauty services'];
+    const reviewSummary = String(reviewText || '').trim();
+    const contactLine = [phone || website ? `${phone ? `Call us at ${phone}` : ''}${phone && website ? ' • ' : ''}${website ? `Visit ${website}` : ''}` : 'We’d love to hear from you'].join('').trim();
+
+    const starStrategy = Number(rating) <= 2
+      ? [
+          `We’re truly sorry to hear that your experience with ${businessName} did not meet expectations. Thank you for being honest, and we would like the chance to make it right. Our team specialises in ${specialties.slice(0, 2).join(' and ')} and we’d welcome the opportunity to serve you again. ${contactLine}.`,
+          `Thank you for sharing your feedback. We take every review seriously and are sorry for the experience you had at ${businessName}. Our focus is on ${specialties.join(', ')} and we are committed to improving every visit. Please reach out to us at ${phone || website || 'our front desk'} so we can assist you directly.`,
+          `We appreciate you letting us know. At ${businessName}, we specialise in ${specialties.join(', ')} and we want every customer to leave feeling valued. We are sorry this visit fell short, and we would be glad to speak with you directly at ${phone || website || 'our desk'} to fix it.`
+        ]
+      : Number(rating) >= 4
+        ? [
+            `Thank you for choosing ${businessName}. We’re thrilled to hear your feedback and delighted to know our ${businessType} services stood out for you. We specialise in ${specialties.join(', ')} and we look forward to welcoming you back in ${city}.`,
+            `We appreciate your kind words about ${businessName}. Thank you for highlighting the care and quality of our ${businessType} work. Our team is proud to specialise in ${specialties.join(', ')} and we’re grateful for your support in ${city}.`,
+            `Thank you for taking the time to review ${businessName}. We’re so happy to hear your experience was positive, and we look forward to continuing to offer ${specialties.join(', ')} for customers in ${city}. ${contactLine}.`
+          ]
+        : [
+            `Thank you for choosing ${businessName}. We value your feedback and are grateful for the chance to keep improving. Our team specialises in ${specialties.join(', ')} and we are committed to giving every customer a better experience in ${city}. ${contactLine}.`,
+            `We appreciate you sharing your thoughts about ${businessName}. We specialise in ${specialties.join(', ')} and we take every comment seriously as we work to improve every visit in ${city}.`,
+            `Thank you for your honest feedback. At ${businessName}, we focus on ${specialties.join(', ')} and we’re always working to deliver a better experience. Please reach out to us at ${phone || website || 'our team'} so we can continue improving.`
+          ];
+
+    const typedReview = reviewSummary ? reviewSummary : 'your experience';
+    return [
+      `Thank you for sharing your feedback about ${typedReview}. We appreciate it and we’re proud to serve guests at ${businessName}. Our specialities include ${specialties.join(', ')} and we’d love to welcome you back. ${contactLine}.`,
+      ...starStrategy,
+      `We’re grateful for your feedback about ${businessName}. We specialise in ${specialties.join(', ')} and we’re committed to delivering quality service in ${city}. For any follow-up, please contact ${phone || businessName}.`
+    ].slice(0, 4);
+  }
+
   global.pickLatestMembership = pickLatestMembership;
   global.pickPreferredStoreMembership = pickPreferredStoreMembership;
   global.normalizeStoreMemberships = normalizeStoreMemberships;
@@ -204,7 +242,8 @@
       getSafeStoreDisplayName,
       buildReviewResponseText,
       getReviewKeywordSet,
-      REVIEW_KEYWORDS_BY_CATEGORY
+      REVIEW_KEYWORDS_BY_CATEGORY,
+      generateReviewResponseVariants
     };
   }
 })(typeof window !== 'undefined' ? window : globalThis);

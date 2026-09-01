@@ -3211,26 +3211,57 @@ async function renderGoogleReviewsSummary(summary = {}, reviews = []){
     const text = review.text || 'Customer review';
     const author = review.author_name || 'Customer';
     const relativeTime = review.relative_time ? ` • ${review.relative_time}` : '';
-    const aiResponse = typeof buildReviewResponseText === 'function'
-      ? buildReviewResponseText({ businessName, businessType, city, keywords }, text)
-      : 'Thank you for sharing your feedback. We appreciate the time you took to let us know how we’re doing.';
+    const reviewVariants = typeof generateReviewResponseVariants === 'function'
+      ? generateReviewResponseVariants({
+          businessName,
+          businessType,
+          city,
+          phone: activeBusiness?.phone || null,
+          website: activeBusiness?.website || null,
+          specialties: ['haircut', 'hair spa', 'facial']
+        }, text, Number(review.rating || 0))
+      : [
+          typeof buildReviewResponseText === 'function'
+            ? buildReviewResponseText({ businessName, businessType, city, keywords }, text)
+            : 'Thank you for sharing your feedback. We appreciate the time you took to let us know how we’re doing.'
+        ];
+    const initialResponse = reviewVariants[0] || 'We appreciate your feedback.';
 
     return `
-      <div class="card" style="margin-top:12px">
+      <div class="card review-card" style="margin-top:12px">
         <span class="badge">${starLabel}</span>
         <h3>${author}</h3>
         <div class="muted">“${text}”${relativeTime}</div>
         <div class="item">
           <b>AI response</b>
-          <div class="muted">${aiResponse}</div>
+          <div class="muted review-response-text" data-review-variants='${JSON.stringify(reviewVariants).replace(/'/g, '&apos;')}'>${initialResponse}</div>
         </div>
         <div class="actions">
           <button onclick="approve(this)">Approve Reply</button>
-          <button class="secondary" onclick="toast('Response regenerated')">Regenerate</button>
+          <button class="secondary review-regenerate" data-review-index="0" data-review-variants='${JSON.stringify(reviewVariants).replace(/'/g, '&apos;')}'>Regenerate</button>
         </div>
       </div>
     `;
   }).join('');
+
+  const regenerateButtons = container.querySelectorAll('.review-regenerate');
+  regenerateButtons.forEach(button => {
+    button.addEventListener('click', event => {
+      const target = event.currentTarget;
+      const variants = JSON.parse(target.dataset.reviewVariants || '[]');
+      const card = target.closest('.review-card');
+      const responseText = card && card.querySelector('.review-response-text');
+      const currentIndex = Number(target.dataset.reviewIndex || 0);
+      const nextIndex = (currentIndex + 1) % variants.length;
+
+      if (responseText && variants.length) {
+        responseText.innerText = variants[nextIndex];
+      }
+
+      target.dataset.reviewIndex = String(nextIndex);
+      target.innerText = nextIndex === 0 ? 'Regenerate' : 'Try Another';
+    });
+  });
 
   container.innerHTML = `
     <div class="item" style="margin-bottom:12px">
